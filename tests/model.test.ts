@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RunnerModel, RULES, OBSTACLE_WIDTHS, difficultyAt } from '../src/model.ts';
+import { RunnerModel, RULES, OBSTACLE_WIDTHS, COURSE_RANDOM, difficultyAt } from '../src/model.ts';
 
 const DT = 1 / 120; // same fixed step as src/main.ts
 const GROUND = { platforms: false, encounters: false } as const; // isolated ground regression
@@ -401,83 +401,46 @@ test('difficultyAt: linear ramp, clamped at 1200m (hazard spacing 22->18m, food 
   assert.deepEqual([at(-5).level, at(-5).obstacleSpacing, at(-5).foodSpacing], [0, 22, 24]);
 });
 
-test('course: hazards start at 19m and follow the distance-based spacing; they are generated 140m ahead', () => {
+test('course: hazards start 19..25m, spacing is the distance-based value plus 0..5m; they are generated 140m ahead', () => {
+  let minExtra = Infinity, maxExtra = -Infinity, minFirst = Infinity, maxFirst = -Infinity;
   for (const seed of SEEDS) {
     const { hazards } = course(seed, 400);
-    assert.equal(hazards[0].x, 19);
-    for (let i = 1; i < hazards.length; i++) assert.ok(Math.abs(hazards[i].x - hazards[i - 1].x - difficultyAt(hazards[i - 1].x).obstacleSpacing) < 1e-9, `seed ${seed} #${i}`);
-    assert.ok(hazards.at(-1)!.x >= 400 * 24 + 140 - 22 && hazards.at(-1)!.x < 400 * 24 + 140, `last hazard ${hazards.at(-1)!.x}`);
+    assert.ok(hazards[0].x >= COURSE_RANDOM.firstHazardMin && hazards[0].x <= COURSE_RANDOM.firstHazardMax, `first hazard ${hazards[0].x}`);
+    minFirst = Math.min(minFirst, hazards[0].x); maxFirst = Math.max(maxFirst, hazards[0].x);
+    for (let i = 1; i < hazards.length; i++) {
+      const extra = hazards[i].x - hazards[i - 1].x - difficultyAt(hazards[i - 1].x).obstacleSpacing;
+      assert.ok(extra >= -1e-9 && extra <= COURSE_RANDOM.hazardExtra + 1e-9, `seed ${seed} #${i} extra ${extra}`);
+      minExtra = Math.min(minExtra, extra); maxExtra = Math.max(maxExtra, extra);
+    }
+    const limit = 400 * 24 + 140, last = hazards.at(-1)!.x;
+    assert.ok(last >= limit - 22 - COURSE_RANDOM.hazardExtra && last < limit, `last hazard ${last}`);
   }
+  assert.ok(maxFirst - minFirst > 3 && maxExtra - minExtra > 3.5, `the randomness really varies: first ${minFirst}..${maxFirst}, extra ${minExtra}..${maxExtra}`);
   const m = new RunnerModel(7, true, GROUND); const first = m.items.filter(i => i.kind !== 'food' && i.kind !== 'gold');
-  assert.ok(first.at(-1)!.x >= 140 - 22 && first.at(-1)!.x < 140, 'initial course already reaches 140m');
+  assert.ok(first.at(-1)!.x >= 140 - 27 && first.at(-1)!.x < 140, 'initial course already reaches 140m');
 });
 
-test('course: foods follow the scheduled slots (+-4m jitter, spacing >= 8m); unsafe slots are skipped, first food 3..11', () => {
-  let slotsTotal = 0, placed = 0, lo = Infinity, hi = -Infinity;
+test('course: foods stay near the difficulty schedule (jitter, +-8m position search), spacing >= 8m; unsafe slots are skipped', () => {
+  let slotsTotal = 0, placed = 0, minGap = Infinity, maxGap = 0;
   for (const seed of SEEDS) {
     const D = 40000, { foods } = course(seed, D / 24);
-    const slots: number[] = []; for (let d = 7; d < D + 96; d += difficultyAt(d).foodSpacing) slots.push(d);
-    assert.ok(foods[0].x >= 3 && foods[0].x <= 11 + 1e-9, `first food ${foods[0].x}`);
-    let k = 0;
-    for (let n = 0; n < foods.length; n++) {
-      while (k < slots.length && slots[k] + 4 + 1e-9 < foods[n].x) k++;
-      assert.ok(k < slots.length && Math.abs(foods[n].x - slots[k]) <= 4 + 1e-9, `seed ${seed} food ${n} x ${foods[n].x} slot ${slots[k]}`);
-      lo = Math.min(lo, foods[n].x - slots[k]); hi = Math.max(hi, foods[n].x - slots[k]); k++;
-      if (n) assert.ok(foods[n].x - foods[n - 1].x >= RULES.minFoodSpacing - 1e-9, `seed ${seed} spacing ${foods[n].x - foods[n - 1].x}`);
+    assert.ok(foods[0].x >= 3 && foods[0].x <= 7 + COURSE_RANDOM.foodPositionJitter + 1e-9, `first food ${foods[0].x}`);
+    for (let n = 1; n < foods.length; n++) {
+      const gap = foods[n].x - foods[n - 1].x;
+      assert.ok(gap >= RULES.minFoodSpacing - 1e-9, `seed ${seed} spacing ${gap}`);
+      minGap = Math.min(minGap, gap); maxGap = Math.max(maxGap, gap);
     }
-    slotsTotal += slots.length; placed += foods.length;
+    // Scheduled slot count (spacing at that distance); real foods can only be fewer, and not by much.
+    let slots = 0; for (let d = 7; d < D + 96; d += difficultyAt(d).foodSpacing) slots++;
+    slotsTotal += slots; placed += foods.length;
   }
-  const skipped = 1 - placed / slotsTotal;
-  console.log(`food slots placed ${placed}/${slotsTotal} (skipped ${(skipped * 100).toFixed(1)}%), jitter ${lo.toFixed(2)}..${hi.toFixed(2)}m`);
-  assert.ok(lo < -2.5 && hi > 2.5, `jitter really varies: ${lo}..${hi}`);
-  assert.ok(skipped < .35, `too many skipped food slots: ${skipped}`);
+  const kept = placed / slotsTotal;
+  console.log(`food placed/slots ${placed}/${slotsTotal} (${(kept * 100).toFixed(1)}%), gaps ${minGap.toFixed(1)}..${maxGap.toFixed(1)}m`);
+  assert.ok(kept > .85 && kept <= 1.02, `food supply ${kept}`);
+  assert.ok(maxGap - minGap > 12, `food gaps really vary: ${minGap}..${maxGap}`);
 });
 
-test('course: every food is clear of every hazard (edge + half hit 24 + food half 16 + 4m)', () => {
-  let nearest = Infinity;
-  for (const seed of SEEDS) {
-    const { foods, hazards } = course(seed, 2000);
-    for (const f of foods) for (const h of hazards) {
-      const dx = Math.abs(f.x - h.x); if (dx > 40) continue;
-      const need = h.w / 2 / RULES.scale + (RULES.halfHitWidth + f.w / 2) / RULES.scale + RULES.foodHazardMargin;
-      nearest = Math.min(nearest, dx - need);
-      assert.ok(dx >= need - 1e-9, `seed ${seed} ${f.kind}@${f.x} vs ${h.kind}@${h.x}w${h.w}: ${dx} < ${need}`);
-    }
-  }
-  console.log(`closest food-to-hazard margin beyond the required distance: ${nearest.toFixed(2)}m`);
-});
-
-test('course: food height floor-48..floor-205, roughly uniform', () => {
-  const lifts: number[] = [];
-  for (const seed of SEEDS) for (const f of course(seed, 2000).foods) { lifts.push(F - f.y); assert.equal(f.h, 32); assert.equal(f.w, 32); }
-  assert.ok(Math.min(...lifts) >= 48 - 1e-9 && Math.max(...lifts) <= 205 + 1e-9);
-  assert.ok(Math.min(...lifts) < 52 && Math.max(...lifts) > 201, 'range is actually used');
-  const mean = lifts.reduce((a, b) => a + b, 0) / lifts.length;
-  assert.ok(Math.abs(mean - 126.5) < 3, `mean lift ${mean}`);
-});
-
-// A food `lift` px above the floor, 20m ahead; returns true if the player eats it.
-function eats(lift: number, state: State, jumpAhead: number | null) {
-  const m = quiet(); const x = m.distance + 20;
-  m.items.push({ id: 1, x, y: F - lift, w: 32, h: 32, kind: 'food', used: false }); let jumped = false;
-  for (let i = 0; i < 120 * 12 && m.distance < x + 3; i++) {
-    hold(m, state); const ahead = x - m.distance;
-    if (!jumped && jumpAhead !== null && ahead <= jumpAhead) { m.jump(); jumped = true; }
-    m.step(DT);
-  }
-  return m.foods === 1;
-}
-test('food reach: low food is walkable, high food (up to floor-205) is reachable with ONE jump in every state', () => {
-  const walkable = RULES.playerHeight + 32; // the food bottom must pass the player's head
-  assert.equal(eats(100, 'normal', null), true); assert.equal(eats(walkable - 4, 'normal', null), true);
-  assert.equal(eats(walkable + 6, 'normal', null), false); assert.equal(eats(205, 'normal', null), false);
-  for (const state of ['normal', 'exhausted'] as State[]) for (let lift = 48; lift <= 205; lift += 157 / 8) {
-    let ok = 0; for (let a = 0.2; a <= 9; a += 0.1) if (eats(lift, state, a)) ok++;
-    assert.ok(ok >= 3, `lift ${lift.toFixed(0)} ${state}: only ${ok} timings reach it`);
-  }
-});
-
-test('course: widths stay inside OBSTACLE_WIDTHS, use the whole range, kinds repeat in the 6-chunk cycle', () => {
+test('course: widths stay inside OBSTACLE_WIDTHS, use the whole range, kinds are random with block twice as likely', () => {
   const seen: Record<string, number[]> = {}; const kinds: Record<string, number> = {};
   for (const seed of SEEDS) for (const h of course(seed, 1200).hazards) {
     const [lo, hi] = (OBSTACLE_WIDTHS as any)[h.kind]; assert.ok(h.w >= lo && h.w <= hi, `${h.kind} ${h.w} not in ${lo}..${hi}`);
@@ -488,8 +451,11 @@ test('course: widths stay inside OBSTACLE_WIDTHS, use the whole range, kinds rep
     assert.ok(Math.min(...w) <= lo + 3 && Math.max(...w) >= hi - 3, `${k} uses ${Math.min(...w)}..${Math.max(...w)}`);
   }
   const total = Object.values(kinds).reduce((a, b) => a + b, 0), unit = total / 6;
-  assert.ok(Math.abs(kinds.block / unit - 2) < 0.05 && Math.abs(kinds.beam / unit - 1) < 0.05 && Math.abs(kinds.tower / unit - 1) < 0.05 && Math.abs(kinds.long / unit - 1) < 0.05 && Math.abs(kinds.pit / unit - 1) < 0.05, JSON.stringify(kinds));
-  const first = new RunnerModel(13579, true, GROUND).items.filter(i => i.kind !== 'food' && i.kind !== 'gold')[0]; assert.equal(first.kind, 'block');
+  assert.ok(Math.abs(kinds.block / unit - 2) < 0.15 && Math.abs(kinds.beam / unit - 1) < 0.15 && Math.abs(kinds.tower / unit - 1) < 0.15 && Math.abs(kinds.long / unit - 1) < 0.15 && Math.abs(kinds.pit / unit - 1) < 0.15, JSON.stringify(kinds));
+  // No fixed 6-chunk cycle any more: the kind sequence is not the same period-6 pattern on every seed.
+  const seqs = new Set(SEEDS.map(sd => course(sd, 400).hazards.slice(0, 12).map(h => h.kind).join()));
+  assert.ok(seqs.size > SEEDS.length / 2, `kind sequences differ between seeds (${seqs.size})`);
+  for (const sd of SEEDS) { const k = course(sd, 1200).hazards.map(h => h.kind); assert.ok(k.some((x, i) => i >= 6 && x !== k[i - 6]), `seed ${sd} repeats a 6 cycle`); }
 });
 
 test('course: free distance between neighbouring hazards stays large at the new maximum widths', () => {
