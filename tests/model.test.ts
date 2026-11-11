@@ -440,6 +440,50 @@ test('course: foods stay near the difficulty schedule (jitter, +-8m position sea
   assert.ok(maxGap - minGap > 12, `food gaps really vary: ${minGap}..${maxGap}`);
 });
 
+test('course: every food is clear of every hazard (edge + half hit 24 + food half 16 + 4m)', () => {
+  let nearest = Infinity;
+  for (const seed of SEEDS) {
+    const { foods, hazards } = course(seed, 2000);
+    for (const f of foods) for (const h of hazards) {
+      const dx = Math.abs(f.x - h.x); if (dx > 40) continue;
+      const need = h.w / 2 / RULES.scale + (RULES.halfHitWidth + f.w / 2) / RULES.scale + RULES.foodHazardMargin;
+      nearest = Math.min(nearest, dx - need);
+      assert.ok(dx >= need - 1e-9, `seed ${seed} ${f.kind}@${f.x} vs ${h.kind}@${h.x}w${h.w}: ${dx} < ${need}`);
+    }
+  }
+  console.log(`closest food-to-hazard margin beyond the required distance: ${nearest.toFixed(2)}m`);
+});
+
+test('course: food height floor-48..floor-205, roughly uniform', () => {
+  const lifts: number[] = [];
+  for (const seed of SEEDS) for (const f of course(seed, 2000).foods) { lifts.push(F - f.y); assert.equal(f.h, 32); assert.equal(f.w, 32); }
+  assert.ok(Math.min(...lifts) >= 48 - 1e-9 && Math.max(...lifts) <= 205 + 1e-9);
+  assert.ok(Math.min(...lifts) < 52 && Math.max(...lifts) > 201, 'range is actually used');
+  const mean = lifts.reduce((a, b) => a + b, 0) / lifts.length;
+  assert.ok(Math.abs(mean - 126.5) < 3, `mean lift ${mean}`);
+});
+
+// A food `lift` px above the floor, 20m ahead; returns true if the player eats it.
+function eats(lift: number, state: State, jumpAhead: number | null) {
+  const m = quiet(); const x = m.distance + 20;
+  m.items.push({ id: 1, x, y: F - lift, w: 32, h: 32, kind: 'food', used: false }); let jumped = false;
+  for (let i = 0; i < 120 * 12 && m.distance < x + 3; i++) {
+    hold(m, state); const ahead = x - m.distance;
+    if (!jumped && jumpAhead !== null && ahead <= jumpAhead) { m.jump(); jumped = true; }
+    m.step(DT);
+  }
+  return m.foods === 1;
+}
+test('food reach: low food is walkable, high food (up to floor-205) is reachable with ONE jump in every state', () => {
+  const walkable = RULES.playerHeight + 32; // the food bottom must pass the player's head
+  assert.equal(eats(100, 'normal', null), true); assert.equal(eats(walkable - 4, 'normal', null), true);
+  assert.equal(eats(walkable + 6, 'normal', null), false); assert.equal(eats(205, 'normal', null), false);
+  for (const state of ['normal', 'exhausted'] as State[]) for (let lift = 48; lift <= 205; lift += 157 / 8) {
+    let ok = 0; for (let a = 0.2; a <= 9; a += 0.1) if (eats(lift, state, a)) ok++;
+    assert.ok(ok >= 3, `lift ${lift.toFixed(0)} ${state}: only ${ok} timings reach it`);
+  }
+});
+
 test('course: widths stay inside OBSTACLE_WIDTHS, use the whole range, kinds are random with block twice as likely', () => {
   const seen: Record<string, number[]> = {}; const kinds: Record<string, number> = {};
   for (const seed of SEEDS) for (const h of course(seed, 1200).hazards) {
