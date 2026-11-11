@@ -141,7 +141,8 @@ test('only one encounter at a time; the next one still triggers after completion
 });
 
 // ---------------------------------------------------------------- freeze
-test('minigame freezes every runner timer: no step, input, pause, start or crouch changes anything', () => {
+// The snapshot covers timers and positions. `crouch` is a plain input flag (not a timer) and is deliberately not part of it.
+test('minigame freezes every runner timer: step, jump, pause and start change nothing', () => {
   const m = stage(); m.boost = 1; m.hitFlash = 0; m.eventBoost = 2; m.eventMultiplier = 1.25; runUntil(m, 6, mm => { mm.boost = 1; mm.eventBoost = 2; mm.eventMultiplier = 1.25; });
   assert.equal(m.phase, 'minigame');
   const frozen = snapshot(m);
