@@ -253,6 +253,13 @@ const lemons = Array.from({ length: 5 }, (_, n) => {
   mark.className = 'lemon-mark'; mark.hidden = true; cell.setAttribute('aria-label', `레몬 ${n + 1}`); cell.append(image, mark); $('lemon-tray').append(cell);
   return { cell, image, mark };
 });
+function layoutMiniArt() {
+  const compact = window.innerHeight <= 520 && window.innerWidth > window.innerHeight;
+  const inside = Math.min(740, window.innerWidth - 24) - (window.innerWidth <= 500 ? 30 : 58);
+  const width = Math.min(compact ? 56 : 88, (inside - 32) / 5);
+  for (const {image} of lemons) portrait(image, 'lemon', Math.max(36, width));
+}
+layoutMiniArt(); window.addEventListener('resize', layoutMiniArt);
 function miniAction() {
   if (!mini) return;
   if (mini.paused) mini.resume();
