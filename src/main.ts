@@ -144,6 +144,12 @@ class RunnerScene extends Phaser.Scene {
         g.fillStyle(0x9cbd80).fillEllipse(sx + 11, p.y + 15, 14, 6);
       }
     }
+    // Vine gate (platform.gateX, set by the model): a solid hanging curtain from above the view down to the branch.
+    for (const p of model.platforms) {
+      const gx = (p as { gateX?: number }).gateX; if (gx === undefined) continue;
+      const gxs = center + (gx - model.distance) * RULES.scale; if (gxs < -80 || gxs > 1200) continue;
+      this.sprite('obstacle-vines', gxs, (-300 + p.y + 10) / 2, 64 * 1.04, (p.y + 10 + 300) * 1.02);
+    }
     for (const item of model.items) {
       if (item.used && item.kind !== 'pit') continue;
       const ix = center + (item.x - model.distance) * RULES.scale;
@@ -210,11 +216,11 @@ class RunnerScene extends Phaser.Scene {
 start.addEventListener('click', () => { if (model.phase === 'paused') { model.start(); accumulator = 0; updateHud(); } else begin(); });
 $('home-play').addEventListener('click', begin); $('restart').addEventListener('click', begin); pause.addEventListener('click', togglePause);
 const jumpButton = $('jump'), crouchButton = $('crouch');
-jumpButton.addEventListener('pointerdown', e => { e.preventDefault(); jumpButton.classList.add('held'); jumpButton.setPointerCapture(e.pointerId); model.jump(); });
+jumpButton.addEventListener('pointerdown', e => { e.preventDefault(); jumpButton.classList.add('held'); jumpButton.setPointerCapture(e.pointerId); model.crouch = crouchHeld; model.jump(); });
 function releaseJump() { jumpButton.classList.remove('held'); model.releaseJump(); }
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) jumpButton.addEventListener(event, releaseJump);
-crouchButton.addEventListener('pointerdown', e => { e.preventDefault(); crouchHeld = true; crouchButton.classList.add('held'); crouchButton.setPointerCapture(e.pointerId); });
-function release() { crouchHeld = false; crouchButton.classList.remove('held'); }
+crouchButton.addEventListener('pointerdown', e => { e.preventDefault(); crouchHeld = true; model.crouch = true; crouchButton.classList.add('held'); crouchButton.setPointerCapture(e.pointerId); });
+function release() { crouchHeld = false; model.crouch = false; crouchButton.classList.remove('held'); }
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) crouchButton.addEventListener(event, release);
 function returnHome() {
   release(); releaseJump(); model.pause(); mini = null; encounterId = null; updateMini(); updateHud();
@@ -224,8 +230,8 @@ $('home-return').addEventListener('click', returnHome);
 window.addEventListener('keydown', e => {
   if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); if (e.repeat) return;
   if (mini) { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); miniAction(); } if (e.code === 'KeyP' || e.code === 'Escape') togglePause(); return; }
-  if (e.code === 'Space' || e.code === 'ArrowUp') { jumpButton.classList.add('held'); if (home.hidden === false || model.phase === 'ready' || model.phase === 'over') begin(); else if (model.phase === 'paused') togglePause(); else model.jump(); }
-  if (e.code === 'ArrowDown' && !play.hidden) { crouchHeld = true; crouchButton.classList.add('held'); }
+  if (e.code === 'Space' || e.code === 'ArrowUp') { jumpButton.classList.add('held'); if (home.hidden === false || model.phase === 'ready' || model.phase === 'over') begin(); else if (model.phase === 'paused') togglePause(); else { model.crouch = crouchHeld; model.jump(); } }
+  if (e.code === 'ArrowDown' && !play.hidden) { crouchHeld = true; model.crouch = true; crouchButton.classList.add('held'); }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
 });
 window.addEventListener('keyup', e => { if (e.code === 'ArrowDown') release(); if (e.code === 'Space' || e.code === 'ArrowUp') releaseJump(); });
@@ -256,8 +262,11 @@ const lemons = Array.from({ length: 5 }, (_, n) => {
 function layoutMiniArt() {
   const compact = window.innerHeight <= 520 && window.innerWidth > window.innerHeight;
   const inside = Math.min(740, window.innerWidth - 24) - (window.innerWidth <= 500 ? 30 : 58);
-  const width = Math.min(compact ? 56 : 88, (inside - 32) / 5);
-  for (const {image} of lemons) portrait(image, 'lemon', Math.max(36, width));
+  const small = Math.min(compact ? 30 : 40, (inside - 32) / 5);
+  for (const {image} of lemons) portrait(image, 'lemon', Math.max(24, small));
+  // The centre lemon is exactly the success band: its width is the band's share of the stage.
+  const stage = $('stage-lemon'), box = $('stage-lemon').parentElement as HTMLElement, w = box.clientWidth || Math.min(480, inside);
+  portrait(stage, 'lemon', Math.min(compact ? 84 : 150, w * (MINI_RULES.targetMax - MINI_RULES.targetMin)));
 }
 layoutMiniArt(); window.addEventListener('resize', layoutMiniArt);
 function miniAction() {
@@ -291,10 +300,11 @@ function updateMini() {
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
   }
   $('sticker-cursor').style.left = `${g.cursor * 100}%`;
+  $('mini-top-buttons').hidden = g.phase === 'result';
   $('mini-time-fill').style.width = `${g.phase === 'playing' ? Math.max(0, 1 - g.elapsed / MINI_RULES.roundSeconds) * 100 : 100}%`;
   const key = `${encounterId}:${g.phase}:${g.round}:${g.results.join()}:${g.paused}`;
   if (key === miniViewKey) return;
-  miniViewKey = key;
+  miniViewKey = key; layoutMiniArt();
   $('slot-panel').hidden = g.phase !== 'selecting';
   $('mini-portrait').hidden = g.phase === 'selecting'; portrait($('mini-portrait'), g.selected, 65);
   $('mini-character').textContent = g.phase === 'selecting' ? '' : `${characterNames[g.selected]}와 함께`;
@@ -303,9 +313,9 @@ function updateMini() {
   $('lemon-tray').hidden = g.phase === 'selecting';
   $('sticker-timing').hidden = !['playing', 'feedback'].includes(g.phase);
   $('mini-reward').textContent = '';
-  const titles = { selecting: '오늘의 일손을 찾는 중…', intro: '레몬에 스티커 붙이기', playing: '가운데 초록 구간에 맞춰요!', feedback: g.lastHit ? '착! 잘 붙었어요' : '앗, 다음 레몬에 도전해요', result: `${g.successes}개 성공!`, countdown: '', done: '' };
+  const titles = { selecting: '오늘의 일손을 찾는 중…', intro: '레몬에 스티커 붙이기', playing: '스티커가 레몬에 겹칠 때!', feedback: g.lastHit ? '착! 잘 붙었어요' : '앗, 다음 레몬에 도전해요', result: `${g.successes}개 성공!`, countdown: '', done: '' };
   $('mini-title').textContent = titles[g.phase];
-  $('mini-copy').textContent = g.phase === 'intro' ? '표시가 초록 구간에 들어오면 버튼이나 Space를 한 번 눌러요. 레몬은 모두 5개!'
+  $('mini-copy').textContent = g.phase === 'intro' ? '스티커가 레몬 위에 겹칠 때 버튼이나 Space를 한 번 눌러요. 레몬은 모두 5개!'
     : g.phase === 'result' ? '작은 일을 마쳤어요. 달리기 화면으로 돌아가 준비한 뒤 출발해요.'
     : g.phase === 'selecting' ? '이번에는 누구와 일하게 될까요?' : '레몬마다 한 번씩, 타이밍에 맞춰 붙여주세요.';
   $('sticker-round').textContent = `레몬 ${g.round + 1} / 5`;

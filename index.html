@@ -40,6 +40,7 @@
       <li><span class="how-icon yellow">✦</span><p><strong>황금 음식</strong><small>먹으면 잠깐 빨라지고 무적이 돼요</small></p></li>
       <li><span class="how-icon mint">↑↑</span><p><strong>길게 눌러 높은 가지로</strong><small>짧게 누르면 낮게, 다시 누르면 2단점프해요</small></p></li>
       <li><span class="how-icon sky">↓</span><p><strong>낮은 천장은 앉기</strong><small>부딪히면 뒤로 밀리지만 잠깐 보호돼요</small></p></li>
+      <li><span class="how-icon sky">↓↑</span><p><strong>윗길에서 앉기 + 점프</strong><small>가지를 통과해 아래층으로 내려가요</small></p></li>
     </ul>
   </section>
 
@@ -70,12 +71,12 @@
 
   <section id="mini-screen" class="mini-screen" role="dialog" aria-modal="true" aria-labelledby="mini-title" hidden>
     <div class="mini-card">
-      <div class="mini-top"><span>작은 일손 돕기</span><div><button id="mini-pause" type="button" aria-label="미니게임 일시정지">Ⅱ</button><button id="mini-home" type="button">홈으로</button></div></div>
+      <div class="mini-top"><span>작은 일손 돕기</span><div id="mini-top-buttons"><button id="mini-pause" type="button" aria-label="미니게임 일시정지">Ⅱ</button><button id="mini-home" type="button">홈으로</button></div></div>
       <div id="slot-panel"><p>누구와 함께할까요?</p><div class="slot-window"><div id="slot-reel"></div></div></div>
       <div class="mini-heading"><span id="mini-portrait" class="event-sprite" aria-hidden="true"></span><div><p id="mini-character"></p><h2 id="mini-title">오늘의 일손을 찾는 중…</h2></div></div>
       <p id="mini-copy" class="mini-copy"></p>
       <div id="lemon-tray" class="lemon-tray" aria-label="레몬 다섯 개"></div>
-      <div id="sticker-timing" class="sticker-timing"><div class="timing-track"><span class="timing-target"></span><span id="sticker-cursor" class="sticker-cursor">▼</span></div><p id="sticker-round" aria-live="polite"></p><div class="mini-time-track"><span id="mini-time-fill"></span></div></div>
+      <div id="sticker-timing" class="sticker-timing"><div class="sticker-stage"><span id="stage-lemon" class="event-sprite" aria-hidden="true"></span><span id="sticker-cursor" class="sticker-cursor" aria-hidden="true"></span></div><p id="sticker-round" aria-live="polite"></p><div class="mini-time-track"><span id="mini-time-fill"></span></div></div>
       <p id="mini-reward" class="mini-reward" aria-live="polite"></p>
       <button id="mini-action" class="big-button" type="button">스티커 붙이기</button>
       <p id="mini-paused" class="mini-paused" hidden>잠깐 쉬어요. 준비되면 계속하기를 눌러주세요.</p>
