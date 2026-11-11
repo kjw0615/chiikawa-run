@@ -43,8 +43,12 @@ function drive(seed: number, platforms = false, encounters = false, successTarge
     m.crouch = !!beam && beam.x-m.distance < beam.w/2/RULES.scale + .9 && m.y <= beam.y+beam.h+RULES.playerHeight;
     if (m.grounded) {
       active = undefined;
+      const exit = m.platforms.find(p => p.gateX !== undefined && m.supportY === p.y
+        && m.distance >= p.start && m.distance <= p.end && m.distance < p.gateX);
       const branch = m.platforms.find(p => p.end > m.distance && p.start >= m.distance && m.y > p.y);
-      if (branch && branch.start-m.distance <= travel(.34)) {
+      if (exit && exit.gateX!-m.distance <= (RULES.gateWidth/2+RULES.halfHitWidth)/RULES.scale+travel(.6)) {
+        m.crouch = true; press();
+      } else if (branch && branch.start-m.distance <= travel(.34)) {
         m.crouch = false; press();
       } else {
       const next = upcoming.find(i => i.kind !== 'beam' && i.x > m.distance
