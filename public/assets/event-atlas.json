@@ -1,0 +1,113 @@
+{
+  "frames": {
+    "chiikawa": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 192,
+        "h": 224
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 224
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 224
+      }
+    },
+    "hachiware": {
+      "frame": {
+        "x": 198,
+        "y": 2,
+        "w": 192,
+        "h": 224
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 224
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 224
+      }
+    },
+    "usagi": {
+      "frame": {
+        "x": 394,
+        "y": 2,
+        "w": 192,
+        "h": 224
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 224
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 224
+      }
+    },
+    "mob": {
+      "frame": {
+        "x": 590,
+        "y": 2,
+        "w": 192,
+        "h": 224
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 224
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 224
+      }
+    },
+    "lemon": {
+      "frame": {
+        "x": 786,
+        "y": 2,
+        "w": 192,
+        "h": 224
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 224
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 224
+      }
+    }
+  },
+  "meta": {
+    "image": "event-atlas.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1024,
+      "h": 256
+    },
+    "scale": "1"
+  }
+}

@@ -1,3 +1,4 @@
+import type { Reward } from './sticker-game';
 export const RULES = {
   speed: 6, chaserSpeed: 6, exhaustedSpeed: 4.2, boostSpeed: 9,
   staminaDrain: 4, food: 20, goldFood: 25, recover: 12, goldChance: .1,
@@ -17,29 +18,45 @@ export const difficultyAt = (distance: number) => {
 // Upper bounds leave a tested timing window for the required jump(s).
 export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 170], pit: [120, 200], beam: [100, 220] } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold'; used: boolean };
-export type Phase = 'ready' | 'running' | 'paused' | 'over';
+export type Phase = 'ready' | 'running' | 'paused' | 'minigame' | 'over';
 export type Platform = { id: number; start: number; end: number; y: number; required: boolean };
+export type Encounter = { id: number; x: number; y: number; seed: number; used: boolean };
 type Rescue = { time: number; fromX: number; toX: number; fromY: number };
 export class RunnerModel {
   phase: Phase = 'ready'; distance = 0; gap = 30; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
   y = RULES.floor; vy = 0; jumps = 0; crouch = false; hitFlash = 0; foods = 0; bonus = 0; hits = 0;
   items: Item[] = []; events: string[] = []; rescue: Rescue | null = null;
   platforms: Platform[] = []; blocked = false;
+  encounters: Encounter[] = []; activeEncounter: Encounter | null = null;
+  eventBoost = 0; eventMultiplier = 1;
+  private encounterCourse: boolean; private encounterState: number; private encounterIndex = 0; private lastEncounterX = 0;
   private jumpHeld = false; private nextPlatformX = 80; private platformIndex = 0;
   private platformRandomState: number; private platformCourse: boolean;
   private nextHazardX = 19; private hazardIndex = 0; private nextFoodX = 7; private id = 0; private jumpBuffer = 0; private randomState: number; private generateCourse: boolean; private lastFoodX = -Infinity;
-  constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean } = {}) {
+  constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean; encounters?: boolean } = {}) {
     this.randomState = seed >>> 0; this.platformRandomState = (seed ^ 0x9e3779b9) >>> 0;
+    this.encounterState = (seed ^ 0x85ebca6b) >>> 0; this.encounterCourse = options.encounters !== false;
     this.generateCourse = generateCourse; this.platformCourse = options.platforms !== false; this.generate();
   }
-  get speed() { return this.boost > 0 ? RULES.boostSpeed : this.exhausted ? RULES.exhaustedSpeed : RULES.speed; }
+  get speed() {
+    const base = this.exhausted ? RULES.exhaustedSpeed : RULES.speed;
+    return Math.max(base, this.boost > 0 ? RULES.boostSpeed : 0, this.eventBoost > 0 ? RULES.speed * this.eventMultiplier : 0);
+  }
   get supportY() {
     return this.platforms.find(p => this.distance >= p.start && this.distance <= p.end && Math.abs(this.y - p.y) < .01)?.y ?? RULES.floor;
   }
   get grounded() { return !this.rescue && this.vy === 0 && Math.abs(this.y - this.supportY) < .01 && (this.supportY < RULES.floor || !this.pitAt(this.distance)); }
   get height() { return this.crouch && this.grounded ? RULES.crouchHeight : RULES.playerHeight; }
   get invulnerable() { return this.boost > 0 || this.hitFlash > 0 || this.rescue !== null; }
-  start() { if (this.phase !== 'over') this.phase = 'running'; }
+  start() { if (this.phase === 'ready' || this.phase === 'paused') this.phase = 'running'; }
+  completeEncounter(id: number, reward: Reward): boolean {
+    if (this.phase !== 'minigame' || this.activeEncounter?.id !== id) return false;
+    this.stamina = Math.min(100, this.stamina + reward.stamina);
+    if (this.stamina >= RULES.recover) this.exhausted = false;
+    this.eventBoost = reward.seconds; this.eventMultiplier = reward.speedMultiplier;
+    this.activeEncounter = null; this.crouch = false; this.jumpBuffer = 0; this.jumpHeld = false; this.phase = 'running';
+    return true;
+  }
   pause() { if (this.phase === 'running') { this.releaseJump(); this.phase = 'paused'; this.crouch = false; this.jumpBuffer = 0; } }
   jump() { if (this.phase === 'running' && !this.rescue) { this.jumpHeld = true; this.jumpBuffer = .1; } }
   releaseJump() {
@@ -118,9 +135,18 @@ export class RunnerModel {
       }
     }
     this.boost = Math.max(0, this.boost - dt);
+    this.eventBoost = Math.max(0, this.eventBoost - dt);
     if (this.gap <= 0) { this.gap = 0; this.phase = 'over'; }
+    if (this.phase === 'running' && this.grounded && !this.blocked && this.hitFlash === 0 && !this.crouch) {
+      const encounter = this.encounters.find(e => !e.used && Math.abs(this.distance - e.x) < 1.6 && Math.abs(this.y - e.y) < .01);
+      if (encounter) {
+        encounter.used = true; this.activeEncounter = encounter; this.phase = 'minigame';
+        this.jumpHeld = false; this.jumpBuffer = 0; this.crouch = false;
+      }
+    }
     this.items = this.items.filter(i => i.x + i.w / RULES.scale / 2 > this.distance - 16);
     this.platforms = this.platforms.filter(p => p.end > this.distance - 16);
+    this.encounters = this.encounters.filter(e => e.x > this.distance - 16);
   }
   private safeLanding(distance: number) {
     // Move past the entire union of nearby hazards, including adjoining pits.
@@ -187,6 +213,24 @@ export class RunnerModel {
       const lift = RULES.foodLiftMin + this.random() * (RULES.foodLiftMax - RULES.foodLiftMin);
       const platform = this.platforms.find(p => foodX! >= p.start && foodX! <= p.end);
       this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.random() < RULES.goldChance ? 'gold' : 'food');
+    }
+    // A separate seeded schedule never changes the obstacle/food random stream.
+    while (this.encounterCourse && this.lastEncounterX + 300 <= this.distance + 120) {
+      const nextState = (Math.imul(1664525, this.encounterState) + 1013904223) >>> 0;
+      const desired = this.lastEncounterX + 200 + nextState / 4294967296 * 100;
+      const candidates = Array.from({ length: 201 }, (_, n) => this.lastEncounterX + 200 + n * .5)
+        .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
+      const x = candidates.find(x => {
+        // Do not select beyond the known hazard horizon.
+        if (x > this.distance + 120) return false;
+        if (this.platforms.some(p => x > p.start - 8 && x < p.end + 8 && !(x >= p.start + 4 && x <= p.end - 4))) return false;
+        return this.items.every(i => i.kind === 'food' || i.kind === 'gold' || Math.abs(x-i.x) > (i.w/2+RULES.halfHitWidth)/RULES.scale + 6);
+      });
+      if (x === undefined) break; // wait for more known course instead of weakening safety
+      this.encounterState = nextState;
+      const surface = this.platforms.find(p => x >= p.start && x <= p.end);
+      this.encounters.push({ id: this.encounterIndex++, x, y: surface?.y ?? RULES.floor, seed: this.encounterState, used: false });
+      this.lastEncounterX = x;
     }
   }
 }

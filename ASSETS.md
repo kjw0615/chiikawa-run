@@ -1,5 +1,15 @@
 # 이미지 제작과 참고 자료
 
+## 레몬 스티커 미니게임 에셋
+
+`art-source/event-{chiikawa,hachiware,usagi,mob,lemon}.png`는 내장 `image_gen`으로 생성한 투명 배경 팬메이드 그림이다. 원본을 게임에서 직접 내려받지 않고, `python scripts/build-event-assets.py`로 만든 `public/assets/event-atlas.webp`(1024×256, 132,468바이트)와 JSON만 사용한다. 슬롯 UI와 러너의 NPC가 이 시트를 함께 쓴다. 정확한 생성 프롬프트는 `art-source/event-prompts.json`에 있다.
+
+- 세 주인공의 이름과 외형 참고: [공식 캐릭터 소개](https://www.chiikawaofficial.com/characters).
+- 레몬 스티커 노동 소재: [ABEMA TIMES의 126화 소개](https://times.abema.tv/articles/-/10196903), [BANDAI의 노동 콘텐츠 소개](https://toy.bandai.co.jp/ja/topics/01_18092/). 타이밍 판정·다섯 개 과제·체력과 속도 보상은 이 팬 게임의 창작 규칙이다.
+- 회색 모브의 외형 참고: [그레이 모브를 다룬 팬 해설](https://note.com/chiikawa_kaiseki/n/n01e74f9c9255), [회색 주민 상품 사진](https://www.walmart.com/ip/14346021163). 이 두 자료는 공식 설정 근거로 쓰지 않는다. 게임의 NPC는 사용자 요청에 따른 이름 없는 회색 주민이며 특정 이름 있는 인물의 정체·서사와 연결하지 않는다. 초대 카드를 든 자세는 게임을 위한 각색이다.
+
+게임에 공식 원본 이미지·영상·팬아트 파일을 그대로 넣지 않았다.
+
 이번 버전의 PNG 9개는 내장 `image_gen`으로 새로 생성한 투명 배경의 팬메이드 에셋이다. 공식 배포 에셋이나 공식 상품 이미지를 그대로 게임에 넣은 것이 아니다. 캐릭터와 세계관의 권리는 원작자에게 있으며, 공개 이용 허가 여부를 확인한 자료는 아니다.
 
 | 생성 원본 (`art-source/`) | 용도 |

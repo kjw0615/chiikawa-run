@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { RunnerModel, RULES, OBSTACLE_WIDTHS, difficultyAt } from '../src/model.ts';
 
 const DT = 1 / 120; // same fixed step as src/main.ts
-const GROUND = { platforms: false } as const; // ground-course contract: isolated from the two-level layer
+const GROUND = { platforms: false, encounters: false } as const; // isolated ground regression
 const F = RULES.floor;
 type Kind = 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold';
 type State = 'normal' | 'exhausted' | 'boost';

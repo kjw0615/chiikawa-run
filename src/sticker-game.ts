@@ -1,0 +1,94 @@
+// Lemon-sticker mini game: a self-contained state machine.
+// It owns its own clock (advanced only by step(dt)) and never touches the runner model. Whoever
+// embeds it freezes it simply by not calling step(), or with pause()/resume(). Rewards are only
+// computed here; the caller applies them once when the phase becomes 'done'.
+export const MINI_RULES = {
+  selectionSeconds: 2, roundSeconds: 2.8, feedbackSeconds: .45, countdownSeconds: 3,
+  targetMin: .36, targetMax: .64, rounds: 5,
+} as const;
+export type MiniPhase = 'selecting' | 'intro' | 'playing' | 'feedback' | 'result' | 'countdown' | 'done';
+export type Character = 'chiikawa' | 'hachiware' | 'usagi';
+export const CHARACTERS: readonly Character[] = ['chiikawa', 'hachiware', 'usagi'];
+export type Reward = { stamina: number; speedMultiplier: number; seconds: number };
+
+export const rewardFor = (successes: number): Reward =>
+  successes >= 5 ? { stamina: 40, speedMultiplier: 1.5, seconds: 3 }
+    : successes >= 2 ? { stamina: 25, speedMultiplier: 1.25, seconds: 2 }
+      : { stamina: 10, speedMultiplier: 1.1, seconds: 1 };
+
+const EPS = 1e-9;
+// Deterministic mixing so each (seed, salt) pair gives an independent value in [0, 1).
+function unit(seed: number, salt: number): number {
+  let h = (Math.imul(seed >>> 0, 2654435761) ^ Math.imul(salt + 1, 40503)) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; h = Math.imul(h ^ (h >>> 13), 3266489909) >>> 0; h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+export const characterFor = (seed: number): Character => CHARACTERS[Math.min(2, Math.floor(unit(seed, 0) * 3))];
+// Cursor position in [0, 1]: a triangle wave (back and forth) of `u` cycles.
+const triangle = (u: number) => { const f = u - Math.floor(u); return 1 - Math.abs(2 * f - 1); };
+
+export class StickerGame {
+  phase: MiniPhase = 'selecting';
+  elapsed = 0; // seconds spent in the current phase (starts again at 0 in each phase)
+  readonly selected: Character;
+  round = 0; // 0..4
+  results: boolean[] = [];
+  paused = false;
+  readonly speed: number; // cursor cycles per second
+  private lastCursor = 0;
+  readonly seed: number;
+  constructor(seed: number) {
+    this.seed = seed; this.selected = characterFor(seed);
+    this.speed = .55 + .2 * unit(seed, 1);
+  }
+  get successes() { return this.results.filter(Boolean).length; }
+  get cursor() {
+    if (this.phase === 'playing') return triangle(unit(this.seed, 10 + this.round) + this.speed * this.elapsed);
+    return this.lastCursor;
+  }
+  get reward(): Reward | null { return this.results.length >= MINI_RULES.rounds ? rewardFor(this.successes) : null; }
+  get lastHit() { return this.results.length ? this.results[this.results.length - 1] : null; }
+  get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, MINI_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : MINI_RULES.countdownSeconds; }
+  pause() { this.paused = true; }
+  resume() { this.paused = false; }
+  private limit(): number | null {
+    switch (this.phase) {
+      case 'selecting': return MINI_RULES.selectionSeconds;
+      case 'playing': return MINI_RULES.roundSeconds;
+      case 'feedback': return MINI_RULES.feedbackSeconds;
+      case 'countdown': return MINI_RULES.countdownSeconds;
+      default: return null; // intro, result and done wait for the caller
+    }
+  }
+  step(dt: number) {
+    if (this.paused || !(dt > 0)) return;
+    let left = dt;
+    for (let guard = 0; guard < 64 && left > 0; guard++) {
+      const limit = this.limit(); if (limit === null) return;
+      const need = Math.max(0, limit - this.elapsed);
+      if (left < need - EPS) { this.elapsed += left; return; }
+      left -= need; this.advance();
+    }
+  }
+  private advance() {
+    this.elapsed = 0;
+    if (this.phase === 'selecting') this.phase = 'intro'; // guide stays until start(); it is not timed
+    else if (this.phase === 'playing') this.finishRound(false, this.cursorAtEnd());
+    else if (this.phase === 'feedback') {
+      if (this.results.length >= MINI_RULES.rounds) this.phase = 'result';
+      else { this.round = this.results.length; this.phase = 'playing'; }
+    } else if (this.phase === 'countdown') this.phase = 'done';
+  }
+  private cursorAtEnd() { return triangle(unit(this.seed, 10 + this.round) + this.speed * MINI_RULES.roundSeconds); }
+  private finishRound(hit: boolean, cursor: number) {
+    this.results.push(hit); this.lastCursor = cursor; this.phase = 'feedback'; this.elapsed = 0;
+  }
+  start() { if (!this.paused && this.phase === 'intro') { this.phase = 'playing'; this.elapsed = 0; this.round = this.results.length; } }
+  /** Judges the current cursor once; ignored outside 'playing' or while paused. */
+  stamp(): boolean | null {
+    if (this.paused || this.phase !== 'playing') return null;
+    const c = this.cursor, hit = c >= MINI_RULES.targetMin - EPS && c <= MINI_RULES.targetMax + EPS;
+    this.finishRound(hit, c); return hit;
+  }
+  continue() { if (!this.paused && this.phase === 'result') { this.phase = 'countdown'; this.elapsed = 0; } }
+}
