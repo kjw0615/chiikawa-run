@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const root = new URL('../public/assets/', import.meta.url);
 const atlas = JSON.parse(readFileSync(new URL('game-atlas.json', root)));
+
+test('monster animation resolution covers its displayed size without upscaling', () => {
+  for (let i = 0; i < 4; i++) {
+    const f = atlas.frames[`dekatsuyo-run-${i}`].frame;
+    assert.ok(f.w >= 420 && f.h >= 280);
+  }
+});
 test('atlas frames are inside the texture and do not overlap', () => {
   const frames = Object.entries(atlas.frames);
   assert.ok(frames.length === 17);
