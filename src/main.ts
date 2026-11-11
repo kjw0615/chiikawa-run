@@ -156,7 +156,7 @@ class RunnerScene extends Phaser.Scene {
       if (ix + item.w / 2 < -20 || ix - item.w / 2 > 1140) continue;
       if (item.kind === 'food' || item.kind === 'gold') {
         const iy = item.y + item.h / 2, golden = item.kind === 'gold';
-        const key = FOOD[item.id % FOOD.length], frame = this.textures.get(ATLAS).get(key), fit = 54 / Math.max(frame.width, frame.height);
+        const key = FOOD[item.variant ?? item.id % FOOD.length], frame = this.textures.get(ATLAS).get(key), fit = 54 / Math.max(frame.width, frame.height);
         const s = this.sprite(key, ix, iy, frame.width * fit, frame.height * fit);
         if (golden) {
           s.setTint(0xffd252); g.fillStyle(0xffd468, .24).fillCircle(ix, iy, 29 + Math.sin(model.elapsed * 6) * 3);
@@ -280,8 +280,7 @@ function miniAction() {
   updateMini();
 }
 miniActionButton.addEventListener('click', miniAction);
-$('mini-pause').addEventListener('click', togglePause); $('countdown-resume').addEventListener('click', togglePause);
-$('mini-home').addEventListener('click', returnHome);
+$('countdown-resume').addEventListener('click', togglePause);
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
@@ -290,7 +289,7 @@ function updateMini() {
     $<HTMLButtonElement>('jump').disabled = false; $<HTMLButtonElement>('crouch').disabled = false; return;
   }
   const g = mini, countdown = g.phase === 'countdown';
-  document.querySelector<HTMLElement>('.hud-buttons')!.hidden = countdown;
+  document.querySelector<HTMLElement>('.hud-buttons')!.hidden = true;
   miniScreen.hidden = countdown; $('mini-countdown').hidden = !countdown;
   play.inert = !countdown; document.body.style.overflow = countdown ? '' : 'hidden';
   $<HTMLButtonElement>('jump').disabled = true; $<HTMLButtonElement>('crouch').disabled = true;
@@ -303,7 +302,6 @@ function updateMini() {
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
   }
   $('sticker-cursor').style.left = `${g.cursor * 100}%`;
-  $('mini-top-buttons').hidden = g.phase === 'result';
   $('mini-time-fill').style.width = `${g.phase === 'playing' ? Math.max(0, 1 - g.elapsed / MINI_RULES.roundSeconds) * 100 : 100}%`;
   const key = `${encounterId}:${g.phase}:${g.round}:${g.results.join()}:${g.paused}`;
   if (key === miniViewKey) return;
@@ -311,8 +309,7 @@ function updateMini() {
   $('slot-panel').hidden = g.phase !== 'selecting';
   $('mini-portrait').hidden = g.phase === 'selecting'; portrait($('mini-portrait'), g.selected, 65);
   $('mini-character').textContent = g.phase === 'selecting' ? '' : `${characterNames[g.selected]}와 함께`;
-  $('mini-paused').hidden = !g.paused; $('mini-pause').textContent = g.paused ? '▶' : 'Ⅱ';
-  $('mini-pause').setAttribute('aria-label', g.paused ? '미니게임 계속하기' : '미니게임 일시정지');
+  $('mini-paused').hidden = !g.paused;
   $('lemon-tray').hidden = g.phase === 'selecting';
   $('sticker-timing').hidden = !['playing', 'feedback'].includes(g.phase);
   $('mini-reward').textContent = '';
@@ -328,7 +325,7 @@ function updateMini() {
     mark.hidden = result === undefined; mark.textContent = result ? '✓' : '×';
     cell.setAttribute('aria-label', `레몬 ${n + 1}${result === undefined ? '' : result ? ' 성공' : ' 실패'}`);
   }
-  miniActionButton.hidden = g.phase === 'selecting';
+  miniActionButton.hidden = g.phase === 'selecting' && !g.paused;
   miniActionButton.disabled = g.phase === 'feedback' && !g.paused;
   miniActionButton.textContent = g.paused ? '계속하기' : g.phase === 'intro' ? '준비됐어요! 시작' : g.phase === 'result' ? '달리기로 돌아가기' : '스티커 붙이기';
   if (g.phase === 'result' && g.reward) $('mini-reward').textContent = `체력 +${g.reward.stamina} · ${g.reward.speedMultiplier}배 속도 ${g.reward.seconds}초`;
