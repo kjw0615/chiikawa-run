@@ -13,7 +13,7 @@ export class RunnerModel {
   phase: Phase = 'ready'; distance = 0; gap = 30; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
   y = RULES.floor; vy = 0; jumps = 0; crouch = false; hitFlash = 0; foods = 0; bonus = 0; hits = 0;
   items: Item[] = []; events: string[] = []; rescue: Rescue | null = null;
-  private nextChunk = 0; private id = 0; private jumpBuffer = 0; private wasCrouching = false; private jumpMotionScale = 1; private randomState: number; private generateCourse: boolean;
+  private nextChunk = 0; private id = 0; private jumpBuffer = 0; private jumpMotionScale = 1; private randomState: number; private generateCourse: boolean;
   constructor(seed = 13579, generateCourse = true) { this.randomState = seed >>> 0; this.generateCourse = generateCourse; this.generate(); }
   get speed() { return this.boost > 0 ? RULES.boostSpeed : this.exhausted ? RULES.exhaustedSpeed : RULES.speed; }
   get grounded() { return !this.rescue && Math.abs(this.y - RULES.floor) < .01 && !this.pitAt(this.distance); }
@@ -76,9 +76,6 @@ export class RunnerModel {
     }
     if (this.gap <= 0) { this.gap = 0; this.phase = 'over'; return; }
     const px = this.distance * RULES.scale;
-    if (this.grounded && !this.crouch && this.wasCrouching) {
-      for (const i of this.items) if (!i.used && i.kind === 'beam' && Math.abs((i.x - this.distance) * RULES.scale) < i.w / 2 + RULES.halfHitWidth) this.crouch = true;
-    }
     if (!this.rescue) {
       const touching = this.items.filter(i => !i.used && i.kind !== 'pit' && px + RULES.halfHitWidth > i.x * RULES.scale - i.w / 2 && px - RULES.halfHitWidth < i.x * RULES.scale + i.w / 2 && this.y > i.y && this.y - this.height < i.y + i.h);
       // Golden food wins ties with hazards independent of array ordering.
@@ -89,7 +86,6 @@ export class RunnerModel {
     }
     this.boost = Math.max(0, this.boost - dt);
     if (this.gap <= 0) { this.gap = 0; this.phase = 'over'; }
-    this.wasCrouching = this.crouch && this.grounded;
     this.items = this.items.filter(i => i.x + i.w / RULES.scale / 2 > this.distance - 16);
   }
   private safeLanding(distance: number) {
