@@ -156,7 +156,7 @@ class RunnerScene extends Phaser.Scene {
       if (ix + item.w / 2 < -20 || ix - item.w / 2 > 1140) continue;
       if (item.kind === 'food' || item.kind === 'gold') {
         const iy = item.y + item.h / 2, golden = item.kind === 'gold';
-        const key = FOOD[item.id % FOOD.length], frame = this.textures.get(ATLAS).get(key), fit = 54 / Math.max(frame.width, frame.height);
+        const key = FOOD[item.variant ?? item.id % FOOD.length], frame = this.textures.get(ATLAS).get(key), fit = 54 / Math.max(frame.width, frame.height);
         const s = this.sprite(key, ix, iy, frame.width * fit, frame.height * fit);
         if (golden) {
           s.setTint(0xffd252); g.fillStyle(0xffd468, .24).fillCircle(ix, iy, 29 + Math.sin(model.elapsed * 6) * 3);
