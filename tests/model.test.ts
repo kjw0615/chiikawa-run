@@ -51,10 +51,10 @@ function windows(kind: Kind, w: number, state: State) {
 }
 
 // ---------------------------------------------------------------- rules contract
-test('rules contract: the agreed v5 numbers', () => {
+test('rules contract: the agreed v6 numbers', () => {
   assert.deepEqual(
     [RULES.staminaDrain, RULES.food, RULES.goldFood, RULES.recover, RULES.boostSeconds, RULES.boostSpeed, RULES.hitCost, RULES.hitInvulnerability, RULES.goldChance],
-    [3, 20, 25, 12, 1, 9, 3, 0.5, 0.1]);
+    [4, 20, 25, 12, 1, 9, 3, 0.5, 0.1]);
   assert.deepEqual([RULES.playerHeight, RULES.playerWidth, RULES.halfHitWidth, RULES.crouchHeight, RULES.floor, RULES.jumpVelocity, RULES.gravity],
     [82, 64, 24, 36, 460, -760, 1900]);
   assert.ok(RULES.food >= RULES.recover && RULES.goldFood >= RULES.recover, 'any food must clear the exhausted latch');
@@ -75,9 +75,10 @@ test('speed states: boost wins over exhausted over normal', () => {
 });
 
 // ---------------------------------------------------------------- stamina, food, gold
-test('stamina drains 3/s; reaching 0 latches exhausted after 33.3s', () => {
-  const m = quiet(); run(m, 10); assert.ok(Math.abs(m.stamina - 70) < 0.1); assert.equal(m.exhausted, false);
-  run(m, 24); assert.equal(m.stamina, 0); assert.equal(m.exhausted, true);
+test('stamina drains 4/s; reaching 0 latches exhausted after 25s', () => {
+  const m = quiet(); run(m, 10); assert.ok(Math.abs(m.stamina - 60) < 0.1); assert.equal(m.exhausted, false);
+  run(m, 14.9); assert.ok(m.stamina > 0); assert.equal(m.exhausted, false);
+  run(m, .2); assert.equal(m.stamina, 0); assert.equal(m.exhausted, true);
 });
 
 test('normal speed keeps the gap; exhausted shrinks 1.8/s and a 30m gap is caught in 16.7s', () => {
@@ -528,8 +529,8 @@ test('stamina economy: only low foods can be eaten by walking; the rest need a j
   console.log(`walkable foods ${(walkShare * 100).toFixed(0)}%; foods per 100m: 0-400m ${(dEarly * 100).toFixed(2)}, 1600-2000m ${(dLate * 100).toFixed(2)}; income if all eaten early ${income(dEarly, 1).toFixed(2)}/s, late ${income(dLate, 1).toFixed(2)}/s, walking only (late) ${income(dLate, walkShare).toFixed(2)}/s, drain ${RULES.staminaDrain}/s`);
   assert.ok(Math.abs(walkShare - (walkable - 48) / (205 - 48)) < 0.03, `walk share ${walkShare}`);
   assert.ok(dEarly >= dLate * .95 && dLate > .015, `food does not get denser with distance and never vanishes: ${dEarly} vs ${dLate}`);
-  // 3/s drain, food +20 / gold +25: eating everything is sustainable, walking-only is not.
-  assert.ok(income(dEarly, 1) > RULES.staminaDrain && income(dLate, 1) > RULES.staminaDrain * .95); assert.ok(income(dLate, walkShare) < RULES.staminaDrain);
+  // 4/s drain: fixed recovery no longer makes the course indefinitely sustainable.
+  assert.ok(income(dEarly, 1) < RULES.staminaDrain && income(dLate, 1) < RULES.staminaDrain); assert.ok(income(dLate, walkShare) < RULES.staminaDrain);
 });
 
 // ---------------------------------------------------------------- reaching 1000m
@@ -550,12 +551,12 @@ function reach(seed: number, eatShare: number) {
   const dead = to(1000); // remaining drain up to exactly 1000m
   return dead !== null ? { reach: dead, lowest: 0 } : { reach: 1000, lowest };
 }
-test('balance: a mistake-free run that eats every food reaches 1000m, and 80% of foods is still enough', () => {
+test('balance: 4/s creates more endurance pressure when foods are missed', () => {
   const seeds = [13579, 1, 2, 7, 99, 2026, 31337, 424242, 11, 12, 13, 14, 15, 16, 17, 18];
   const all = seeds.map(s => reach(s, 1)), most = seeds.map(s => reach(s, .8)), half = seeds.map(s => reach(s, .5));
   const lo = (a: { reach: number }[]) => Math.min(...a.map(r => r.reach));
   console.log(`1000m check over ${seeds.length} seeds: eat all -> min reach ${lo(all).toFixed(0)}m (lowest stamina ${Math.min(...all.map(r => r.lowest)).toFixed(0)}), eat 80% -> ${lo(most).toFixed(0)}m (lowest ${Math.min(...most.map(r => r.lowest)).toFixed(0)}), eat 50% -> ${lo(half).toFixed(0)}m`);
-  assert.equal(lo(all), 1000); assert.ok(Math.min(...all.map(r => r.lowest)) >= 30, 'comfortable margin when eating everything');
-  assert.equal(lo(most), 1000);
-  assert.ok(lo(half) < 1000, 'ignoring half of the food must still hurt');
+  assert.ok(lo(all) >= lo(most) && lo(most) > lo(half), 'more food extends stamina endurance');
+  assert.ok(lo(most) < 1000, 'the former 80% food guarantee no longer holds at 4/s');
+  assert.ok(lo(half) < 1000, 'ignoring half the food still hurts');
 });
