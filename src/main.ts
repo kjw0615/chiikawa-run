@@ -24,7 +24,7 @@ function begin() {
 }
 function togglePause() {
   if (play.hidden) return;
-  if (model.phase === 'running') model.pause(); else if (model.phase === 'paused') { model.start(); accumulator = 0; }
+  if (model.phase === 'running') { model.pause(); release(); releaseJump(); } else if (model.phase === 'paused') { model.start(); accumulator = 0; }
   updateHud();
 }
 function endOverlay() {
@@ -146,7 +146,8 @@ class RunnerScene extends Phaser.Scene {
         g.fillStyle(0x354c3e).fillRect(bx, floor, item.w, 170); g.fillStyle(0x243a30).fillRect(bx + 8, floor + 18, item.w - 16, 152);
         g.lineStyle(4, 0xbaa482).lineBetween(bx, floor, bx, floor + 28).lineBetween(bx + item.w, floor, bx + item.w, floor + 28);
       } else {
-        g.fillStyle(0x294b31, .1).fillEllipse(ix, floor + 3, item.w + 15, 10);
+        const obstacleFloor = item.y + item.h + (item.kind === 'beam' ? 44 : 0);
+        g.fillStyle(0x294b31, .1).fillEllipse(ix, obstacleFloor + 3, item.w + 15, 10);
         const key = item.kind === 'beam' ? 'obstacle-vines' : item.kind === 'block' ? 'obstacle-log' : 'obstacle-rock';
         const y = item.kind === 'beam' ? (item.y + item.h) / 2 : item.y + item.h / 2;
         const h = item.kind === 'beam' ? item.y + item.h : item.h;
