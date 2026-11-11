@@ -283,11 +283,12 @@ $('mini-home').addEventListener('click', returnHome);
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
-    $('mini-screen').hidden = true; $('mini-countdown').hidden = true;
+    $('mini-screen').hidden = true; $('mini-countdown').hidden = true; document.querySelector<HTMLElement>('.hud-buttons')!.hidden = false;
     play.inert = false; document.body.style.overflow = '';
     $<HTMLButtonElement>('jump').disabled = false; $<HTMLButtonElement>('crouch').disabled = false; return;
   }
   const g = mini, countdown = g.phase === 'countdown';
+  document.querySelector<HTMLElement>('.hud-buttons')!.hidden = countdown;
   miniScreen.hidden = countdown; $('mini-countdown').hidden = !countdown;
   play.inert = !countdown; document.body.style.overflow = countdown ? '' : 'hidden';
   $<HTMLButtonElement>('jump').disabled = true; $<HTMLButtonElement>('crouch').disabled = true;
