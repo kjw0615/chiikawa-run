@@ -39,9 +39,11 @@ for name, size in TARGETS.items():
                     'trimmed': False, 'spriteSourceSize': {'x': 0, 'y': 0, 'w': w, 'h': h},
                     'sourceSize': {'w': w, 'h': h}}
     x += w + 4; row_height = max(row_height, h)
+used_height = y + row_height + 2
+atlas = atlas.crop((0, 0, atlas.width, 1 << (used_height - 1).bit_length()))
 atlas.save(ASSETS / 'game-atlas.webp', lossless=True, method=6, exact=True)
 metadata = {'frames': frames, 'meta': {'image': 'game-atlas.webp', 'format': 'RGBA8888',
-                                     'size': {'w': 1024, 'h': 1024}, 'scale': '1'}}
+                                     'size': {'w': atlas.width, 'h': atlas.height}, 'scale': '1'}}
 (ASSETS / 'game-atlas.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
 (ASSETS / 'frames.json').write_text(json.dumps(source_frames, indent=2), encoding='utf-8')
 print('Atlas:', (ASSETS / 'game-atlas.webp').stat().st_size, 'bytes; frames:', len(frames))
