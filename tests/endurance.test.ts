@@ -5,7 +5,7 @@ import { RunnerModel, RULES, type Item } from '../src/model.ts';
 // Drives the real generated course through public inputs only. No invulnerability,
 // stamina refill, teleporting, item deletion or score/gap mutation is allowed.
 function drive(seed: number, platforms = false) {
-  const m = new RunnerModel(seed, true, { platforms }); m.start();
+  const m = new RunnerModel(seed, true, { platforms, encounters: false }); m.start();
   let active: Item | undefined, takeoff = 0, second = false, rescues = 0, lastRescue = false;
   let lowestStamina = 100;
   let overlap: Item | undefined, upperLandings = 0, lastUpper = false, blockedFrames = 0;
