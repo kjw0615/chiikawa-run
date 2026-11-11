@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import './style.css';
 import { RunnerModel, RULES } from './model';
-import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap } from './presentation';
+import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
 let displayGap = 30;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -39,8 +39,8 @@ function updateHud() {
   $('stamina-fill').style.width = `${model.stamina}%`;
   $('stamina-fill').style.background = model.stamina < 25 ? '#e59992' : '#8bbf90';
   $('distance').textContent = String(Math.floor(model.distance));
-  $('gap-fill').style.width = `${displayGap / RULES.maxGap * 100}%`; $('gap-fill').style.background = model.gap < 12 ? '#ed9b8c' : '#9acbad';
-  $('gap-marker').style.left = `${displayGap / RULES.maxGap * 100}%`;
+  $('gap-fill').style.width = `${chaseMarkerPercent(displayGap)}%`; $('gap-fill').style.background = model.gap < 12 ? '#ed9b8c' : '#9acbad';
+  $('gap-marker').style.left = `${chaseMarkerPercent(displayGap)}%`;
   // Gameplay contains gauges, not tutorial prompts or obstacle labels.
   $('status').hidden = true; $('status').textContent = '';
   pause.disabled = model.phase === 'ready' || model.phase === 'over'; pause.classList.toggle('paused', model.phase === 'paused');
@@ -56,10 +56,6 @@ class RunnerScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
   private hero!: Phaser.GameObjects.Image;
   private chaser!: Phaser.GameObjects.Image;
-  private heroLight!: Phaser.GameObjects.Image;
-  private chaserLight!: Phaser.GameObjects.Image;
-  private heroShadow!: Phaser.GameObjects.Image;
-  private chaserShadow!: Phaser.GameObjects.Image;
   private pool: Phaser.GameObjects.Image[] = [];
   private cursor = 0;
   private loadFailed = false;
@@ -72,10 +68,6 @@ class RunnerScene extends Phaser.Scene {
     if (this.loadFailed) { model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
     this.g = this.add.graphics(); this.hero = this.add.image(560, RULES.floor, ATLAS, 'momonga').setOrigin(.5, 1).setDepth(5);
     this.chaser = this.add.image(0, RULES.floor, ATLAS, 'dekatsuyo').setOrigin(.5, 1).setDepth(4);
-    this.heroLight = this.add.image(0,0,ATLAS,'momonga').setOrigin(.5,1).setDepth(4.9).setTint(0xffe5a0).setAlpha(.4);
-    this.chaserLight = this.add.image(0,0,ATLAS,'dekatsuyo').setOrigin(.5,1).setDepth(3.9).setTint(0xffe5a0).setAlpha(.35);
-    this.heroShadow = this.add.image(0,0,ATLAS,'momonga').setOrigin(.5,1).setDepth(1).setTint(0x254539).setAlpha(.12);
-    this.chaserShadow = this.add.image(0,0,ATLAS,'dekatsuyo').setOrigin(.5,1).setDepth(1).setTint(0x254539).setAlpha(.14);
     this.scale.refresh(); loading.remove();
   }
   update(_time: number, delta: number) {
@@ -139,14 +131,10 @@ class RunnerScene extends Phaser.Scene {
     const hx = center - 34 * Math.sin(Math.PI * Math.min(1, model.hitFlash / RULES.hitInvulnerability));
     const duck = model.crouch && model.grounded, bob = moving && model.grounded && !duck ? Math.abs(Math.sin(model.elapsed * 13)) * 3 : 0;
     const height = Math.max(0, floor-model.y);
-    g.fillStyle(0x355340, .16/(1+height/200)).fillEllipse(hx, floor + 4, Math.max(42, 88-height*.12), 13);
-    g.fillStyle(0x355340, .18).fillEllipse(cx, floor+7, MONSTER_WIDTH*.72, 23);
+    g.fillStyle(0x355340, .16/(1+height/200)).fillEllipse(hx, floor + 7, Math.max(42, 88-height*.12), 12);
+    g.fillStyle(0x355340, .18).fillEllipse(cx, floor+7, MONSTER_WIDTH*.55, 14);
     const heroFrame = duck ? 'momonga-crouch' : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
     this.hero.setTexture(ATLAS, heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, duck ? 43 : 98).setRotation(duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
-    for (const [image, light, shadow] of [[this.hero, this.heroLight, this.heroShadow], [this.chaser, this.chaserLight, this.chaserShadow]]) {
-      light.setTexture(ATLAS, image.frame.name).setPosition(image.x-2, image.y-2).setDisplaySize(image.displayWidth+4, image.displayHeight+4).setRotation(image.rotation).setVisible(image.visible);
-      shadow.setTexture(ATLAS, image.frame.name).setPosition(image.x+image.displayWidth*.12, floor+12).setDisplaySize(image.displayWidth*.95, image.displayHeight*.16).setRotation(-.12).setVisible(image.visible);
-    }
     if (model.boost > 0) {
       this.hero.setTint(0xffeec1); g.lineStyle(3, 0xffe393).strokeEllipse(hx, model.y - model.height / 2, 132, model.height + 30);
       for (let j = 1; j < 4; j++) g.lineStyle(3, 0xffd979, .5 / j).lineBetween(hx - 60 - j * 18, model.y - j * 19, hx - 30 - j * 18, model.y - j * 19);
