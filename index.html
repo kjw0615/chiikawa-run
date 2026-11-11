@@ -4,7 +4,7 @@
 <body>
 <main class="shell">
   <header class="page-head"><a class="brand" href="./"><span class="brand-icon">◧</span> LITTLE ESCAPE <span class="version">PLAYTEST 02</span></a><span class="prototype"><i></i> 도형 프로토타입</span></header>
-  <section class="intro"><div><p class="eyebrow">달리고, 먹고, 살아남기</p><h1>도형 도주단<span>!</span></h1><p class="subtitle">배고프면 느려지고, 느려지면 잡힌다. 작은 도형의 아슬아슬한 도주.</p></div><div class="rule-chip"><span>◆</span><div>황금 음식을 노려요<strong>4초 동안 속도 ×1.3</strong></div></div></section>
+  <section class="intro"><div><p class="eyebrow">달리고, 먹고, 살아남기</p><h1>도형 도주단<span>!</span></h1><p class="subtitle">배고프면 느려지고, 느려지면 잡힌다. 작은 도형의 아슬아슬한 도주.</p></div><div class="rule-chip"><span>◆</span><div>황금 음식을 노려요<strong>1초 동안 속도 ×1.5 + 무적</strong></div></div></section>
   <section class="stage" aria-label="추격 러너 게임">
     <div id="game"></div>
     <div class="hud"><div class="stamina-card"><div class="hud-label"><span>달리기 체력</span><strong id="stamina-number">100</strong></div><div class="track"><div id="stamina-fill"></div></div></div><div class="distance-card"><small>달린 거리</small><strong><span id="distance">0</span><em>m</em></strong></div><button id="pause" class="icon-button" aria-label="일시정지" disabled>Ⅱ</button></div>
@@ -13,7 +13,7 @@
     <div class="touch-controls"><button id="crouch" class="control"><span>↓</span>앉기<small>누르고 유지</small></button><button id="jump" class="control jump"><span>↑</span>점프<small>공중에서 한 번 더</small></button></div>
     <div id="overlay" class="overlay"><div class="modal"><span id="modal-kicker" class="eyebrow">READY, LITTLE RUNNER?</span><h2 id="modal-title">한 입 먹고,<br>한 발 더 멀리.</h2><p id="modal-copy">장애물을 피하며 음식을 챙겨요.<br>뒤에서 쫓아오는 그림자에게 잡히지 마세요!</p><div id="result" class="result" hidden></div><button id="start" class="primary">도주 시작 <span>→</span></button><p class="modal-help">Space 점프 · ↓ 앉기 · P 일시정지</p></div></div>
   </section>
-  <section class="guide"><div><span class="guide-icon mint">●</span><p><strong>파란 음식</strong><small>체력 +25 · 탈진에서 회복</small></p></div><div><span class="guide-icon gold">◆</span><p><strong>황금 음식</strong><small>4초 가속 · 무적은 아니에요</small></p></div><div><span class="guide-icon coral">▰</span><p><strong>장애물</strong><small>충돌하면 추격 거리 −5m</small></p></div><div><span class="guide-icon lavender">↟</span><p><strong>두 번의 점프</strong><small>높은 장애물은 공중에서 한 번 더</small></p></div></section>
+  <section class="guide"><div><span class="guide-icon mint">●</span><p><strong>파란 음식</strong><small>체력 +16 · 천천히 소모돼요</small></p></div><div><span class="guide-icon gold">◆</span><p><strong>황금 음식</strong><small>체력 +20 · 약 15개 중 1개</small></p></div><div><span class="guide-icon coral">▰</span><p><strong>장애물</strong><small>충돌 −3m · 0.5초 보호</small></p></div><div><span class="guide-icon lavender">↟</span><p><strong>두 번의 점프</strong><small>긴 장애물·끊어진 길을 넘어요</small></p></div></section>
   <footer><span>SHAPES FIRST. FUN FIRST.</span><p>원작 이미지 없이 핵심 규칙을 시험하는 로컬 플레이테스트입니다.</p><button id="restart">처음부터 다시</button></footer>
 </main><script type="module" src="/src/main.ts"></script>
 </body></html>
