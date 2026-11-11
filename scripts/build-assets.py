@@ -16,15 +16,34 @@ TARGETS = {
     'obstacle-rock': (160, 128), 'obstacle-log': (384, 128), 'obstacle-vines': (220, 416),
 }
 HOME = {'momonga', 'dekatsuyo', 'food-pudding', 'food-pancake', 'food-cream-puff'}
-atlas = Image.new('RGBA', (1024, 1024))
+atlas = Image.new('RGBA', (2048, 2048))
+sprites = {}
+for character, target in [('momonga', (256, 224)), ('dekatsuyo', (448, 320))]:
+    sheet = Image.open(SOURCE / f'{character}-run-sheet.png').convert('RGBA')
+    cells = []
+    for i in range(4):
+        cell = sheet.crop((i % 2 * sheet.width // 2, i // 2 * sheet.height // 2,
+                           (i % 2 + 1) * sheet.width // 2, (i // 2 + 1) * sheet.height // 2))
+        cells.append(cell.crop(cell.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox()))
+    factor = min((target[0]-4)/max(c.width for c in cells), (target[1]-4)/max(c.height for c in cells))
+    for i, cell in enumerate(cells):
+        cell = cell.resize((round(cell.width*factor), round(cell.height*factor)), Image.Resampling.LANCZOS)
+        sprite = Image.new('RGBA', target)
+        sprite.paste(cell, ((target[0]-cell.width)//2, target[1]-cell.height-2))
+        name = f'{character}-run-{i}'
+        TARGETS[name] = target
+        sprites[name] = sprite
 frames, source_frames = {}, {}
 x = y = row_height = 2
 for name, size in TARGETS.items():
-    original = Image.open(SOURCE / f'{name}.png').convert('RGBA')
+    if name in sprites:
+        original = sprites[name]
+    else:
+        original = Image.open(SOURCE / f'{name}.png').convert('RGBA')
     box = original.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox()
     l, t, r, b = box
     source_frames[name] = {'x': l, 'y': t, 'w': r-l, 'h': b-t}
-    cropped = original.crop(box)
+    cropped = original if name in sprites else original.crop(box)
     if name in HOME:
         home = cropped.copy()
         home.thumbnail((512, 512) if name in {'momonga', 'dekatsuyo'} else (160, 160), Image.Resampling.LANCZOS)
@@ -34,7 +53,7 @@ for name, size in TARGETS.items():
     if x + w + 2 > atlas.width:
         x = 2; y += row_height + 4; row_height = 0
     if y + h + 2 > atlas.height:
-        raise RuntimeError('Atlas exceeds 1024x1024; reduce targets or add a page')
+        raise RuntimeError('Atlas exceeds 2048x2048; reduce targets or add a page')
     atlas.paste(sprite, (x, y))
     frames[name] = {'frame': {'x': x, 'y': y, 'w': w, 'h': h}, 'rotated': False,
                     'trimmed': False, 'spriteSourceSize': {'x': 0, 'y': 0, 'w': w, 'h': h},

@@ -1,6 +1,6 @@
 export const RULES = {
   speed: 6, chaserSpeed: 6, exhaustedSpeed: 3.6, boostSpeed: 9,
-  staminaDrain: 3, food: 16, goldFood: 20, recover: 12, goldChance: 1 / 15,
+  staminaDrain: 4.5, food: 16, goldFood: 20, recover: 12, goldChance: .1,
   boostSeconds: 1, maxGap: 60, hitCost: 3, hitInvulnerability: .5,
   gravity: 1900, jumpVelocity: -760, floor: 460, scale: 44,
   playerHeight: 82, playerWidth: 64, halfHitWidth: 24, crouchHeight: 36,

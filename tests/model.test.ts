@@ -54,7 +54,7 @@ function windows(kind: Kind, w: number, state: State) {
 test('rules contract: the agreed v2 numbers', () => {
   assert.deepEqual(
     [RULES.staminaDrain, RULES.food, RULES.goldFood, RULES.recover, RULES.boostSeconds, RULES.boostSpeed, RULES.hitCost, RULES.hitInvulnerability, RULES.goldChance],
-    [3, 16, 20, 12, 1, 9, 3, 0.5, 1 / 15]);
+    [4.5, 16, 20, 12, 1, 9, 3, 0.5, 0.1]);
   assert.deepEqual([RULES.playerHeight, RULES.playerWidth, RULES.halfHitWidth, RULES.crouchHeight, RULES.floor, RULES.jumpVelocity, RULES.gravity],
     [82, 64, 24, 36, 460, -760, 1900]);
   assert.ok(RULES.food >= RULES.recover && RULES.goldFood >= RULES.recover, 'any food must clear the exhausted latch');
@@ -75,9 +75,9 @@ test('speed states: boost wins over exhausted over normal', () => {
 });
 
 // ---------------------------------------------------------------- stamina, food, gold
-test('stamina drains 3/s; reaching 0 latches exhausted after 33.3s', () => {
-  const m = quiet(); run(m, 10); assert.ok(Math.abs(m.stamina - 70) < 0.1); assert.equal(m.exhausted, false);
-  run(m, 24); assert.equal(m.stamina, 0); assert.equal(m.exhausted, true);
+test('stamina drains 4.5/s; reaching 0 latches exhausted after 22.2s', () => {
+  const m = quiet(); run(m, 10); assert.ok(Math.abs(m.stamina - 55) < 0.1); assert.equal(m.exhausted, false);
+  run(m, 13); assert.equal(m.stamina, 0); assert.equal(m.exhausted, true);
 });
 
 test('normal speed keeps the gap; exhausted shrinks 2.4/s and a 30m gap is caught in 12.5s', () => {
@@ -471,23 +471,24 @@ test('course: free distance between neighbouring hazards stays large at the new 
   assert.ok(minLater >= 16, `later ${minLater}`); assert.ok(minFirst >= 8, `first ${minFirst}`);
 });
 
-test('course: gold is about 1/15 of foods (several seeds), without streak bias', () => {
+test('course: gold is about 1/10 of foods (several seeds), without streak bias', () => {
   for (const seed of [13579, 1, 2026]) {
     const { foods } = course(seed, 10000);
     const gold = foods.filter(i => i.kind === 'gold').length, rate = gold / foods.length;
-    assert.ok(Math.abs(rate - 1 / 15) < 0.0075, `seed ${seed} gold rate ${rate}`);
+    assert.ok(Math.abs(rate - RULES.goldChance) < 0.0075, `seed ${seed} gold rate ${rate}`);
     let pairs = 0, after = 0; for (let i = 1; i < foods.length; i++) if (foods[i - 1].kind === 'gold') { pairs++; if (foods[i].kind === 'gold') after++; }
-    assert.ok(Math.abs(after / pairs - 1 / 15) < 0.04, `seed ${seed} gold-after-gold ${after / pairs}`);
+    assert.ok(Math.abs(after / pairs - RULES.goldChance) < 0.04, `seed ${seed} gold-after-gold ${after / pairs}`);
   }
 });
 
 test('stamina economy: only low foods can be eaten by walking; the rest need a jump', () => {
   const walkable = RULES.playerHeight + 32, foods = SEEDS.flatMap(s => course(s, 2000).foods);
   const walkShare = foods.filter(f => F - f.y < walkable).length / foods.length;
-  const avg = (RULES.food * 14 + RULES.goldFood) / 15, perSecond = (share: number) => avg * share / (24 / RULES.speed);
+  const avg = RULES.food * (1 - RULES.goldChance) + RULES.goldFood * RULES.goldChance, perSecond = (share: number) => avg * share / (24 / RULES.speed);
   console.log(`walkable foods ${(walkShare * 100).toFixed(0)}%; income if all eaten ${perSecond(1).toFixed(2)}/s, 75% ${perSecond(0.75).toFixed(2)}/s, walking only ${perSecond(walkShare).toFixed(2)}/s, drain ${RULES.staminaDrain}/s`);
   assert.ok(Math.abs(walkShare - (walkable - 48) / (205 - 48)) < 0.03, `walk share ${walkShare}`);
-  assert.ok(perSecond(1) > RULES.staminaDrain); assert.ok(perSecond(walkShare) < RULES.staminaDrain);
+  // 4.5/s drain: even eating every food is slightly below break-even (4.10/s), so stamina always trends down.
+  assert.ok(perSecond(1) < RULES.staminaDrain && perSecond(1) > RULES.staminaDrain * .85); assert.ok(perSecond(walkShare) < RULES.staminaDrain);
 });
 
 test('determinism: same seed and inputs give the same run', () => {
