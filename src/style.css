@@ -123,7 +123,7 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 @keyframes chase-bob{from{transform:translateY(0) scale(1)}to{transform:translateY(-5px) scale(1.03)}}
 @keyframes float{from{transform:translateY(-6px)}to{transform:translateY(7px)}}
 @keyframes twinkle{0%,100%{opacity:.25;transform:scale(.6) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(25deg)}}
-@keyframes lean-run{from{transform:rotate(-5deg) translateY(0)}to{transform:rotate(-5deg) translateY(-2px)}}
+@keyframes lean-run{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
 @keyframes drift{from{transform:translateX(-8px)}to{transform:translateX(18px)}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
