@@ -195,3 +195,6 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 
 .intro-loading{position:absolute;color:#fff;pointer-events:none}
 .intro-loading[hidden]{display:none}
+
+.exit-button{display:block;margin:14px auto 0;padding:12px 20px;border:1px solid currentColor;border-radius:999px;background:#fffdf6;color:var(--ink);font:inherit;cursor:pointer}
+.exit-button[hidden]{display:none}

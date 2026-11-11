@@ -41,6 +41,7 @@ function togglePause() {
 }
 function endOverlay() {
   const over = model.phase === 'over';
+  $('pause-home').hidden = false;
   $('modal-kicker').textContent = over ? '한 번 더 달려볼까요?' : '모몽가도 잠깐 쉬어요';
   $('modal-title').textContent = over ? '앗, 붙잡혔다!' : '잠깐 쉬어 가요.';
   $('modal-copy').textContent = over ? '다음에는 조금 더 멀리 갈 수 있을 거예요.' : '준비되면 다시 달려요.';
@@ -233,7 +234,10 @@ function returnHome() {
   play.hidden = true; home.hidden = false; game?.loop.sleep(); $('home-play').focus(); window.scrollTo({ top: 0 });
 }
 $('home-return').addEventListener('click', returnHome);
+$('pause-home').addEventListener('click', returnHome);
+$('countdown-home').addEventListener('click', returnHome);
 window.addEventListener('keydown', e => {
+  if (e.target instanceof HTMLButtonElement && e.target.classList.contains('exit-button') && ['Space', 'Enter'].includes(e.code)) return;
   if (intro.active) {
     if (e.code === 'Escape') { e.preventDefault(); intro.skip(); }
     if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code) && e.target instanceof HTMLVideoElement) e.preventDefault();
@@ -300,6 +304,7 @@ function updateMini() {
     $<HTMLButtonElement>('jump').disabled = false; $<HTMLButtonElement>('crouch').disabled = false; return;
   }
   const g = mini, countdown = g.phase === 'countdown';
+  $('countdown-home').hidden = !g.paused;
   document.querySelector<HTMLElement>('.hud-buttons')!.hidden = true;
   miniScreen.hidden = countdown; $('mini-countdown').hidden = !countdown;
   play.inert = !countdown; document.body.style.overflow = countdown ? '' : 'hidden';
