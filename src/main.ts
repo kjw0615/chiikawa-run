@@ -59,6 +59,8 @@ class RunnerScene extends Phaser.Scene {
   private pool: Phaser.GameObjects.Image[] = [];
   private cursor = 0;
   private loadFailed = false;
+  private world!: Phaser.GameObjects.Container;
+  private cameraLift = 0;
   preload() {
     this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
     this.load.on('loaderror', () => { this.loadFailed = true; });
@@ -66,8 +68,10 @@ class RunnerScene extends Phaser.Scene {
   }
   create() {
     if (this.loadFailed) { model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
+    this.world = this.add.container(0, 0);
     this.g = this.add.graphics(); this.hero = this.add.image(560, RULES.floor, ATLAS, 'momonga').setOrigin(.5, 1).setDepth(5);
     this.chaser = this.add.image(0, RULES.floor, ATLAS, 'dekatsuyo').setOrigin(.5, 1).setDepth(4);
+    this.world.add([this.g, this.chaser, this.hero]);
     this.scale.refresh(); loading.remove();
   }
   update(_time: number, delta: number) {
@@ -76,26 +80,51 @@ class RunnerScene extends Phaser.Scene {
       while (accumulator >= 1 / 120) { model.crouch = crouchHeld; model.step(1 / 120); accumulator -= 1 / 120; }
     }
     if (model.phase === 'running') displayGap = smoothGap(displayGap, model.gap, Math.min(delta / 1000, .05));
+    const targetLift = Math.max(0, 120 - (model.y - RULES.playerHeight));
+    if (model.elapsed < .05) this.cameraLift = 0;
+    if (model.phase === 'running') this.cameraLift = smoothGap(this.cameraLift, targetLift, Math.min(delta / 1000, .05));
+    this.world.y = this.cameraLift;
     model.events.length = 0; updateHud(); this.draw();
   }
   private sprite(key: string, x: number, y: number, w: number, h: number) {
     let s = this.pool[this.cursor++];
-    if (!s) { s = this.add.image(0, 0, ATLAS, key).setDepth(2); this.pool.push(s); }
+    if (!s) { s = this.add.image(0, 0, ATLAS, key).setDepth(2); this.pool.push(s); this.world.addAt(s, 1); }
     return s.setTexture(ATLAS, key).setPosition(x, y).setDisplaySize(w, h).setOrigin(.5).setRotation(0).setAlpha(1).clearTint().setVisible(true);
   }
   private draw() {
     const g = this.g, floor = RULES.floor, center = 560, progress = model.distance * RULES.scale;
     this.cursor = 0; for (const s of this.pool) s.setVisible(false);
-    g.clear(); g.fillStyle(0xeff6e9).fillRect(0, 0, 1120, 630);
+    g.clear(); g.fillStyle(0xeff6e9).fillRect(0, -240, 1120, 1100);
     g.fillStyle(0xffe4ad).fillCircle(913, 127, 49); g.fillStyle(0xffffff, .4).fillCircle(913, 127, 65);
-    for (let i = -1; i < 6; i++) { const hx = i * 310 - progress * .14 % 310; g.fillStyle(i % 2 ? 0xd7e7c4 : 0xe0ecd0).fillEllipse(hx + 140, 406, 440, 260); }
+    for (let i = -1; i < 6; i++) { const hx = i * 310 - progress * .14 % 310; g.fillStyle(0xd7e7c4).fillEllipse(hx + 140, 406, 440, 260); }
     for (let i = -1; i < 11; i++) {
       const tx = i * 145 - progress * .38 % 145;
-      g.fillStyle(0xc5cfab, .7).fillRoundedRect(tx + 17, 333 + i % 3 * 13, 16, 130, 8);
-      g.fillStyle(0xc0d9b1, .85).fillCircle(tx + 25, 322 + i % 3 * 13, 38);
+      g.fillStyle(0xc5cfab, .7).fillRoundedRect(tx + 17, 333, 16, 130, 8);
+      g.fillStyle(0xc0d9b1, .85).fillCircle(tx + 25, 322, 38);
     }
-    g.fillStyle(0xa9c78c).fillRect(0, floor, 1120, 9); g.fillStyle(0x8caa76).fillRect(0, floor + 9, 1120, 39); g.fillStyle(0x68876a).fillRect(0, floor + 48, 1120, 200);
-    for (let i = 0; i < 25; i++) g.fillStyle(0xb0c597).fillRoundedRect(i * 53 - progress % 53, floor + 22 + i % 2 * 6, 20, 3, 2);
+    g.fillStyle(0xa9c78c).fillRect(0, floor, 1120, 9); g.fillStyle(0x8caa76).fillRect(0, floor + 9, 1120, 39); g.fillStyle(0x68876a).fillRect(0, floor + 48, 1120, 400);
+    for (let i = -1; i < 25; i++) g.fillStyle(0xb0c597).fillRoundedRect(i * 53 - progress % 53, floor + 25, 20, 3, 2);
+    // A single repeating moss-covered branch, painted at world coordinates.
+    // Its shape and grain never depend on the slot currently occupying the screen.
+    for (const p of model.platforms) {
+      const left = center + (p.start - model.distance) * RULES.scale, width = (p.end - p.start) * RULES.scale;
+      if (left > 1140 || left + width < -20) continue;
+      if (p.required) {
+        g.fillStyle(0x725340).fillRoundedRect(left - 10, p.y + 10, 46, floor - p.y, 9);
+        g.lineStyle(3, 0x503f32).strokeRoundedRect(left - 10, p.y + 10, 46, floor - p.y, 9);
+        g.lineStyle(3, 0x9a7651).lineBetween(left + 6, p.y + 29, left + 6, floor);
+      }
+      g.fillStyle(0x98714f).fillRoundedRect(left, p.y, width, 26, 12);
+      g.lineStyle(3, 0x624d38).strokeRoundedRect(left, p.y, width, 26, 12);
+      g.fillStyle(0xb3ce84).fillRoundedRect(left, p.y - 3, width, 10, 5);
+      for (let x = p.start + 1; x < p.end; x += 2) {
+        const sx = center + (x - model.distance) * RULES.scale;
+        if (sx < -30 || sx > 1150) continue;
+        g.lineStyle(2, 0x72543f).lineBetween(sx - 16, p.y + 17, sx + 15, p.y + 17);
+        g.lineStyle(3, 0x7da16c).lineBetween(sx, p.y + 24, sx + 5, p.y + 40);
+        g.fillStyle(0x9cbd80).fillEllipse(sx + 9, p.y + 34, 14, 7);
+      }
+    }
     for (const item of model.items) {
       if (item.used && item.kind !== 'pit') continue;
       const ix = center + (item.x - model.distance) * RULES.scale;
@@ -130,8 +159,9 @@ class RunnerScene extends Phaser.Scene {
     this.chaser.setTexture(ATLAS, monsterFrame).setVisible(cx + MONSTER_WIDTH/2 > 0).setPosition(cx, floor + (moving ? Math.sin(model.elapsed * 14) * 3 : 0)).setDisplaySize(MONSTER_WIDTH, MONSTER_HEIGHT).setRotation(moving ? Math.sin(model.elapsed * 7) * .012 : 0);
     const hx = center - 34 * Math.sin(Math.PI * Math.min(1, model.hitFlash / RULES.hitInvulnerability));
     const duck = model.crouch && model.grounded, bob = moving && model.grounded && !duck ? Math.abs(Math.sin(model.elapsed * 13)) * 3 : 0;
-    const height = Math.max(0, floor-model.y);
-    g.fillStyle(0x355340, .16/(1+height/200)).fillEllipse(hx, floor + 7, Math.max(42, 88-height*.12), 12);
+    const shadowFloor = model.platforms.find(p => model.distance >= p.start && model.distance <= p.end && model.y <= p.y + .1)?.y ?? floor;
+    const height = Math.max(0, shadowFloor-model.y);
+    g.fillStyle(0x355340, .16/(1+height/200)).fillEllipse(hx, shadowFloor + 7, Math.max(42, 88-height*.12), 12);
     g.fillStyle(0x355340, .18).fillEllipse(cx, floor+7, MONSTER_WIDTH*.55, 14);
     const heroFrame = duck ? 'momonga-crouch' : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
     this.hero.setTexture(ATLAS, heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, duck ? 43 : 98).setRotation(duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
@@ -145,7 +175,7 @@ start.addEventListener('click', () => { if (model.phase === 'paused') { model.st
 $('home-play').addEventListener('click', begin); $('restart').addEventListener('click', begin); pause.addEventListener('click', togglePause);
 const jumpButton = $('jump'), crouchButton = $('crouch');
 jumpButton.addEventListener('pointerdown', e => { e.preventDefault(); jumpButton.classList.add('held'); jumpButton.setPointerCapture(e.pointerId); model.jump(); });
-function releaseJump() { jumpButton.classList.remove('held'); }
+function releaseJump() { jumpButton.classList.remove('held'); model.releaseJump(); }
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) jumpButton.addEventListener(event, releaseJump);
 crouchButton.addEventListener('pointerdown', e => { e.preventDefault(); crouchHeld = true; crouchButton.classList.add('held'); crouchButton.setPointerCapture(e.pointerId); });
 function release() { crouchHeld = false; crouchButton.classList.remove('held'); }
