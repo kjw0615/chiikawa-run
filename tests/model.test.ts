@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { RunnerModel, RULES, OBSTACLE_WIDTHS, difficultyAt } from '../src/model.ts';
 
 const DT = 1 / 120; // same fixed step as src/main.ts
+const GROUND = { platforms: false } as const; // ground-course contract: isolated from the two-level layer
 const F = RULES.floor;
 type Kind = 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold';
 type State = 'normal' | 'exhausted' | 'boost';
@@ -14,7 +15,7 @@ const DIMS: Record<Kind, [number, number, number]> = {
 const SPEED: Record<State, number> = { normal: RULES.speed, exhausted: RULES.exhaustedSpeed, boost: RULES.boostSpeed };
 
 // Empty course: the authored course is switched off, each test places what it needs.
-function quiet(seed = 123): RunnerModel { const m = new RunnerModel(seed, false); m.start(); return m; }
+function quiet(seed = 123): RunnerModel { const m = new RunnerModel(seed, false, GROUND); m.start(); return m; }
 function put(m: RunnerModel, kind: Kind, x: number, w = DIMS[kind][1]) {
   m.items.push({ id: m.items.length + 1000, x, y: DIMS[kind][0], w, h: DIMS[kind][2], kind, used: false });
 }
@@ -62,10 +63,10 @@ test('rules contract: the agreed v6 numbers', () => {
 });
 
 test('initial state; ready phase ignores steps and input; empty course option', () => {
-  const m = new RunnerModel(123, false);
+  const m = new RunnerModel(123, false, GROUND);
   assert.deepEqual([m.phase, m.gap, m.stamina, m.exhausted, m.boost, m.hits, m.items.length, m.rescue], ['ready', 30, 100, false, 0, 0, 0, null]);
   m.step(1); m.jump(); assert.equal(m.distance, 0); assert.equal(m.phase, 'ready');
-  assert.ok(new RunnerModel().items.length > 0);
+  assert.ok(new RunnerModel(13579, true, GROUND).items.length > 0);
 });
 
 test('speed states: boost wins over exhausted over normal', () => {
@@ -165,7 +166,7 @@ test('pause freezes distance/gap/stamina/boost/hitFlash/time; input ignored; res
 });
 
 test('pause only works while running; a finished run cannot be restarted with start()', () => {
-  const m = new RunnerModel(1, false); m.pause(); assert.equal(m.phase, 'ready');
+  const m = new RunnerModel(1, false, GROUND); m.pause(); assert.equal(m.phase, 'ready');
   const o = quiet(); o.gap = 0.01; o.stamina = 0; run(o, 1); assert.equal(o.phase, 'over'); o.pause(); o.start(); assert.equal(o.phase, 'over');
 });
 
@@ -373,14 +374,14 @@ test('pause freezes a rescue in progress', () => {
 // ---------------------------------------------------------------- course generation, seeds, food
 test('seeds: default seed is reproducible, the same seed gives the same course, different seeds differ', () => {
   const sig = (m: RunnerModel) => m.items.map(i => `${i.kind}${i.x}`).join(',');
-  const a = new RunnerModel(), b = new RunnerModel(13579);
+  const a = new RunnerModel(13579, true, GROUND), b = new RunnerModel(13579, true, GROUND);
   assert.equal(sig(a), sig(b));
-  const far = (seed: number) => { const m = new RunnerModel(seed); m.distance = 24 * 400; (m as any).generate(); return sig(m); };
+  const far = (seed: number) => { const m = new RunnerModel(seed, true, GROUND); m.distance = 24 * 400; (m as any).generate(); return sig(m); };
   assert.equal(far(7), far(7)); assert.notEqual(far(7), far(8));
 });
 
 function course(seed: number, chunks: number) {
-  const m = new RunnerModel(seed); m.distance = 24 * chunks; /* chunks = distance / 24m (size unit only) */ (m as any).generate();
+  const m = new RunnerModel(seed, true, GROUND); m.distance = 24 * chunks; /* chunks = distance / 24m (size unit only) */ (m as any).generate();
   const isFood = (i: { kind: string }) => i.kind === 'food' || i.kind === 'gold';
   return { m, chunks, foods: m.items.filter(isFood), hazards: m.items.filter(i => !isFood(i)) };
 }
@@ -407,7 +408,7 @@ test('course: hazards start at 19m and follow the distance-based spacing; they a
     for (let i = 1; i < hazards.length; i++) assert.ok(Math.abs(hazards[i].x - hazards[i - 1].x - difficultyAt(hazards[i - 1].x).obstacleSpacing) < 1e-9, `seed ${seed} #${i}`);
     assert.ok(hazards.at(-1)!.x >= 400 * 24 + 140 - 22 && hazards.at(-1)!.x < 400 * 24 + 140, `last hazard ${hazards.at(-1)!.x}`);
   }
-  const m = new RunnerModel(7); const first = m.items.filter(i => i.kind !== 'food' && i.kind !== 'gold');
+  const m = new RunnerModel(7, true, GROUND); const first = m.items.filter(i => i.kind !== 'food' && i.kind !== 'gold');
   assert.ok(first.at(-1)!.x >= 140 - 22 && first.at(-1)!.x < 140, 'initial course already reaches 140m');
 });
 
@@ -488,7 +489,7 @@ test('course: widths stay inside OBSTACLE_WIDTHS, use the whole range, kinds rep
   }
   const total = Object.values(kinds).reduce((a, b) => a + b, 0), unit = total / 6;
   assert.ok(Math.abs(kinds.block / unit - 2) < 0.05 && Math.abs(kinds.beam / unit - 1) < 0.05 && Math.abs(kinds.tower / unit - 1) < 0.05 && Math.abs(kinds.long / unit - 1) < 0.05 && Math.abs(kinds.pit / unit - 1) < 0.05, JSON.stringify(kinds));
-  const first = new RunnerModel().items.filter(i => i.kind !== 'food' && i.kind !== 'gold')[0]; assert.equal(first.kind, 'block');
+  const first = new RunnerModel(13579, true, GROUND).items.filter(i => i.kind !== 'food' && i.kind !== 'gold')[0]; assert.equal(first.kind, 'block');
 });
 
 test('course: free distance between neighbouring hazards stays large at the new maximum widths', () => {
@@ -536,7 +537,7 @@ test('stamina economy: only low foods can be eaten by walking; the rest need a j
 // ---------------------------------------------------------------- reaching 1000m
 // Analytic stamina along the real course: drain between foods, +food when eaten (cap 100), no hits, 6m/s.
 function reach(seed: number, eatShare: number) {
-  const m = new RunnerModel(seed); m.distance = 1300; (m as any).generate();
+  const m = new RunnerModel(seed, true, GROUND); m.distance = 1300; (m as any).generate();
   const foods = m.items.filter(i => (i.kind === 'food' || i.kind === 'gold') && i.x <= 1000).sort((a, b) => a.x - b.x);
   let st = 100, x = 0, lowest = 100, taken = 0, k = 0;
   const to = (target: number) => { // drain from x to target; returns the distance where stamina hits 0, or null
