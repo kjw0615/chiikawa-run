@@ -4,7 +4,7 @@ export type Phase = 'ready' | 'running' | 'paused' | 'over';
 export class RunnerModel {
   phase: Phase = 'ready'; distance = 0; gap = 30; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
   y = RULES.floor; vy = 0; jumps = 0; crouch = false; hitFlash = 0; foods = 0; bonus = 0; hits = 0;
-  items: Item[] = []; events: string[] = []; private nextChunk = 0; private id = 0; private jumpBuffer = 0; private wasCrouching = false;
+  items: Item[] = []; events: string[] = []; private nextChunk = 0; private id = 0; private jumpBuffer = 0; private wasCrouching = false; private jumpMotionScale = 1;
   constructor() { this.generate(); }
   get speed() { return this.boost > 0 ? RULES.boostSpeed : this.exhausted ? RULES.exhaustedSpeed : RULES.speed; }
   get grounded() { return this.y >= RULES.floor - .01; }
@@ -19,7 +19,14 @@ export class RunnerModel {
   hit() { if (this.hitFlash > 0) return; this.gap -= RULES.hitCost; this.hitFlash = .9; this.hits++; this.events.push('충돌! 거리 −5m'); }
   step(dt: number) {
     if (this.phase !== 'running') return;
-    if (this.jumpBuffer > 0 && this.jumps < 2) { this.vy = RULES.jumpVelocity; this.jumps++; this.crouch = false; this.jumpBuffer = 0; this.events.push(this.jumps === 2 ? '더블 점프' : '점프'); }
+    if (this.jumpBuffer > 0 && this.jumps < 2) {
+      // Preserve jump height and horizontal clearance when exhausted. A slower
+      // takeoff gets a longer arc; recovery/boost never changes gravity mid-arc.
+      this.jumpMotionScale = Math.min(1, this.speed / RULES.speed);
+      this.vy = RULES.jumpVelocity * this.jumpMotionScale;
+      this.jumps++; this.crouch = false; this.jumpBuffer = 0;
+      this.events.push(this.jumps === 2 ? '더블 점프' : '점프');
+    }
     this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
     this.elapsed += dt;
     const speed = this.speed;
@@ -29,8 +36,8 @@ export class RunnerModel {
     if (this.stamina <= 0) this.exhausted = true;
     this.boost = Math.max(0, this.boost - dt);
     this.hitFlash = Math.max(0, this.hitFlash - dt);
-    this.vy += RULES.gravity * dt; this.y += this.vy * dt;
-    if (this.y >= RULES.floor) { this.y = RULES.floor; this.vy = 0; this.jumps = 0; }
+    this.vy += RULES.gravity * this.jumpMotionScale ** 2 * dt; this.y += this.vy * dt;
+    if (this.y >= RULES.floor) { this.y = RULES.floor; this.vy = 0; this.jumps = 0; this.jumpMotionScale = 1; }
     if (this.gap <= 0) { this.gap = 0; this.phase = 'over'; return; }
     this.generate();
     const px = this.distance * RULES.scale;
