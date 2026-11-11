@@ -18,7 +18,8 @@ export const difficultyAt = (distance: number) => {
 };
 // Upper bounds leave a tested timing window for the required jump(s).
 export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 170], pit: [120, 200], beam: [100, 220] } as const;
-export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold'; used: boolean };
+export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2 } as const;
+export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold'; used: boolean; variant?: number };
 export type Phase = 'ready' | 'running' | 'paused' | 'minigame' | 'over';
 export type Platform = { id: number; start: number; end: number; y: number; required: boolean; gateX?: number };
 export type Encounter = { id: number; x: number; y: number; seed: number; used: boolean };
@@ -34,9 +35,13 @@ export class RunnerModel {
   private encounterCourse: boolean; private encounterState: number; private encounterIndex = 0; private lastEncounterX = 0;
   private jumpHeld = false; private nextPlatformX = 80; private platformIndex = 0;
   private platformRandomState: number; private platformCourse: boolean;
-  private nextHazardX = 19; private hazardIndex = 0; private nextFoodX = 7; private id = 0; private jumpBuffer = 0; private randomState: number; private generateCourse: boolean; private lastFoodX = -Infinity;
+  private nextHazardX = 19; private nextFoodX = 7; private id = 0; private jumpBuffer = 0;
+  private hazardState: number; private foodState: number; private artState: number;
+  private generateCourse: boolean; private lastFoodX = -Infinity;
   constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean; encounters?: boolean } = {}) {
-    this.randomState = seed >>> 0; this.platformRandomState = (seed ^ 0x9e3779b9) >>> 0;
+    this.hazardState = (seed ^ 0x243f6a88) >>> 0; this.foodState = (seed ^ 0xb7e15162) >>> 0;
+    this.artState = (seed ^ 0xdeadbeef) >>> 0; this.platformRandomState = (seed ^ 0x9e3779b9) >>> 0;
+    this.nextHazardX = COURSE_RANDOM.firstHazardMin + this.random('hazard') * (COURSE_RANDOM.firstHazardMax-COURSE_RANDOM.firstHazardMin);
     this.encounterState = (seed ^ 0x85ebca6b) >>> 0; this.encounterCourse = options.encounters !== false;
     this.generateCourse = generateCourse; this.platformCourse = options.platforms !== false; this.generate();
   }
@@ -179,37 +184,45 @@ export class RunnerModel {
     }
     return distance;
   }
-  private random() { this.randomState = (Math.imul(1664525, this.randomState) + 1013904223) >>> 0; return this.randomState / 4294967296; }
-  private add(x: number, y: number, w: number, h: number, kind: Item['kind']) { this.items.push({ id: this.id++, x, y, w, h, kind, used: false }); }
+  private random(stream: 'hazard' | 'food' | 'platform' | 'art') {
+    const key = stream === 'hazard' ? 'hazardState' : stream === 'food' ? 'foodState' : stream === 'platform' ? 'platformRandomState' : 'artState';
+    this[key] = (Math.imul(1664525, this[key]) + 1013904223) >>> 0; return this[key] / 4294967296;
+  }
+  private add(x: number, y: number, w: number, h: number, kind: Item['kind']) {
+    this.items.push({ id: this.id++, x, y, w, h, kind, used: false,
+      ...(['food','gold'].includes(kind) ? {variant: Math.floor(this.random('art') * 3)} : {}) });
+  }
   private generate() {
     if (!this.generateCourse) return;
     // Terrain is planned beyond both item horizons before either can be placed.
     if (this.platformCourse) while (this.nextPlatformX < this.distance + 220) {
-      this.platformRandomState = (Math.imul(1664525, this.platformRandomState) + 1013904223) >>> 0;
+      const lengthRoll = this.random('platform');
       const n = this.platformIndex++, start = this.nextPlatformX;
       const switching = n % 6 === 1;
-      const length = switching ? 36 : [12, 20, 36][this.platformRandomState % 3];
+      const length = switching ? 36 : [12, 20, 36][Math.floor(lengthRoll * 3)];
       const p: Platform = { id: n, start, end: start + length, y: RULES.floor - RULES.platformHeight, required: n % 2 === 1,
-        ...(switching ? {gateX: start + 22} : {}) };
+        ...(switching ? {gateX: start + 20 + this.random('platform') * 4} : {}) };
       this.platforms.push(p); this.nextPlatformX += 180;
-      this.platformRandomState = (Math.imul(1664525, this.platformRandomState) + 1013904223) >>> 0;
-      this.add(start + 3, p.y - 80, 32, 32, this.platformRandomState / 4294967296 < RULES.goldChance ? 'gold' : 'food');
+      const foodX = start + 3 + this.random('platform') * .5, lift = 48 + this.random('platform') * 52;
+      this.add(foodX, p.y - lift, 32, 32, this.random('platform') < RULES.goldChance ? 'gold' : 'food');
       // Short branches are bonus paths; long ones have one well-spaced upper hazard.
       if (length >= 20 && !switching) {
-        const x = start + RULES.platformFirstHazard;
-        if (n % 3 === 0) this.add(x, 0, 120, p.y - 44, 'beam');
-        else if (n % 3 === 1) this.add(x, p.y - 64, 56, 64, 'block');
+        const x = start + RULES.platformFirstHazard + this.random('platform') * (length === 20 ? .5 : 4);
+        const type = Math.floor(this.random('platform') * 3);
+        if (type === 0) this.add(x, 0, 120, p.y - 44, 'beam');
+        else if (type === 1) this.add(x, p.y - 64, 56, 64, 'block');
         else this.add(x, p.y - 46, 120, 46, 'long');
       }
     }
     // Generate hazards beyond the food horizon first, so future obstacles cannot
     // invalidate an already placed food's approach/landing clearance.
     while (this.nextHazardX < this.distance + 140) {
-      const n = this.hazardIndex++, x = this.nextHazardX, type = n % 6;
-      this.nextHazardX += difficultyAt(x).obstacleSpacing;
+      const x = this.nextHazardX;
+      this.nextHazardX += difficultyAt(x).obstacleSpacing + this.random('hazard') * COURSE_RANDOM.hazardExtra;
       // Clear both the lower lane and the approach/descent of every branch.
       if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
-      const width = (kind: keyof typeof OBSTACLE_WIDTHS) => { const [lo, hi] = OBSTACLE_WIDTHS[kind]; return Math.round(lo + this.random() * (hi - lo)); };
+      const type = Math.floor(this.random('hazard') * 6);
+      const width = (kind: keyof typeof OBSTACLE_WIDTHS) => { const [lo, hi] = OBSTACLE_WIDTHS[kind]; return Math.round(lo + this.random('hazard') * (hi - lo)); };
       if (type === 1) this.add(x, 84, width('beam'), RULES.floor - 44 - 84, 'beam');
       else if (type === 2) this.add(x, RULES.floor - 190, width('tower'), 190, 'tower');
       else if (type === 3) this.add(x, RULES.floor - 46, width('long'), 46, 'long');
@@ -218,7 +231,7 @@ export class RunnerModel {
     }
     while (this.nextFoodX < this.distance + 96) {
       const desired = this.nextFoodX;
-      this.nextFoodX += difficultyAt(desired).foodSpacing;
+      this.nextFoodX += difficultyAt(desired).foodSpacing + (this.random('food') * 2 - 1) * COURSE_RANDOM.foodJitter;
       const safe = (x: number) => x - this.lastFoodX >= RULES.minFoodSpacing
         && this.items.every(i => i.kind !== 'food' && i.kind !== 'gold' || Math.abs(x - i.x) >= RULES.minFoodSpacing)
         && this.platforms.every(p => x < p.start - 4 || x > p.end + 4 || x >= p.start + 3 && x <= p.end - 3)
@@ -228,14 +241,14 @@ export class RunnerModel {
       // Unsafe slots are skipped rather than placing food against an obstacle.
       let foodX: number | undefined;
       for (let attempt = 0; attempt < 24; attempt++) {
-        const candidate = desired + (this.random() - .5) * 8;
+        const candidate = desired + (this.random('food') - .5) * 8;
         if (safe(candidate)) { foodX = candidate; break; }
       }
       if (foodX === undefined) continue;
       this.lastFoodX = foodX;
-      const lift = RULES.foodLiftMin + this.random() * (RULES.foodLiftMax - RULES.foodLiftMin);
+      const lift = RULES.foodLiftMin + this.random('food') * (RULES.foodLiftMax - RULES.foodLiftMin);
       const platform = this.platforms.find(p => foodX! >= p.start && foodX! <= p.end);
-      this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.random() < RULES.goldChance ? 'gold' : 'food');
+      this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.random('food') < RULES.goldChance ? 'gold' : 'food');
     }
     // A separate seeded schedule never changes the obstacle/food random stream.
     while (this.encounterCourse && this.lastEncounterX + 300 <= this.distance + 120) {
