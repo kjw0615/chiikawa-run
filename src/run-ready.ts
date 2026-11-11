@@ -1,16 +1,16 @@
-// Start only after assets are ready and three visible seconds have elapsed.
+// Briefly reveal the loaded course before starting its clock. No numeric countdown.
+export const START_TRANSITION_SECONDS = .5;
 export function createRunReady() {
   const screen = document.getElementById('run-ready')!;
-  const number = document.getElementById('ready-number')!;
+  const message = document.getElementById('ready-message')!;
   const resume = document.getElementById('ready-resume') as HTMLButtonElement;
-  let active = false, paused = false, remaining = 3, last = 0, frame = 0;
+  let active = false, paused = false, remaining = START_TRANSITION_SECONDS, last = 0, frame = 0;
   let complete = () => {};
   function tick(now: number) {
     if (!active) return;
     if (!paused && !document.hidden && last) remaining -= Math.min((now - last) / 1000, .1);
     last = now;
-    const label = paused ? 'Ⅱ' : String(Math.max(1, Math.ceil(remaining)));
-    if (number.textContent !== label) number.textContent = label;
+    screen.style.opacity = String(paused ? 1 : Math.max(0, remaining / START_TRANSITION_SECONDS));
     if (remaining <= 0) {
       active = false; screen.hidden = true; complete(); return;
     }
@@ -18,11 +18,11 @@ export function createRunReady() {
   }
   function pause() {
     if (!active) return;
-    paused = true; resume.hidden = false; number.textContent = 'Ⅱ';
+    paused = true; resume.hidden = false; message.textContent = '잠깐 쉬어요'; screen.style.opacity = '1';
   }
   resume.addEventListener('click', () => {
     if (!active) return;
-    paused = false; last = 0; resume.hidden = true;
+    paused = false; last = 0; resume.hidden = true; message.textContent = '출발!';
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   screen.addEventListener('keydown', e => {
@@ -35,9 +35,9 @@ export function createRunReady() {
     pause,
     start(onComplete: () => void) {
       cancelAnimationFrame(frame);
-      complete = onComplete; remaining = 3; last = 0; active = true;
+      complete = onComplete; remaining = START_TRANSITION_SECONDS; last = 0; active = true;
       paused = document.hidden; screen.hidden = false; resume.hidden = !paused;
-      number.textContent = paused ? 'Ⅱ' : '3';
+      message.textContent = paused ? '잠깐 쉬어요' : '출발!'; screen.style.opacity = '1';
       screen.focus({ preventScroll: true });
       frame = requestAnimationFrame(tick);
     },
