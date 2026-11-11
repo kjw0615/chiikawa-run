@@ -7,7 +7,7 @@ let model = new RunnerModel();
 let best = 0; try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* Storage optional. */ }
 let accumulator = 0, crouchHeld = false, lastPhase = '', lastEvent = '', toastTime = 0;
 const overlay = $('overlay'), start = $('start'), pause = $<HTMLButtonElement>('pause');
-function begin() { model = new RunnerModel(); model.start(); accumulator = 0; crouchHeld = false; lastPhase = ''; updateHud(); }
+function begin() { model = new RunnerModel(Date.now()); model.start(); accumulator = 0; crouchHeld = false; lastPhase = ''; lastEvent = ''; toastTime = 0; updateHud(); }
 function togglePause() { if (model.phase === 'running') model.pause(); else if (model.phase === 'paused') { model.start(); accumulator = 0; } updateHud(); }
 function endOverlay() {
   const over = model.phase === 'over';
@@ -29,7 +29,7 @@ function updateHud() {
   $('gap-marker').style.left = `${model.gap / RULES.maxGap * 100}%`;
   $('chase-hint').textContent = model.gap < 12 ? '바로 뒤예요! 음식을 챙기세요' : '거리가 0이 되면 붙잡혀요';
   const status = $('status');
-  status.textContent = model.boost > 0 ? `황금 가속 ×1.3 · ${model.boost.toFixed(1)}초${model.exhausted ? ' · 종료 후 탈진!' : ''}` : model.exhausted ? '탈진! 음식을 먹으면 다시 빨라져요' : toastTime > 0 ? lastEvent : model.distance < 14 ? '먼저 파란 음식을 먹어 보세요' : model.distance < 23 ? '낮은 장애물은 점프로 넘어요 ↑' : model.distance < 33 ? '천장이 낮아요! ↓ 앉기를 유지하세요' : model.distance < 58 ? '높은 벽은 점프 후 한 번 더 ↑↑' : '계속 달려요 · 황금 음식으로 멀리!';
+  status.textContent = model.rescue ? '자동 점프로 안전한 길에 복귀 중!' : model.boost > 0 ? `무적 가속 ×1.5 · ${model.boost.toFixed(1)}초` : model.exhausted ? '탈진! 음식을 먹으면 다시 빨라져요' : toastTime > 0 ? lastEvent : model.distance < 14 ? '파란 음식 +16 · 황금은 +20 체력' : model.distance < 23 ? '낮은 장애물은 점프로 넘어요 ↑' : model.distance < 35 ? '천장 아래는 ↓ 앉기만 가능해요' : model.distance < 58 ? '높은 벽은 점프 후 한 번 더 ↑↑' : model.distance < 85 ? '긴 장애물은 2단 점프 타이밍을 조절하세요' : '구덩이도 점프! 빠지면 자동으로 올라와요';
   status.className = `status ${model.boost > 0 ? 'boost' : model.exhausted || model.gap < 12 ? 'danger' : ''}`;
   pause.disabled = model.phase === 'ready' || model.phase === 'over';
   pause.textContent = model.phase === 'paused' ? '▶' : 'Ⅱ';
@@ -70,24 +70,30 @@ class RunnerScene extends Phaser.Scene {
     for (const label of this.labels) label.setVisible(false);
     let labelIndex = 0;
     for (const item of model.items) {
-      if (item.used) continue;
+      if (item.used && item.kind !== 'pit') continue;
       const ix = x + (item.x - model.distance) * RULES.scale;
       if (ix < -100 || ix > 1230) continue;
       if (item.kind === 'food') {
-        g.fillStyle(0x80bda9, .12).fillCircle(ix, item.y + 12, 22);
-        g.fillStyle(0x5ba9ba).fillCircle(ix, item.y + 12, 12); g.fillStyle(0xe5f6eb).fillCircle(ix - 3, item.y + 8, 3);
+        g.fillStyle(0x80bda9, .12).fillCircle(ix, item.y + 16, 28);
+        g.fillStyle(0x5ba9ba).fillCircle(ix, item.y + 16, 16); g.fillStyle(0xe5f6eb).fillCircle(ix - 4, item.y + 11, 4);
       } else if (item.kind === 'gold') {
-        const iy = item.y + 12; g.fillStyle(0xe9c565, .15).fillCircle(ix, iy, 30 + Math.sin(model.elapsed * 5) * 3);
-        g.fillStyle(0xf0c45d).fillTriangle(ix, iy - 17, ix + 15, iy, ix, iy + 17).fillTriangle(ix, iy - 17, ix - 15, iy, ix, iy + 17);
+        const iy = item.y + 16; g.fillStyle(0xe9c565, .15).fillCircle(ix, iy, 36 + Math.sin(model.elapsed * 5) * 3);
+        g.fillStyle(0xf0c45d).fillTriangle(ix, iy - 23, ix + 21, iy, ix, iy + 23).fillTriangle(ix, iy - 23, ix - 21, iy, ix, iy + 23);
         g.lineStyle(2, 0xffefb2).lineBetween(ix, iy - 10, ix + 8, iy);
+      } else if (item.kind === 'pit') {
+        const bx = ix - item.w / 2;
+        g.fillStyle(0x142e2b).fillRect(bx, floor, item.w, 170);
+        g.fillStyle(0x091f20).fillRect(bx + 9, floor + 20, item.w - 18, 150);
+        g.lineStyle(4, 0xe9bc76).lineBetween(bx, floor, bx, floor + 24).lineBetween(bx + item.w, floor, bx + item.w, floor + 24);
+        if (labelIndex < 4 && ix > 610) this.labels[labelIndex++].setText('↑ 끊어진 길').setPosition(ix, floor - 50).setVisible(true);
       } else {
         const bx = ix - item.w / 2;
         g.fillStyle(0x153a30, .10).fillEllipse(ix, floor + 3, item.w + 15, 11);
         g.fillStyle(item.kind === 'tower' ? 0xb69bc9 : item.kind === 'beam' ? 0xcf947b : 0xde9b7f).fillRoundedRect(bx, item.y, item.w, item.h, 6);
         g.fillStyle(0xffffff, .22).fillRoundedRect(bx + 5, item.y + 5, item.w - 10, 6, 3);
         g.lineStyle(2, 0xffffff, .3); for (let j = 11; j < item.w - 6; j += 16) g.lineBetween(bx + j, item.y + 16, bx + j + 7, item.y + 25);
-        if (item.kind === 'beam') { g.lineStyle(2, 0x8b9e8a, .5).lineBetween(bx + 8, 262, bx + 8, item.y).lineBetween(bx + item.w - 8, 262, bx + item.w - 8, item.y); }
-        if (labelIndex < 4 && ix > 610) { this.labels[labelIndex++].setText(item.kind === 'beam' ? '↓ 앉기' : item.kind === 'tower' ? '↑↑ 두 번 점프' : '↑ 점프').setPosition(ix, item.y - 22).setVisible(true); }
+        if (item.kind === 'beam') { g.fillStyle(0xad755f).fillRect(bx, 0, item.w, item.y + 5); }
+        if (labelIndex < 4 && ix > 610) { this.labels[labelIndex++].setText(item.kind === 'beam' ? '↓ 앉아서 통과' : item.kind === 'tower' ? '↑↑ 높은 벽' : item.kind === 'long' ? '↑…↑ 긴 장애물' : '↑ 점프').setPosition(ix, item.kind === 'beam' ? item.y + 78 : item.y - 22).setVisible(true); }
       }
     }
     // The pursuer enters from the left only as the logical distance closes.
@@ -100,18 +106,19 @@ class RunnerScene extends Phaser.Scene {
       g.fillStyle(0xfbe5d5).fillCircle(cx + 20, floor - 45 + bob, 5).fillCircle(cx + 39, floor - 41 + bob, 5);
       g.fillStyle(0x2c293e).fillCircle(cx + 22, floor - 45 + bob, 2).fillCircle(cx + 41, floor - 41 + bob, 2);
     }
-    const h = model.height, top = model.y - h, stride = model.phase === 'running' && model.grounded ? Math.sin(model.elapsed * 19) * 5 : 0;
-    g.fillStyle(0x1d4e3d, .15).fillEllipse(x, floor + 3, model.grounded ? 65 : 46, 12);
+    const heroX = x - 34 * Math.sin(Math.PI * Math.min(1, model.hitFlash / RULES.hitInvulnerability));
+    const h = model.height, top = model.y - h, stride = model.phase === 'running' && model.grounded ? Math.sin(model.elapsed * 19) * 7 : 0;
+    g.fillStyle(0x1d4e3d, .15).fillEllipse(heroX, floor + 3, model.grounded ? 85 : 55, 15);
     if (model.boost > 0) {
-      for (let i = 1; i < 5; i++) { g.fillStyle(0xf3d073, .2 / i).fillRoundedRect(x - 24 - i * 18, top + 6, 42, h - 8, 12); }
-      g.lineStyle(2, 0xf5dd90).lineBetween(x - 75, top + 12, x - 40, top + 12).lineBetween(x - 90, top + h - 8, x - 48, top + h - 8);
+      for (let i = 1; i < 5; i++) { g.fillStyle(0xf3d073, .3 / i).fillRoundedRect(heroX - 32 - i * 24, top + 6, 64, h - 8, 14); }
+      g.lineStyle(3, 0xf5dd90).strokeRoundedRect(heroX - 38, top - 6, 76, h + 12, 19);
     }
     if (!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)) {
-      g.fillStyle(model.exhausted ? 0xd1b18b : 0x79c8aa).fillRoundedRect(x - 23, top, 46, h - 4, 11);
-      g.fillStyle(0xffffff, .25).fillRoundedRect(x - 18, top + 5, 35, 7, 4);
-      g.fillStyle(0x244c42).fillCircle(x + 4, top + Math.min(22, h / 2), 3).fillCircle(x + 16, top + Math.min(22, h / 2), 3);
-      g.lineStyle(2, 0x244c42).lineBetween(x + 7, top + Math.min(33, h - 7), x + 14, top + Math.min(33, h - 7));
-      g.fillStyle(0x306b56).fillRoundedRect(x - 13 + stride, model.y - 7, 12, 8, 3).fillRoundedRect(x + 7 - stride, model.y - 7, 12, 8, 3);
+      g.fillStyle(model.exhausted ? 0xd1b18b : 0x79c8aa).fillRoundedRect(heroX - 32, top, 64, h - 5, 15);
+      g.fillStyle(0xffffff, .25).fillRoundedRect(heroX - 25, top + 7, 48, 9, 5);
+      g.fillStyle(0x244c42).fillCircle(heroX + 4, top + Math.min(33, h / 2), 4).fillCircle(heroX + 23, top + Math.min(33, h / 2), 4);
+      g.lineStyle(3, 0x244c42).lineBetween(heroX + 9, top + Math.min(49, h - 9), heroX + 19, top + Math.min(49, h - 9));
+      g.fillStyle(0x306b56).fillRoundedRect(heroX - 21 + stride, model.y - 10, 18, 11, 4).fillRoundedRect(heroX + 8 - stride, model.y - 10, 18, 11, 4);
     }
   }
 }
