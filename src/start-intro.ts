@@ -19,7 +19,6 @@ export function createStartIntro(onComplete: () => void) {
     home.inert = false;
     document.body.style.overflow = '';
     onComplete();
-    document.getElementById('pause')?.focus({ preventScroll: true });
   }
   // Only abandon stalled loading/playback; do not cut off a healthy video.
   function watchProgress() {

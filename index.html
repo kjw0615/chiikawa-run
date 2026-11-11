@@ -53,6 +53,11 @@
   <!-- 게임 화면 -->
   <section id="play-screen" class="stage" aria-label="치이카와 런 게임" hidden>
     <div id="game"></div>
+    <div id="run-ready" class="run-ready" role="dialog" aria-modal="true" aria-label="달리기 준비" tabindex="-1" hidden>
+      <p>준비되면 출발해요!</p><strong id="ready-number" aria-live="polite">3</strong>
+      <button id="ready-resume" class="primary" type="button" hidden>준비 계속하기</button>
+      <button id="ready-home" class="exit-button" type="button">메인으로 가기 (게임 종료)</button>
+    </div>
     <div class="hud">
       <div class="stamina-card"><div class="hud-label"><span>달리기 체력</span></div><div class="track"><div id="stamina-fill"></div></div></div>
       <div class="hud-right">
@@ -66,6 +71,7 @@
           </button>
         </div>
         <div class="distance-card"><small>달린 거리</small><strong><span id="distance">0</span><em>m</em></strong></div>
+        <div class="coin-card" aria-label="이번 판 동전"><img src="/assets/coin.webp" alt=""/><span id="coin-count">0</span></div>
       </div>
     </div>
     <div id="status" class="status" aria-live="polite">준비됐나요?</div>

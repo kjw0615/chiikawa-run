@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import './style.css';
 import './minigame.css';
 import { createStartIntro } from './start-intro';
+import { createRunReady } from './run-ready';
 import { RunnerModel, RULES } from './model';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
@@ -20,20 +21,32 @@ const loading = document.createElement('div');
 loading.setAttribute('role', 'status'); loading.textContent = '모몽가가 숲으로 가는 중…';
 Object.assign(loading.style, { position: 'absolute', inset: '0', display: 'grid', placeItems: 'center', background: '#fffdf6', color: '#624b4b', zIndex: '20', fontSize: '18px' });
 const intro = createStartIntro(beginRun);
+const ready = createRunReady();
+let preparing = false;
+let sceneReady = false;
+function armStart() {
+  if (!preparing) return;
+  preparing = false;
+  ready.start(() => {
+    release(); releaseJump(); accumulator = 0;
+    model.start(); updateHud(); pause.focus({ preventScroll: true });
+  });
+}
 function begin() {
-  if (intro.active) return;
+  if (intro.active || ready.active || preparing) return;
   if (!home.hidden) intro.start(); else beginRun();
 }
 function beginRun() {
   mini = null; encounterId = null; miniViewKey = ''; updateMini();
-  model = new RunnerModel(Date.now()); model.start(); accumulator = 0; crouchHeld = false; lastPhase = '';
+  model = new RunnerModel(Date.now(), true, { coins: true, foodFreeDistance: 30 }); accumulator = 0; crouchHeld = false; lastPhase = ''; preparing = true;
   home.hidden = true; play.hidden = false; displayGap = model.gap; release(); releaseJump();
   if (!game) { play.appendChild(loading); game = new Phaser.Game({ type: Phaser.AUTO, width: 1120, height: 630, parent: 'game', backgroundColor: '#edf4e7', scene: RunnerScene, render: { antialias: true }, audio: { noAudio: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH } }); }
-  else game.loop.wake();
+  else { game.loop.wake(); if (sceneReady) armStart(); }
   requestAnimationFrame(() => game?.scale.refresh());
   updateHud(); play.scrollIntoView({ block: 'center' });
 }
 function togglePause() {
+  if (ready.active) { ready.pause(); return; }
   if (play.hidden) return;
   if (mini) { if (mini.paused) mini.resume(); else mini.pause(); release(); releaseJump(); accumulator = 0; updateMini(); updateHud(); return; }
   if (model.phase === 'running') { model.pause(); release(); releaseJump(); } else if (model.phase === 'paused') { model.start(); accumulator = 0; }
@@ -45,13 +58,14 @@ function endOverlay() {
   $('modal-kicker').textContent = over ? '한 번 더 달려볼까요?' : '모몽가도 잠깐 쉬어요';
   $('modal-title').textContent = over ? '앗, 붙잡혔다!' : '잠깐 쉬어 가요.';
   $('modal-copy').textContent = over ? '다음에는 조금 더 멀리 갈 수 있을 거예요.' : '준비되면 다시 달려요.';
-  $('result').hidden = !over; $('result').textContent = `${Math.floor(model.distance)} m · 최고 ${best} m`;
+  $('result').hidden = !over; $('result').textContent = `${Math.floor(model.distance)} m · 최고 ${best} m · 동전 ${model.coins}`;
   start.innerHTML = over ? '다시 달리기 <span>↗</span>' : '계속 달리기 <span>→</span>';
 }
 function updateHud() {
   $('stamina-fill').style.width = `${model.stamina}%`;
   $('stamina-fill').style.background = model.stamina < 25 ? '#e59992' : '#8bbf90';
   $('distance').textContent = String(Math.floor(model.distance));
+  $('coin-count').textContent = String(model.coins);
   $('gap-fill').style.width = `${chaseMarkerPercent(displayGap)}%`; $('gap-fill').style.background = model.gap < 12 ? '#ed9b8c' : '#9acbad';
   $('gap-marker').style.left = `${chaseMarkerPercent(displayGap)}%`;
   // Gameplay contains gauges, not tutorial prompts or obstacle labels.
@@ -61,7 +75,7 @@ function updateHud() {
   pause.setAttribute('aria-label', model.phase === 'paused' || mini?.paused ? '계속하기' : '일시정지');
   if (lastPhase !== model.phase) {
     if (model.phase === 'over') { best = Math.max(best, Math.floor(model.distance)); try { localStorage.setItem('little-escape-best', String(best)); } catch { /* optional */ } }
-    overlay.hidden = model.phase === 'running' || model.phase === 'minigame';
+    overlay.hidden = model.phase === 'ready' || model.phase === 'running' || model.phase === 'minigame';
     if (model.phase === 'paused' || model.phase === 'over') endOverlay(); lastPhase = model.phase;
   }
 }
@@ -79,14 +93,18 @@ class RunnerScene extends Phaser.Scene {
     this.load.on('loaderror', () => { this.loadFailed = true; });
     this.load.atlas(ATLAS, '/assets/game-atlas.webp', '/assets/game-atlas.json');
     this.load.atlas(EVENT_ATLAS, '/assets/event-atlas.webp', '/assets/event-atlas.json');
+    this.load.spritesheet('coin-spin', '/assets/coin-spin.webp', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet('coin-gold-spin', '/assets/coin-gold-spin.webp', { frameWidth: 128, frameHeight: 128 });
   }
   create() {
-    if (this.loadFailed) { model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
+    if (this.loadFailed) { preparing = false; model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
     this.world = this.add.container(0, 0);
     this.g = this.add.graphics(); this.hero = this.add.image(560, RULES.floor, ATLAS, 'momonga').setOrigin(.5, 1).setDepth(5);
     this.chaser = this.add.image(0, RULES.floor, ATLAS, 'dekatsuyo').setOrigin(.5, 1).setDepth(4);
     this.world.add([this.g, this.chaser, this.hero]);
     this.scale.refresh(); loading.remove();
+    sceneReady = true;
+    armStart();
   }
   update(_time: number, delta: number) {
     if (model.phase === 'running') {
@@ -111,7 +129,7 @@ class RunnerScene extends Phaser.Scene {
     this.world.y = this.cameraLift;
     model.events.length = 0; updateHud(); this.draw();
   }
-  private sprite(key: string, x: number, y: number, w: number, h: number, atlas = ATLAS) {
+  private sprite(key: string | number, x: number, y: number, w: number, h: number, atlas = ATLAS) {
     let s = this.pool[this.cursor++];
     if (!s) { s = this.add.image(0, 0, atlas, key).setDepth(2); this.pool.push(s); this.world.addAt(s, 1); }
     return s.setTexture(atlas, key).setPosition(x, y).setDisplaySize(w, h).setOrigin(.5).setRotation(0).setAlpha(1).clearTint().setVisible(true);
@@ -161,7 +179,10 @@ class RunnerScene extends Phaser.Scene {
       if (item.used && item.kind !== 'pit') continue;
       const ix = center + (item.x - model.distance) * RULES.scale;
       if (ix + item.w / 2 < -20 || ix - item.w / 2 > 1140) continue;
-      if (item.kind === 'food' || item.kind === 'gold') {
+      if (item.kind === 'coin') {
+        const frame = Math.floor(model.elapsed * 10) % 12;
+        this.sprite(frame, ix, item.y + item.h / 2, 38, 38, item.coinValue === 3 ? 'coin-gold-spin' : 'coin-spin');
+      } else if (item.kind === 'food' || item.kind === 'gold') {
         const iy = item.y + item.h / 2, golden = item.kind === 'gold';
         const key = FOOD[item.variant ?? item.id % FOOD.length], frame = this.textures.get(ATLAS).get(key), fit = 54 / Math.max(frame.width, frame.height);
         const s = this.sprite(key, ix, iy, frame.width * fit, frame.height * fit);
@@ -230,17 +251,24 @@ crouchButton.addEventListener('pointerdown', e => { e.preventDefault(); crouchHe
 function release() { crouchHeld = false; model.crouch = false; crouchButton.classList.remove('held'); }
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) crouchButton.addEventListener(event, release);
 function returnHome() {
+  preparing = false; ready.cancel();
   release(); releaseJump(); model.pause(); mini = null; encounterId = null; updateMini(); updateHud();
   play.hidden = true; home.hidden = false; game?.loop.sleep(); $('home-play').focus(); window.scrollTo({ top: 0 });
 }
 $('home-return').addEventListener('click', returnHome);
 $('pause-home').addEventListener('click', returnHome);
 $('countdown-home').addEventListener('click', returnHome);
+$('ready-home').addEventListener('click', returnHome);
 window.addEventListener('keydown', e => {
   if (e.target instanceof HTMLButtonElement && e.target.classList.contains('exit-button') && ['Space', 'Enter'].includes(e.code)) return;
   if (intro.active) {
     if (e.code === 'Escape') { e.preventDefault(); intro.skip(); }
     if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code) && e.target instanceof HTMLVideoElement) e.preventDefault();
+    return;
+  }
+  if (ready.active || preparing) {
+    if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); ready.pause(); }
+    if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code) && !(e.target instanceof HTMLButtonElement)) e.preventDefault();
     return;
   }
   if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); if (e.repeat) return;
@@ -250,7 +278,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
 });
 window.addEventListener('keyup', e => { if (e.code === 'ArrowDown') release(); if (e.code === 'Space' || e.code === 'ArrowUp') releaseJump(); });
-function backgroundPause() { release(); releaseJump(); model.pause(); mini?.pause(); updateMini(); if (!play.hidden) updateHud(); }
+function backgroundPause() { ready.pause(); release(); releaseJump(); model.pause(); mini?.pause(); updateMini(); if (!play.hidden) updateHud(); }
 document.addEventListener('visibilitychange', () => { if (document.hidden) backgroundPause(); });
 window.addEventListener('blur', backgroundPause); window.addEventListener('orientationchange', backgroundPause);
 document.querySelectorAll<HTMLElement>('.control small,.modal-help').forEach(el => { el.hidden = true; });
