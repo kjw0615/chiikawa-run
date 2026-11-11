@@ -6,7 +6,7 @@ import { createRunReady } from './run-ready';
 import { RunnerModel, RULES } from './model';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
-let displayGap = 30;
+let displayGap = RULES.initialGap;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const ATLAS = 'game-art';

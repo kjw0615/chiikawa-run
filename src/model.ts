@@ -1,8 +1,8 @@
 import type { Reward } from './sticker-game';
 export const RULES = {
-  speed: 6, chaserSpeed: 6, exhaustedSpeed: 4.2, boostSpeed: 9,
+  speed: 6, chaserSpeed: 6.1, exhaustedSpeed: 4.2, boostSpeed: 9,
   staminaDrain: 4, food: 20, goldFood: 25, recover: 12, goldChance: .1,
-  boostSeconds: 1, maxGap: 60, hitCost: 3, hitInvulnerability: .5,
+  boostSeconds: 1, initialGap: 15, maxGap: 60, hitCost: 3, hitInvulnerability: .5,
   gravity: 1900, jumpVelocity: -760, floor: 460, scale: 44,
   playerHeight: 82, playerWidth: 64, halfHitWidth: 24, crouchHeight: 36,
   rescueSeconds: .9, fallDepth: 100,
@@ -29,7 +29,7 @@ export type Encounter = { id: number; x: number; y: number; seed: number; used: 
 type Rescue = { time: number; fromX: number; toX: number; fromY: number };
 export class RunnerModel {
   coins = 0; // this run only: no stamina, speed or distance effect, never saved
-  phase: Phase = 'ready'; distance = 0; gap = 30; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
+  phase: Phase = 'ready'; distance = 0; gap = RULES.initialGap; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
   y = RULES.floor; vy = 0; jumps = 0; crouch = false; hitFlash = 0; foods = 0; bonus = 0; hits = 0;
   items: Item[] = []; events: string[] = []; rescue: Rescue | null = null;
   platforms: Platform[] = []; blocked = false;
