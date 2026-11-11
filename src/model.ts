@@ -21,6 +21,7 @@ export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 1
 export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2, foodPositionJitter: 8 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number };
 export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .15, goldValue: 3, firstCoinX: 10 } as const;
+export const SPAWN_CLEARANCE = { encounter: 8, encounterHazard: 6, foodCoin: 5, coinHazard: 4 } as const;
 const collectible = (kind: Item['kind']) => kind === 'food' || kind === 'gold' || kind === 'coin';
 export type Phase = 'ready' | 'running' | 'paused' | 'minigame' | 'over';
 export type Platform = { id: number; start: number; end: number; y: number; required: boolean; gateX?: number };
@@ -42,7 +43,9 @@ export class RunnerModel {
   private hazardState: number; private foodState: number; private artSeed: number;
   private generateCourse: boolean; private lastFoodX = -Infinity;
   private coinCourse: boolean; private coinState: number; private nextCoinX: number = COIN_RULES.firstCoinX; private coinId = 1000000; private coinGroupIndex = 0; private foodFreeDistance: number;
-  constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean; encounters?: boolean; coins?: boolean; foodFreeDistance?: number } = {}) {
+  private separateSpawns: boolean;
+  constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean; encounters?: boolean; coins?: boolean; foodFreeDistance?: number; separateSpawns?: boolean } = {}) {
+    this.separateSpawns = options.separateSpawns === true;
     this.coinCourse = options.coins === true; this.coinState = (seed ^ 0xc2b2ae35) >>> 0;
     this.foodFreeDistance = Math.max(0, options.foodFreeDistance ?? 0); this.nextFoodX = Math.max(this.nextFoodX, this.foodFreeDistance);
     this.hazardState = (seed ^ 0x243f6a88) >>> 0; this.foodState = (seed ^ 0xb7e15162) >>> 0;
@@ -195,7 +198,7 @@ export class RunnerModel {
       let spots: Spot[] | undefined;
       const airTime = (v / RULES.gravity), airHalf = airTime * RULES.speed; // apex is airHalf metres after take-off
       const targets = hazards().filter(i => (i.kind === 'block' && i.y === floor - 64 || i.kind === 'beam' && i.y === 84) && i.x >= start && i.x <= start + 30).sort((a, b) => a.x - b.x);
-      if (lanePick < .6) for (const t of targets) {
+      if (!this.separateSpawns && lanePick < .6) for (const t of targets) {
         if (t.kind === 'beam') {
           const n = Math.max(1, Math.min(count, Math.floor((t.w / S - .6) / COIN_RULES.spacing) + 1));
           const xs = Array.from({ length: n }, (_, k) => t.x + (k - (n - 1) / 2) * COIN_RULES.spacing);
@@ -214,6 +217,13 @@ export class RunnerModel {
         if (clearOfPlatforms(xs[0], xs[count - 1]) && clearOfHazards(xs[0], xs[count - 1])) spots = xs.map(x => ({ x, top: floor - 41 - C / 2 }));
       }
       if (!spots) { this.nextCoinX += 2; continue; }
+      if (this.separateSpawns && spots.some(s =>
+        this.encounters.some(e => Math.abs(s.x - e.x) < SPAWN_CLEARANCE.encounter + C / 2 / S)
+        || this.items.some(i => (i.kind === 'food' || i.kind === 'gold')
+          ? Math.abs(s.x - i.x) < SPAWN_CLEARANCE.foodCoin + (i.w + C) / 2 / S
+          : !collectible(i.kind) && Math.abs(s.x - i.x) < SPAWN_CLEARANCE.coinHazard + (i.w + C) / 2 / S))) {
+        this.nextCoinX += 2; continue;
+      }
       const group = this.coinGroupIndex++;
       for (const s of spots) {
         const value = this.coinRandom() < COIN_RULES.goldChance ? COIN_RULES.goldValue : 1;
@@ -287,6 +297,7 @@ export class RunnerModel {
       const desired = this.nextFoodX;
       this.nextFoodX += difficultyAt(desired).foodSpacing + (this.random('food') * 2 - 1) * COURSE_RANDOM.foodJitter;
       const safe = (x: number) => x >= this.foodFreeDistance && x - this.lastFoodX >= RULES.minFoodSpacing
+        && (!this.separateSpawns || this.encounters.every(e => Math.abs(x - e.x) >= SPAWN_CLEARANCE.encounter + 16 / RULES.scale))
         && this.items.every(i => i.kind !== 'food' && i.kind !== 'gold' || Math.abs(x - i.x) >= RULES.minFoodSpacing)
         && this.platforms.every(p => x < p.start - 4 || x > p.end + 4 || x >= p.start + 3 && x <= p.end - 3)
         && this.platforms.every(p => p.gateX === undefined || x < p.gateX - 6 || x > p.end + 4)
@@ -299,30 +310,59 @@ export class RunnerModel {
         if (safe(candidate)) { foodX = candidate; break; }
       }
       if (foodX === undefined) continue;
+      if (this.separateSpawns) {
+        // Food keeps priority over a previously planned distant coin trail.
+        // Drop whole groups so a later food slot cannot leave stray half-trails.
+        const groups = new Set(this.items.filter(i => i.kind === 'coin'
+          && Math.abs(foodX! - i.x) < SPAWN_CLEARANCE.foodCoin + (i.w + 32) / 2 / RULES.scale).map(i => i.coinGroup));
+        this.items = this.items.filter(i => i.kind !== 'coin' || !groups.has(i.coinGroup));
+      }
       this.lastFoodX = foodX;
       const lift = RULES.foodLiftMin + this.random('food') * (RULES.foodLiftMax - RULES.foodLiftMin);
       const platform = this.platforms.find(p => foodX! >= p.start && foodX! <= p.end);
       this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.random('food') < RULES.goldChance ? 'gold' : 'food');
     }
-    this.generateCoins();
+    if (!this.separateSpawns) this.generateCoins();
     // A separate seeded schedule never changes the obstacle/food random stream.
     while (this.encounterCourse && this.lastEncounterX + 300 <= this.distance + 120) {
+      if (this.separateSpawns && this.lastEncounterX + 300 < this.distance + 16) {
+        // Recover a missed planning band without spawning an NPC behind the runner.
+        this.lastEncounterX = this.distance - 184;
+      }
       const nextState = (Math.imul(1664525, this.encounterState) + 1013904223) >>> 0;
       const desired = this.lastEncounterX + 200 + nextState / 4294967296 * 100;
       const candidates = Array.from({ length: 201 }, (_, n) => this.lastEncounterX + 200 + n * .5)
         .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
-      const x = candidates.find(x => {
+      const safeEncounter = (x: number) => {
+        if (this.separateSpawns && x < this.distance + 16) return false;
         // Do not select beyond the known hazard horizon.
-        if (x > this.distance + 120) return false;
+        // In spaced mode food is known through +96m; leave its future 8m
+        // search jitter and the clearing outside the reservation horizon.
+        if (x > this.distance + (this.separateSpawns ? 78 : 120)) return false;
         if (this.platforms.some(p => x > p.start - 8 && x < p.end + 8 && !(x >= p.start + 4 && x <= p.end - 4))) return false;
         if (this.platforms.some(p => p.gateX !== undefined && x >= p.gateX - 8 && x <= p.end + 8)) return false;
-        return this.items.every(i => collectible(i.kind) || Math.abs(x-i.x) > (i.w/2+RULES.halfHitWidth)/RULES.scale + 6);
-      });
+        return this.items.every(i => collectible(i.kind) || Math.abs(x-i.x) > (i.w/2+RULES.halfHitWidth)/RULES.scale + (this.separateSpawns ? SPAWN_CLEARANCE.encounterHazard : 6));
+      };
+      const x = (this.separateSpawns ? candidates.find(x => safeEncounter(x)
+        && this.items.every(i => !collectible(i.kind)
+          || Math.abs(i.x - x) >= SPAWN_CLEARANCE.encounter + i.w / 2 / RULES.scale)) : undefined)
+        // Wait for the rest of the 200–300m band before consuming a food
+        // slot as fallback; a currently unknown quiet spot may be better.
+        ?? (this.separateSpawns && this.distance + 78 < this.lastEncounterX + 300
+          ? undefined : candidates.find(safeEncounter));
       if (x === undefined) break; // wait for more known course instead of weakening safety
       this.encounterState = nextState;
       const surface = this.platforms.find(p => x >= p.start && x <= p.end);
       this.encounters.push({ id: this.encounterIndex++, x, y: surface?.y ?? RULES.floor, seed: this.encounterState, used: false });
+      if (this.separateSpawns) {
+        const groups = new Set(this.items.filter(i => i.kind === 'coin'
+          && Math.abs(i.x - x) < SPAWN_CLEARANCE.encounter + i.w / 2 / RULES.scale).map(i => i.coinGroup));
+        this.items = this.items.filter(i => !collectible(i.kind)
+          || i.kind === 'coin' && !groups.has(i.coinGroup)
+          || i.kind !== 'coin' && Math.abs(i.x - x) >= SPAWN_CLEARANCE.encounter + i.w / 2 / RULES.scale);
+      }
       this.lastEncounterX = x;
     }
+    if (this.separateSpawns) this.generateCoins();
   }
 }

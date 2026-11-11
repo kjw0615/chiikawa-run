@@ -6,6 +6,9 @@ export const MINI_RULES = {
   selectionSeconds: 2, roundSeconds: 2.8, feedbackSeconds: .45, countdownSeconds: 3,
   targetMin: .36, targetMax: .64, rounds: 5,
 } as const;
+// Each round sweeps faster than the one before. The final cap keeps one pass through the band (width .28,
+// cursor speed 2 x cycles/s) at about .16 s or more, so the last rounds stay winnable.
+export const SPEED_RULES = { roundScale: [1, 1.12, 1.25, 1.38, 1.5], cap: .88, capStep: .02 } as const;
 export type MiniPhase = 'selecting' | 'intro' | 'playing' | 'feedback' | 'result' | 'countdown' | 'done';
 export type Character = 'chiikawa' | 'hachiware' | 'usagi';
 export const CHARACTERS: readonly Character[] = ['chiikawa', 'hachiware', 'usagi'];
@@ -34,13 +37,21 @@ export class StickerGame {
   round = 0; // 0..4
   results: boolean[] = [];
   paused = false;
-  readonly speed: number; // cursor cycles per second
+  readonly baseSpeed: number; // seed speed in cursor cycles per second, before the round scale
   private lastCursor = 0;
   readonly seed: number;
   constructor(seed: number) {
     this.seed = seed; this.selected = characterFor(seed);
-    this.speed = .55 + .2 * unit(seed, 1);
+    this.baseSpeed = .55 + .2 * unit(seed, 1);
   }
+  speedAt(round: number) {
+    const scale = SPEED_RULES.roundScale[Math.max(0, Math.min(SPEED_RULES.roundScale.length - 1, round))];
+    const last = SPEED_RULES.roundScale.length - 1, r = Math.max(0, Math.min(last, round));
+    // Per-round caps (.80 .82 .84 .86 .88) keep every round strictly faster than the one before it.
+    return Math.min(SPEED_RULES.cap - (last - r) * SPEED_RULES.capStep, this.baseSpeed * scale);
+  }
+  /** Cursor cycles per second in the current round; judging and the timeout use this same value. */
+  get speed() { return this.speedAt(this.round); }
   get successes() { return this.results.filter(Boolean).length; }
   get cursor() {
     if (this.phase === 'playing') return triangle(unit(this.seed, 10 + this.round) + this.speed * this.elapsed);

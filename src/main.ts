@@ -38,7 +38,7 @@ function begin() {
 }
 function beginRun() {
   mini = null; encounterId = null; miniViewKey = ''; updateMini();
-  model = new RunnerModel(Date.now(), true, { coins: true, foodFreeDistance: 30 }); accumulator = 0; crouchHeld = false; lastPhase = ''; preparing = true;
+  model = new RunnerModel(Date.now(), true, { coins: true, foodFreeDistance: 30, separateSpawns: true }); accumulator = 0; crouchHeld = false; lastPhase = ''; preparing = true;
   home.hidden = true; play.hidden = false; displayGap = model.gap; release(); releaseJump();
   if (!game) { play.appendChild(loading); game = new Phaser.Game({ type: Phaser.AUTO, width: 1120, height: 630, parent: 'game', backgroundColor: '#edf4e7', scene: RunnerScene, render: { antialias: true }, audio: { noAudio: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH } }); }
   else { game.loop.wake(); if (sceneReady) armStart(); }
