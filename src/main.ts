@@ -280,8 +280,7 @@ function miniAction() {
   updateMini();
 }
 miniActionButton.addEventListener('click', miniAction);
-$('mini-pause').addEventListener('click', togglePause); $('countdown-resume').addEventListener('click', togglePause);
-$('mini-home').addEventListener('click', returnHome);
+$('countdown-resume').addEventListener('click', togglePause);
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
@@ -303,7 +302,6 @@ function updateMini() {
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
   }
   $('sticker-cursor').style.left = `${g.cursor * 100}%`;
-  $('mini-top-buttons').hidden = g.phase === 'result';
   $('mini-time-fill').style.width = `${g.phase === 'playing' ? Math.max(0, 1 - g.elapsed / MINI_RULES.roundSeconds) * 100 : 100}%`;
   const key = `${encounterId}:${g.phase}:${g.round}:${g.results.join()}:${g.paused}`;
   if (key === miniViewKey) return;
@@ -311,8 +309,7 @@ function updateMini() {
   $('slot-panel').hidden = g.phase !== 'selecting';
   $('mini-portrait').hidden = g.phase === 'selecting'; portrait($('mini-portrait'), g.selected, 65);
   $('mini-character').textContent = g.phase === 'selecting' ? '' : `${characterNames[g.selected]}와 함께`;
-  $('mini-paused').hidden = !g.paused; $('mini-pause').textContent = g.paused ? '▶' : 'Ⅱ';
-  $('mini-pause').setAttribute('aria-label', g.paused ? '미니게임 계속하기' : '미니게임 일시정지');
+  $('mini-paused').hidden = !g.paused;
   $('lemon-tray').hidden = g.phase === 'selecting';
   $('sticker-timing').hidden = !['playing', 'feedback'].includes(g.phase);
   $('mini-reward').textContent = '';
