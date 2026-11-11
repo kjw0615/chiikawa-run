@@ -6,6 +6,8 @@ export const RULES = {
   playerHeight: 82, playerWidth: 64, halfHitWidth: 24, crouchHeight: 36,
   rescueSeconds: .9, fallDepth: 100,
   foodHazardMargin: 4, minFoodSpacing: 8, foodLiftMin: 48, foodLiftMax: 205,
+  jumpReleaseVelocity: -500, platformHeight: 110, platformApproach: 8,
+  platformExit: 8, platformFirstHazard: 10,
 };
 // Bounded progression keeps the course readable while increasing pressure.
 export const difficultyAt = (distance: number) => {
@@ -16,20 +18,34 @@ export const difficultyAt = (distance: number) => {
 export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 170], pit: [120, 200], beam: [100, 220] } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold'; used: boolean };
 export type Phase = 'ready' | 'running' | 'paused' | 'over';
+export type Platform = { id: number; start: number; end: number; y: number; required: boolean };
 type Rescue = { time: number; fromX: number; toX: number; fromY: number };
 export class RunnerModel {
   phase: Phase = 'ready'; distance = 0; gap = 30; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
   y = RULES.floor; vy = 0; jumps = 0; crouch = false; hitFlash = 0; foods = 0; bonus = 0; hits = 0;
   items: Item[] = []; events: string[] = []; rescue: Rescue | null = null;
+  platforms: Platform[] = []; blocked = false;
+  private jumpHeld = false; private nextPlatformX = 80; private platformIndex = 0;
+  private platformRandomState: number; private platformCourse: boolean;
   private nextHazardX = 19; private hazardIndex = 0; private nextFoodX = 7; private id = 0; private jumpBuffer = 0; private randomState: number; private generateCourse: boolean; private lastFoodX = -Infinity;
-  constructor(seed = 13579, generateCourse = true) { this.randomState = seed >>> 0; this.generateCourse = generateCourse; this.generate(); }
+  constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean } = {}) {
+    this.randomState = seed >>> 0; this.platformRandomState = (seed ^ 0x9e3779b9) >>> 0;
+    this.generateCourse = generateCourse; this.platformCourse = options.platforms !== false; this.generate();
+  }
   get speed() { return this.boost > 0 ? RULES.boostSpeed : this.exhausted ? RULES.exhaustedSpeed : RULES.speed; }
-  get grounded() { return !this.rescue && Math.abs(this.y - RULES.floor) < .01 && !this.pitAt(this.distance); }
+  get supportY() {
+    return this.platforms.find(p => this.distance >= p.start && this.distance <= p.end && Math.abs(this.y - p.y) < .01)?.y ?? RULES.floor;
+  }
+  get grounded() { return !this.rescue && this.vy === 0 && Math.abs(this.y - this.supportY) < .01 && (this.supportY < RULES.floor || !this.pitAt(this.distance)); }
   get height() { return this.crouch && this.grounded ? RULES.crouchHeight : RULES.playerHeight; }
   get invulnerable() { return this.boost > 0 || this.hitFlash > 0 || this.rescue !== null; }
   start() { if (this.phase !== 'over') this.phase = 'running'; }
-  pause() { if (this.phase === 'running') { this.phase = 'paused'; this.crouch = false; this.jumpBuffer = 0; } }
-  jump() { if (this.phase === 'running' && !this.rescue) this.jumpBuffer = .1; }
+  pause() { if (this.phase === 'running') { this.releaseJump(); this.phase = 'paused'; this.crouch = false; this.jumpBuffer = 0; } }
+  jump() { if (this.phase === 'running' && !this.rescue) { this.jumpHeld = true; this.jumpBuffer = .1; } }
+  releaseJump() {
+    this.jumpHeld = false;
+    if (this.phase === 'running' && this.jumps === 1 && this.vy < RULES.jumpReleaseVelocity) this.vy = RULES.jumpReleaseVelocity;
+  }
   eat(kind: 'food' | 'gold') {
     const amount = kind === 'gold' ? RULES.goldFood : RULES.food;
     this.stamina = Math.min(100, this.stamina + amount); this.foods++;
@@ -50,13 +66,21 @@ export class RunnerModel {
     if (this.jumpBuffer > 0 && this.jumps < 2 && !this.rescue && this.y < RULES.floor + RULES.fallDepth) {
       this.vy = RULES.jumpVelocity; // jump arc is independent of the current run speed
       this.jumps++; this.crouch = false; this.jumpBuffer = 0;
+      if (this.jumps === 1 && !this.jumpHeld) this.vy = RULES.jumpReleaseVelocity;
       this.events.push(this.jumps === 2 ? '더블 점프' : '점프');
     }
     this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
     this.elapsed += dt;
     const speed = this.speed;
-    this.distance += speed * dt;
-    this.gap = Math.min(RULES.maxGap, this.gap + (speed - RULES.chaserSpeed) * dt);
+    const previousX = this.distance, previousY = this.y;
+    let nextX = this.distance + speed * dt;
+    const predictedY = this.y + (this.vy + RULES.gravity * dt) * dt;
+    const wall = this.platforms.find(p => p.required && previousX <= p.start && nextX + RULES.halfHitWidth / RULES.scale > p.start && predictedY > p.y + .01);
+    this.blocked = !!wall && !this.rescue;
+    if (this.blocked) nextX = Math.max(previousX, wall!.start - RULES.halfHitWidth / RULES.scale);
+    this.distance = nextX;
+    const effectiveSpeed = this.blocked ? (nextX - previousX) / dt : speed;
+    this.gap = Math.min(RULES.maxGap, this.gap + (effectiveSpeed - RULES.chaserSpeed) * dt);
     this.stamina = Math.max(0, this.stamina - RULES.staminaDrain * dt);
     if (this.stamina <= 0) this.exhausted = true;
     this.generate();
@@ -69,7 +93,9 @@ export class RunnerModel {
     } else {
       this.vy += RULES.gravity * dt; this.y += this.vy * dt;
       const pit = this.pitAt(this.distance);
-      if (this.y >= RULES.floor && this.vy >= 0 && !pit && this.y < RULES.floor + 25) {
+      const landing = this.platforms.filter(p => this.distance >= p.start && this.distance <= p.end && previousY <= p.y + .01 && this.y >= p.y && this.vy >= 0).sort((a,b) => a.y-b.y)[0];
+      if (landing) { this.y = landing.y; this.vy = 0; this.jumps = 0; }
+      else if (this.y >= RULES.floor && this.vy >= 0 && !pit && this.y < RULES.floor + 25) {
         this.y = RULES.floor; this.vy = 0; this.jumps = 0;
       }
       if (this.y >= RULES.floor + RULES.fallDepth) {
@@ -94,10 +120,13 @@ export class RunnerModel {
     this.boost = Math.max(0, this.boost - dt);
     if (this.gap <= 0) { this.gap = 0; this.phase = 'over'; }
     this.items = this.items.filter(i => i.x + i.w / RULES.scale / 2 > this.distance - 16);
+    this.platforms = this.platforms.filter(p => p.end > this.distance - 16);
   }
   private safeLanding(distance: number) {
     // Move past the entire union of nearby hazards, including adjoining pits.
     for (let pass = 0; pass <= this.items.length; pass++) {
+      const platform = this.platforms.find(p => distance > p.start - RULES.platformApproach && distance < p.end + RULES.platformExit);
+      if (platform) { distance = platform.end + RULES.platformExit; continue; }
       const i = this.items.find(i => i.kind !== 'food' && i.kind !== 'gold' && distance * RULES.scale + RULES.halfHitWidth > i.x * RULES.scale - i.w / 2 && distance * RULES.scale - RULES.halfHitWidth < i.x * RULES.scale + i.w / 2);
       if (!i) break;
       distance = i.x + (i.w / 2 + RULES.halfHitWidth) / RULES.scale + 1;
@@ -108,22 +137,44 @@ export class RunnerModel {
   private add(x: number, y: number, w: number, h: number, kind: Item['kind']) { this.items.push({ id: this.id++, x, y, w, h, kind, used: false }); }
   private generate() {
     if (!this.generateCourse) return;
+    // Terrain is planned beyond both item horizons before either can be placed.
+    if (this.platformCourse) while (this.nextPlatformX < this.distance + 220) {
+      this.platformRandomState = (Math.imul(1664525, this.platformRandomState) + 1013904223) >>> 0;
+      const n = this.platformIndex++, start = this.nextPlatformX;
+      const length = [12, 20, 36][this.platformRandomState % 3];
+      const p = { id: n, start, end: start + length, y: RULES.floor - RULES.platformHeight, required: n % 2 === 1 };
+      this.platforms.push(p); this.nextPlatformX += 180;
+      this.platformRandomState = (Math.imul(1664525, this.platformRandomState) + 1013904223) >>> 0;
+      this.add(start + 3, p.y - 80, 32, 32, this.platformRandomState / 4294967296 < RULES.goldChance ? 'gold' : 'food');
+      // Short branches are bonus paths; long ones have one well-spaced upper hazard.
+      if (length >= 20) {
+        const x = start + RULES.platformFirstHazard;
+        if (n % 3 === 0) this.add(x, 0, 120, p.y - 44, 'beam');
+        else if (n % 3 === 1) this.add(x, p.y - 64, 56, 64, 'block');
+        else this.add(x, p.y - 46, 120, 46, 'long');
+      }
+    }
     // Generate hazards beyond the food horizon first, so future obstacles cannot
     // invalidate an already placed food's approach/landing clearance.
     while (this.nextHazardX < this.distance + 140) {
       const n = this.hazardIndex++, x = this.nextHazardX, type = n % 6;
+      this.nextHazardX += difficultyAt(x).obstacleSpacing;
+      // Clear both the lower lane and the approach/descent of every branch.
+      if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
       const width = (kind: keyof typeof OBSTACLE_WIDTHS) => { const [lo, hi] = OBSTACLE_WIDTHS[kind]; return Math.round(lo + this.random() * (hi - lo)); };
       if (type === 1) this.add(x, 84, width('beam'), RULES.floor - 44 - 84, 'beam');
       else if (type === 2) this.add(x, RULES.floor - 190, width('tower'), 190, 'tower');
       else if (type === 3) this.add(x, RULES.floor - 46, width('long'), 46, 'long');
       else if (type === 4) this.add(x, RULES.floor, width('pit'), 170, 'pit');
       else this.add(x, RULES.floor - 64, width('block'), 64, 'block');
-      this.nextHazardX += difficultyAt(x).obstacleSpacing;
     }
     while (this.nextFoodX < this.distance + 96) {
       const desired = this.nextFoodX;
       this.nextFoodX += difficultyAt(desired).foodSpacing;
-      const safe = (x: number) => x - this.lastFoodX >= RULES.minFoodSpacing && this.items.every(i => i.kind === 'food' || i.kind === 'gold' || Math.abs(x - i.x) > i.w / 2 / RULES.scale + (RULES.halfHitWidth + 16) / RULES.scale + RULES.foodHazardMargin);
+      const safe = (x: number) => x - this.lastFoodX >= RULES.minFoodSpacing
+        && this.items.every(i => i.kind !== 'food' && i.kind !== 'gold' || Math.abs(x - i.x) >= RULES.minFoodSpacing)
+        && this.platforms.every(p => x < p.start - 4 || x > p.end + 4 || x >= p.start + 3 && x <= p.end - 3)
+        && this.items.every(i => i.kind === 'food' || i.kind === 'gold' || Math.abs(x - i.x) > i.w / 2 / RULES.scale + (RULES.halfHitWidth + 16) / RULES.scale + RULES.foodHazardMargin);
       // Bounded search near each scheduled food, never relaxing hazard clearance.
       // Unsafe slots are skipped rather than placing food against an obstacle.
       let foodX: number | undefined;
@@ -134,7 +185,8 @@ export class RunnerModel {
       if (foodX === undefined) continue;
       this.lastFoodX = foodX;
       const lift = RULES.foodLiftMin + this.random() * (RULES.foodLiftMax - RULES.foodLiftMin);
-      this.add(foodX, RULES.floor - lift, 32, 32, this.random() < RULES.goldChance ? 'gold' : 'food');
+      const platform = this.platforms.find(p => foodX! >= p.start && foodX! <= p.end);
+      this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.random() < RULES.goldChance ? 'gold' : 'food');
     }
   }
 }

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "vite --host 0.0.0.0 --port 5173", "build": "tsc --noEmit && vite build", "test": "node --experimental-strip-types --test tests/model.test.ts tests/presentation.test.ts tests/endurance.test.ts", "test:assets": "node --test tests/assets.test.mjs", "assets:build": "python scripts/build-assets.py" },
+  "scripts": { "dev": "vite --host 0.0.0.0 --port 5173", "build": "tsc --noEmit && vite build", "test": "node --experimental-strip-types --test tests/*.test.ts", "test:assets": "node --test tests/assets.test.mjs", "assets:build": "python scripts/build-assets.py" },
   "dependencies": { "phaser": "4.2.1" },
   "devDependencies": { "typescript": "7.0.2", "vite": "8.3.8" }
 }
