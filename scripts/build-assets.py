@@ -9,6 +9,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'public' / 'assets'
+SOURCE = ROOT / 'art-source'
 TARGETS = {
     'momonga': (256, 224), 'momonga-crouch': (320, 128), 'dekatsuyo': (320, 224),
     'food-pudding': (96, 96), 'food-pancake': (96, 96), 'food-cream-puff': (96, 96),
@@ -19,7 +20,7 @@ atlas = Image.new('RGBA', (1024, 1024))
 frames, source_frames = {}, {}
 x = y = row_height = 2
 for name, size in TARGETS.items():
-    original = Image.open(ASSETS / f'{name}.png').convert('RGBA')
+    original = Image.open(SOURCE / f'{name}.png').convert('RGBA')
     box = original.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox()
     l, t, r, b = box
     source_frames[name] = {'x': l, 'y': t, 'w': r-l, 'h': b-t}
@@ -45,6 +46,6 @@ atlas.save(ASSETS / 'game-atlas.webp', lossless=True, method=6, exact=True)
 metadata = {'frames': frames, 'meta': {'image': 'game-atlas.webp', 'format': 'RGBA8888',
                                      'size': {'w': atlas.width, 'h': atlas.height}, 'scale': '1'}}
 (ASSETS / 'game-atlas.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
-(ASSETS / 'frames.json').write_text(json.dumps(source_frames, indent=2), encoding='utf-8')
+(SOURCE / 'frames.json').write_text(json.dumps(source_frames, indent=2), encoding='utf-8')
 print('Atlas:', (ASSETS / 'game-atlas.webp').stat().st_size, 'bytes; frames:', len(frames))
 print('Home:', sum((ASSETS / f'{k}.webp').stat().st_size for k in HOME), 'bytes')
