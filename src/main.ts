@@ -29,7 +29,7 @@ function updateHud() {
   $('gap-marker').style.left = `${model.gap / RULES.maxGap * 100}%`;
   $('chase-hint').textContent = model.gap < 12 ? '바로 뒤예요! 음식을 챙기세요' : '거리가 0이 되면 붙잡혀요';
   const status = $('status');
-  status.textContent = model.boost > 0 ? `황금 가속 ×1.3 · ${model.boost.toFixed(1)}초` : model.exhausted ? '탈진! 음식을 먹으면 다시 빨라져요' : toastTime > 0 ? lastEvent : model.distance < 14 ? '먼저 파란 음식을 먹어 보세요' : model.distance < 23 ? '낮은 장애물은 점프로 넘어요 ↑' : model.distance < 33 ? '천장이 낮아요! ↓ 앉기를 유지하세요' : model.distance < 58 ? '높은 벽은 점프 후 한 번 더 ↑↑' : '계속 달려요 · 황금 음식으로 멀리!';
+  status.textContent = model.boost > 0 ? `황금 가속 ×1.3 · ${model.boost.toFixed(1)}초${model.exhausted ? ' · 종료 후 탈진!' : ''}` : model.exhausted ? '탈진! 음식을 먹으면 다시 빨라져요' : toastTime > 0 ? lastEvent : model.distance < 14 ? '먼저 파란 음식을 먹어 보세요' : model.distance < 23 ? '낮은 장애물은 점프로 넘어요 ↑' : model.distance < 33 ? '천장이 낮아요! ↓ 앉기를 유지하세요' : model.distance < 58 ? '높은 벽은 점프 후 한 번 더 ↑↑' : '계속 달려요 · 황금 음식으로 멀리!';
   status.className = `status ${model.boost > 0 ? 'boost' : model.exhausted || model.gap < 12 ? 'danger' : ''}`;
   pause.disabled = model.phase === 'ready' || model.phase === 'over';
   pause.textContent = model.phase === 'paused' ? '▶' : 'Ⅱ';
@@ -91,7 +91,7 @@ class RunnerScene extends Phaser.Scene {
       }
     }
     // The pursuer enters from the left only as the logical distance closes.
-    const cx = x - model.gap * 24;
+    const cx = x - model.gap * RULES.scale;
     if (cx > -120) {
       const bob = Math.sin(model.elapsed * 13) * 4;
       g.fillStyle(0x21382e, .13).fillEllipse(cx, floor + 3, 97, 13);
