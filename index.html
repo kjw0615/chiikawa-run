@@ -22,7 +22,7 @@
         <h1 id="home-title">치이카와 <span>런</span></h1>
         <p class="home-sub">뒤에서 데카츠요가 쫓아와요!<br>맛있는 걸 먹고, 뛰어넘고, 끝까지 도망쳐요.</p>
         <button id="home-play" class="big-button" type="button">달리기 시작 <span aria-hidden="true">▶</span></button>
-        <p class="home-keys"><kbd>Space</kbd> 점프 <i></i> <kbd>↓</kbd> 앉기 <i></i> <kbd>P</kbd> 일시정지 <i></i> 터치는 화면 아래 버튼</p>
+        <p class="home-keys"><kbd>Space</kbd> 점프 <i></i> <kbd>↓</kbd> 앉기 <i></i> <kbd>P</kbd> 일시정지</p>
       </div>
 
       <div class="home-art">
@@ -32,7 +32,6 @@
         <div class="art food f1"><img src="/assets/food-pudding.webp" alt="푸딩" onerror="this.style.visibility='hidden'"/></div>
         <div class="art food gold-food f3"><img src="/assets/food-cream-puff.webp" alt="황금 슈크림" onerror="this.style.visibility='hidden'"/><b class="spark s1">✦</b><b class="spark s2">✦</b><b class="spark s3">✧</b></div>
         <div class="ground"></div>
-        <div class="gap-chip"><small>데카츠요와의 거리</small><div class="mini-track"><i></i></div></div>
       </div>
     </div>
 
@@ -63,7 +62,7 @@
       </div>
     </div>
     <div id="status" class="status" aria-live="polite">준비됐나요?</div>
-    <div class="chase-panel" aria-label="데카츠요와의 거리"><img class="chase-end chase-end-left" src="/assets/dekatsuyo.webp" alt="데카츠요" onerror="this.style.visibility='hidden'"/><div class="chase-track"><div id="gap-fill"></div><span id="gap-marker">●</span></div><img class="chase-end chase-end-right" src="/assets/momonga.webp" alt="모몽가" onerror="this.style.visibility='hidden'"/></div>
+    <div class="chase-panel" aria-label="데카츠요와의 거리"><img class="chase-end" src="/assets/dekatsuyo.webp" alt="데카츠요" onerror="this.style.visibility='hidden'"/><div class="chase-track"><div id="gap-fill"></div><img id="gap-marker" src="/assets/momonga.webp" alt="모몽가" onerror="this.style.visibility='hidden'"/></div></div>
     <div class="touch-controls"><button id="crouch" class="control" type="button"><span>↓</span>앉기<small>누르고 유지</small></button><button id="jump" class="control jump" type="button"><span>↑</span>점프<small>공중에서 한 번 더</small></button></div>
     <div id="overlay" class="overlay"><div class="modal"><span id="modal-kicker" class="eyebrow">준비됐나요, 모몽가?</span><h2 id="modal-title">한 입 먹고,<br>한 발 더 멀리.</h2><p id="modal-copy">장애물을 피하며 맛있는 음식을 챙겨요.<br>뒤에서 쫓아오는 데카츠요에게 잡히지 마세요!</p><div id="result" class="result" hidden></div><button id="start" class="primary" type="button">달리기 시작 <span>→</span></button><p class="modal-help">Space 점프 · ↓ 앉기 · P 일시정지</p></div></div>
   </section>

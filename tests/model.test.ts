@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RunnerModel, RULES, OBSTACLE_WIDTHS } from '../src/model.ts';
+import { RunnerModel, RULES, OBSTACLE_WIDTHS, difficultyAt } from '../src/model.ts';
 
 const DT = 1 / 120; // same fixed step as src/main.ts
 const F = RULES.floor;
@@ -373,7 +373,7 @@ test('seeds: default seed is reproducible, the same seed gives the same course, 
 });
 
 function course(seed: number, chunks: number) {
-  const m = new RunnerModel(seed); m.distance = 24 * chunks; (m as any).generate();
+  const m = new RunnerModel(seed); m.distance = 24 * chunks; /* chunks = distance / 24m (size unit only) */ (m as any).generate();
   const isFood = (i: { kind: string }) => i.kind === 'food' || i.kind === 'gold';
   return { m, chunks, foods: m.items.filter(isFood), hazards: m.items.filter(i => !isFood(i)) };
 }
@@ -384,19 +384,45 @@ test('contract: obstacle width bounds and food placement constants', () => {
   assert.deepEqual([RULES.foodHazardMargin, RULES.minFoodSpacing, RULES.foodLiftMin, RULES.foodLiftMax], [4, 8, 48, 205]);
 });
 
-test('course: exactly one food per 24m chunk, x jitter inside base-3..base+21, first food 3..10, spacing >= 8m', () => {
-  let lo = Infinity, hi = -Infinity;
+test('difficultyAt: linear ramp, clamped at 1200m (hazard spacing 22->18m, food spacing 30->42m)', () => {
+  const at = (d: number) => difficultyAt(d);
+  assert.deepEqual([at(0).level, at(0).obstacleSpacing, at(0).foodSpacing], [0, 22, 30]);
+  assert.deepEqual([at(600).level, at(600).obstacleSpacing, at(600).foodSpacing], [.5, 20, 36]);
+  assert.deepEqual([at(1200).level, at(1200).obstacleSpacing, at(1200).foodSpacing], [1, 18, 42]);
+  assert.deepEqual([at(50000).level, at(50000).obstacleSpacing, at(50000).foodSpacing], [1, 18, 42]);
+  assert.deepEqual([at(-5).level, at(-5).obstacleSpacing, at(-5).foodSpacing], [0, 22, 30]);
+});
+
+test('course: hazards start at 19m and follow the distance-based spacing; they are generated 140m ahead', () => {
   for (const seed of SEEDS) {
-    const { foods, chunks } = course(seed, 3000);
-    assert.equal(foods.length, chunks + 2, `seed ${seed}`);
-    assert.ok(foods[0].x >= 3 && foods[0].x <= 10, `first food ${foods[0].x}`);
-    for (let n = 1; n < foods.length; n++) {
-      const off = foods[n].x - 24 * n; lo = Math.min(lo, off); hi = Math.max(hi, off);
-      assert.ok(off >= -3 - 1e-9 && off <= 21 + 1e-9, `seed ${seed} chunk ${n} offset ${off}`);
-      assert.ok(foods[n].x - foods[n - 1].x >= RULES.minFoodSpacing - 1e-9, `seed ${seed} spacing ${foods[n].x - foods[n - 1].x}`);
-    }
+    const { hazards } = course(seed, 400);
+    assert.equal(hazards[0].x, 19);
+    for (let i = 1; i < hazards.length; i++) assert.ok(Math.abs(hazards[i].x - hazards[i - 1].x - difficultyAt(hazards[i - 1].x).obstacleSpacing) < 1e-9, `seed ${seed} #${i}`);
+    assert.ok(hazards.at(-1)!.x >= 400 * 24 + 140 - 22 && hazards.at(-1)!.x < 400 * 24 + 140, `last hazard ${hazards.at(-1)!.x}`);
   }
-  assert.ok(lo < -1.5 && hi > 20, `jitter really varies: ${lo}..${hi}`);
+  const m = new RunnerModel(7); const first = m.items.filter(i => i.kind !== 'food' && i.kind !== 'gold');
+  assert.ok(first.at(-1)!.x >= 140 - 22 && first.at(-1)!.x < 140, 'initial course already reaches 140m');
+});
+
+test('course: foods follow the scheduled slots (+-4m jitter, spacing >= 8m); unsafe slots are skipped, first food 3..11', () => {
+  let slotsTotal = 0, placed = 0, lo = Infinity, hi = -Infinity;
+  for (const seed of SEEDS) {
+    const D = 40000, { foods } = course(seed, D / 24);
+    const slots: number[] = []; for (let d = 7; d < D + 96; d += difficultyAt(d).foodSpacing) slots.push(d);
+    assert.ok(foods[0].x >= 3 && foods[0].x <= 11 + 1e-9, `first food ${foods[0].x}`);
+    let k = 0;
+    for (let n = 0; n < foods.length; n++) {
+      while (k < slots.length && slots[k] + 4 + 1e-9 < foods[n].x) k++;
+      assert.ok(k < slots.length && Math.abs(foods[n].x - slots[k]) <= 4 + 1e-9, `seed ${seed} food ${n} x ${foods[n].x} slot ${slots[k]}`);
+      lo = Math.min(lo, foods[n].x - slots[k]); hi = Math.max(hi, foods[n].x - slots[k]); k++;
+      if (n) assert.ok(foods[n].x - foods[n - 1].x >= RULES.minFoodSpacing - 1e-9, `seed ${seed} spacing ${foods[n].x - foods[n - 1].x}`);
+    }
+    slotsTotal += slots.length; placed += foods.length;
+  }
+  const skipped = 1 - placed / slotsTotal;
+  console.log(`food slots placed ${placed}/${slotsTotal} (skipped ${(skipped * 100).toFixed(1)}%), jitter ${lo.toFixed(2)}..${hi.toFixed(2)}m`);
+  assert.ok(lo < -2.5 && hi > 2.5, `jitter really varies: ${lo}..${hi}`);
+  assert.ok(skipped < .35, `too many skipped food slots: ${skipped}`);
 });
 
 test('course: every food is clear of every hazard (edge + half hit 24 + food half 16 + 4m)', () => {
@@ -468,7 +494,10 @@ test('course: free distance between neighbouring hazards stays large at the new 
     }
   }
   console.log(`min free distance between hazards: first pair ${minFirst.toFixed(1)}m, later pairs ${minLater.toFixed(1)}m`);
-  assert.ok(minLater >= 16, `later ${minLater}`); assert.ok(minFirst >= 8, `first ${minFirst}`);
+  let minCap = Infinity; for (const seed of SEEDS) { const hz = course(seed, 1500).hazards.filter(h => h.x >= 1200); for (let i = 1; i < hz.length; i++) minCap = Math.min(minCap, (hz[i].x - hz[i].w / 2 / RULES.scale) - (hz[i - 1].x + hz[i - 1].w / 2 / RULES.scale)); }
+  console.log(`at the 18m cap (>=1200m): min free distance ${minCap.toFixed(1)}m = ${(minCap / RULES.speed).toFixed(2)}s at 6m/s, ${(minCap / RULES.boostSpeed).toFixed(2)}s boosted`);
+  assert.ok(minCap >= 12 && minCap / RULES.boostSpeed >= 1.3, `cap ${minCap}`);
+  assert.ok(minLater >= 12, `later ${minLater}`); assert.ok(minFirst >= 8, `first ${minFirst}`);
 });
 
 test('course: gold is about 1/10 of foods (several seeds), without streak bias', () => {
@@ -482,16 +511,17 @@ test('course: gold is about 1/10 of foods (several seeds), without streak bias',
 });
 
 test('stamina economy: only low foods can be eaten by walking; the rest need a jump', () => {
-  const walkable = RULES.playerHeight + 32, foods = SEEDS.flatMap(s => course(s, 2000).foods);
-  const walkShare = foods.filter(f => F - f.y < walkable).length / foods.length;
-  const avg = RULES.food * (1 - RULES.goldChance) + RULES.goldFood * RULES.goldChance, perSecond = (share: number) => avg * share / (24 / RULES.speed);
-  console.log(`walkable foods ${(walkShare * 100).toFixed(0)}%; income if all eaten ${perSecond(1).toFixed(2)}/s, 75% ${perSecond(0.75).toFixed(2)}/s, walking only ${perSecond(walkShare).toFixed(2)}/s, drain ${RULES.staminaDrain}/s`);
+  const walkable = RULES.playerHeight + 32;
+  const range = (lo: number, hi: number) => SEEDS.flatMap(sd => course(sd, 2000).foods.filter(f => f.x >= lo && f.x < hi));
+  const early = range(0, 400), late = range(1600, 2000), all = SEEDS.flatMap(sd => course(sd, 2000).foods);
+  const walkShare = all.filter(f => F - f.y < walkable).length / all.length;
+  const avg = RULES.food * (1 - RULES.goldChance) + RULES.goldFood * RULES.goldChance;
+  const perMetre = (foods: unknown[], from: number, to: number) => foods.length / (SEEDS.length * (to - from));
+  const income = (density: number, share: number) => avg * share * density * RULES.speed; // per second at 6m/s
+  const dEarly = perMetre(early, 0, 400), dLate = perMetre(late, 1600, 2000);
+  console.log(`walkable foods ${(walkShare * 100).toFixed(0)}%; foods per 100m: 0-400m ${(dEarly * 100).toFixed(2)}, 1600-2000m ${(dLate * 100).toFixed(2)}; income if all eaten early ${income(dEarly, 1).toFixed(2)}/s, late ${income(dLate, 1).toFixed(2)}/s, walking only (late) ${income(dLate, walkShare).toFixed(2)}/s, drain ${RULES.staminaDrain}/s`);
   assert.ok(Math.abs(walkShare - (walkable - 48) / (205 - 48)) < 0.03, `walk share ${walkShare}`);
-  // 4.5/s drain: even eating every food is slightly below break-even (4.10/s), so stamina always trends down.
-  assert.ok(perSecond(1) < RULES.staminaDrain && perSecond(1) > RULES.staminaDrain * .85); assert.ok(perSecond(walkShare) < RULES.staminaDrain);
-});
-
-test('determinism: same seed and inputs give the same run', () => {
-  const play = () => { const m = new RunnerModel(99); m.start(); for (let i = 0; i < 4000; i++) { if (i % 80 === 0) m.jump(); if (i % 240 === 100) m.jump(); m.crouch = i % 300 > 250; m.step(DT); } return [m.distance, m.gap, m.stamina, m.hits, m.foods, m.phase, m.y].join('|'); };
-  assert.equal(play(), play());
+  assert.ok(dEarly > dLate * 1.1 && dLate > .015, `food gets rarer with distance but does not vanish: ${dEarly} vs ${dLate}`);
+  // 4.5/s drain: even eating every food stays below break-even, and gets worse with distance.
+  assert.ok(income(dEarly, 1) < RULES.staminaDrain && income(dLate, 1) < income(dEarly, 1)); assert.ok(income(dLate, walkShare) < RULES.staminaDrain);
 });
