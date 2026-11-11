@@ -79,7 +79,8 @@ export class RunnerModel {
     this.blocked = !!wall && !this.rescue;
     if (this.blocked) nextX = Math.max(previousX, wall!.start - RULES.halfHitWidth / RULES.scale);
     this.distance = nextX;
-    this.gap = Math.min(RULES.maxGap, this.gap + (nextX - previousX) - RULES.chaserSpeed * dt);
+    const effectiveSpeed = this.blocked ? (nextX - previousX) / dt : speed;
+    this.gap = Math.min(RULES.maxGap, this.gap + (effectiveSpeed - RULES.chaserSpeed) * dt);
     this.stamina = Math.max(0, this.stamina - RULES.staminaDrain * dt);
     if (this.stamina <= 0) this.exhausted = true;
     this.generate();
