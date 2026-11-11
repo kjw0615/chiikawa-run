@@ -536,16 +536,19 @@ test('stamina economy: only low foods can be eaten by walking; the rest need a j
 // Analytic stamina along the real course: drain between foods, +food when eaten (cap 100), no hits, 6m/s.
 function reach(seed: number, eatShare: number) {
   const m = new RunnerModel(seed); m.distance = 1300; (m as any).generate();
-  const foods = m.items.filter(i => i.kind === 'food' || i.kind === 'gold').sort((a, b) => a.x - b.x);
+  const foods = m.items.filter(i => (i.kind === 'food' || i.kind === 'gold') && i.x <= 1000).sort((a, b) => a.x - b.x);
   let st = 100, x = 0, lowest = 100, taken = 0, k = 0;
+  const to = (target: number) => { // drain from x to target; returns the distance where stamina hits 0, or null
+    const need = RULES.staminaDrain * (target - x) / RULES.speed;
+    if (st - need <= 0) return x + st * RULES.speed / RULES.staminaDrain;
+    st -= need; x = target; lowest = Math.min(lowest, st); return null;
+  };
   for (const f of foods) {
-    st -= RULES.staminaDrain * (f.x - x) / RULES.speed; x = f.x; lowest = Math.min(lowest, st);
-    if (st <= 0) return { reach: f.x, lowest: 0 };
+    const dead = to(f.x); if (dead !== null) return { reach: dead, lowest: 0 };
     k += eatShare; if (Math.floor(k) > taken) { taken++; st = Math.min(100, st + (f.kind === 'gold' ? RULES.goldFood : RULES.food)); }
-    if (x > 1000) break;
   }
-  st -= RULES.staminaDrain * Math.max(0, 1000 - x) / RULES.speed; lowest = Math.min(lowest, st);
-  return { reach: st <= 0 ? 1000 - -st * RULES.speed / RULES.staminaDrain : 1000, lowest: Math.max(0, lowest) };
+  const dead = to(1000); // remaining drain up to exactly 1000m
+  return dead !== null ? { reach: dead, lowest: 0 } : { reach: 1000, lowest };
 }
 test('balance: a mistake-free run that eats every food reaches 1000m, and 80% of foods is still enough', () => {
   const seeds = [13579, 1, 2, 7, 99, 2026, 31337, 424242, 11, 12, 13, 14, 15, 16, 17, 18];
