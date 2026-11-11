@@ -5,7 +5,7 @@ import { StickerGame, MINI_RULES } from '../src/sticker-game.ts';
 
 // Drives the real generated course through public inputs only. No invulnerability,
 // stamina refill, teleporting, item deletion or score/gap mutation is allowed.
-function drive(seed: number, platforms = false, encounters = false) {
+function drive(seed: number, platforms = false, encounters = false, successTarget = 5) {
   const m = new RunnerModel(seed, true, { platforms, encounters }); m.start();
   let active: Item | undefined, takeoff = 0, second = false, rescues = 0, lastRescue = false;
   let lowestStamina = 100;
@@ -27,7 +27,10 @@ function drive(seed: number, platforms = false, encounters = false) {
       const mini = new StickerGame(npc.seed);
       for (let f = 0; f < 120 * 40 && mini.phase !== 'done'; f++) {
         if (mini.phase === 'intro') mini.start();
-        if (mini.phase === 'playing' && mini.cursor > MINI_RULES.targetMin + .02 && mini.cursor < MINI_RULES.targetMax - .02) mini.stamp();
+        if (mini.phase === 'playing') {
+          const inside = mini.cursor > MINI_RULES.targetMin + .02 && mini.cursor < MINI_RULES.targetMax - .02;
+          if (mini.round < successTarget ? inside : mini.cursor < .2) mini.stamp();
+        }
         if (mini.phase === 'result') mini.continue();
         mini.step(1/120); m.step(1/120); // runner step must remain frozen throughout
       }
@@ -123,7 +126,7 @@ test('two-level input-only courses clear both routes until 1000m or natural exha
 test('default course can enter, finish and resume mini games using public inputs only', () => {
   let events = 0;
   for (const seed of [13579, 99, 2026, 31337, 424242, ...Array.from({length:32}, (_,i) => i+1)]) {
-    const result = drive(seed, true, true);
+    const result = drive(seed, true, true, [5,3,0][seed % 3]);
     assert.equal(result.hits, 0, JSON.stringify(result));
     assert.equal(result.rescues, 0, JSON.stringify(result));
     assert.equal(result.overlap, undefined, JSON.stringify(result));
@@ -131,5 +134,5 @@ test('default course can enter, finish and resume mini games using public inputs
     assert.ok(result.distance >= 1000 || result.exhausted, JSON.stringify(result));
     assert.ok(result.miniGames >= 1, JSON.stringify(result)); events += result.miniGames;
   }
-  console.log(`default runner + sticker games: 37 seeds, ${events} finished encounters; zero hits/rescues/overlaps in measured segments`);
+  console.log(`default runner + sticker games: 37 seeds, all three reward grades, ${events} finished encounters; zero hits/rescues/overlaps in measured segments`);
 });
