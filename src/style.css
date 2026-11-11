@@ -41,18 +41,14 @@ kbd{font-family:inherit;background:#fff;border:2px solid var(--ink);border-radiu
   linear-gradient(var(--mint) 0 40%,#bfe3a8)}
 .art{position:absolute;pointer-events:none}
 .art img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 0 #5a45491f)}
-.art-hero{left:54%;bottom:17%;width:30%;aspect-ratio:1;animation:run-bob .5s ease-in-out infinite alternate}
-.art-chaser{left:-8%;bottom:14%;width:56%;aspect-ratio:1;animation:chase-bob .9s ease-in-out infinite alternate}
+.art-hero{left:54%;bottom:23%;width:30%;aspect-ratio:1;animation:run-bob .5s ease-in-out infinite alternate}
+.art-chaser{left:-10%;bottom:14%;width:62%;aspect-ratio:1;animation:chase-bob .9s ease-in-out infinite alternate}
 .food{width:15%;aspect-ratio:1}
 .f1{left:52%;top:14%;animation:float 2.6s ease-in-out infinite alternate}
-.f3{right:4%;top:44%;width:16%;animation:float 2.2s ease-in-out infinite alternate}
+.f3{right:4%;top:22%;width:16%;animation:float 2.2s ease-in-out infinite alternate}
 .gold-food img{filter:sepia(1) saturate(5) hue-rotate(-12deg) brightness(1.12) drop-shadow(0 0 10px #ffd54a)}
 .spark{position:absolute;color:#ffd24a;font-style:normal;font-weight:400;text-shadow:0 0 6px #fff;animation:twinkle 1.4s ease-in-out infinite}
 .s1{left:-8%;top:-4%;font-size:22px}.s2{right:-6%;top:12%;font-size:15px;animation-delay:.4s}.s3{left:50%;bottom:-8%;font-size:17px;animation-delay:.8s}
-.gap-chip{position:absolute;left:14px;bottom:12px;background:#ffffffd9;border:3px solid var(--ink);border-radius:16px;padding:6px 12px 8px;min-width:150px;font-size:11px;color:var(--ink)}
-.gap-chip small{display:block;margin-bottom:5px}
-.mini-track{height:8px;background:#f3dde2;border-radius:8px;overflow:hidden}
-.mini-track i{display:block;width:62%;height:100%;background:var(--mint-deep);border-radius:8px}
 
 .how{list-style:none;margin:20px 0 4px;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .how li{display:flex;gap:12px;align-items:center;background:#fffdf6;border:3px solid var(--ink);border-radius:20px;padding:12px 14px;box-shadow:0 5px 0 var(--ink)}
@@ -86,12 +82,12 @@ kbd{font-family:inherit;background:#fff;border:2px solid var(--ink);border-radiu
 .status{position:absolute;top:21%;left:50%;transform:translateX(-50%);background:#fffdf6ee;color:var(--ink);border:3px solid var(--ink);font-size:13px;padding:6px 16px;border-radius:30px;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
 .status.boost{background:var(--sun)}
 .status.danger{background:#ffd5cf}
-.chase-panel{position:absolute;bottom:5.5%;left:50%;transform:translateX(-50%);width:36%;display:flex;align-items:center;gap:8px;background:#fffdf6ee;border:3px solid var(--ink);border-radius:18px;padding:4px 10px;color:var(--ink)}
+.chase-panel{position:absolute;bottom:5.5%;left:50%;transform:translateX(-50%);width:36%;display:flex;align-items:center;gap:12px;background:#fffdf6ee;border:3px solid var(--ink);border-radius:18px;padding:4px 10px;color:var(--ink)}
 .chase-end{flex:0 0 auto;width:44px;height:44px;object-fit:contain;transform-origin:50% 90%;filter:drop-shadow(0 2px 0 #5a45491f)}
-.is-running .chase-end{animation:lean-run .36s ease-in-out infinite alternate}
+.is-running .chase-end,.is-running #gap-marker{animation:lean-run .36s ease-in-out infinite alternate}
 .chase-track{flex:1;height:9px;background:#f3dde2;border:2px solid var(--ink);border-radius:8px;position:relative}
 #gap-fill{height:100%;background:#b2e4ce;border-radius:6px}
-#gap-marker{position:absolute;top:-8px;color:var(--pink-deep);font-size:14px;transform:translateX(-50%);-webkit-text-stroke:1px var(--ink)}
+#gap-marker{position:absolute;top:50%;width:34px;height:34px;object-fit:contain;margin-top:-22px;transform:translateX(-50%);transform-origin:50% 90%;filter:drop-shadow(0 2px 0 #5a45491f);pointer-events:none}
 .touch-controls{position:absolute;inset:auto 3.5% 5.5%;display:flex;justify-content:space-between;pointer-events:none}
 .control{pointer-events:auto;border:3px solid var(--ink);color:var(--ink);background:var(--sky);border-radius:20px;min-width:104px;min-height:66px;font-size:15px;touch-action:none;box-shadow:0 5px 0 var(--ink)}
 .control>span{font-size:22px;margin-right:8px}
@@ -123,7 +119,7 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 @keyframes chase-bob{from{transform:translateY(0) scale(1)}to{transform:translateY(-5px) scale(1.03)}}
 @keyframes float{from{transform:translateY(-6px)}to{transform:translateY(7px)}}
 @keyframes twinkle{0%,100%{opacity:.25;transform:scale(.6) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(25deg)}}
-@keyframes lean-run{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
+@keyframes lean-run{from{rotate:-5deg}to{rotate:5deg}}
 @keyframes drift{from{transform:translateX(-8px)}to{transform:translateX(18px)}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
@@ -153,8 +149,8 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
   .status{font-size:9px;padding:4px 10px;top:24%;border-width:2px}
   .chase-panel{width:44%;padding:3px 7px;gap:5px;border-width:2px;border-radius:12px}
   .chase-end{width:28px;height:28px}
+  #gap-marker{width:24px;height:24px;margin-top:-16px}
   .chase-track{height:6px;border-width:1.5px}
-  #gap-marker{font-size:10px;top:-6px}
   .control{min-width:70px;min-height:42px;border-radius:12px;font-size:11px;border-width:2px;box-shadow:0 3px 0 var(--ink)}
   .control>span{font-size:15px;margin-right:4px}.control small{font-size:7px}
   .modal{width:320px;padding:14px 22px 14px;border-width:3px;border-radius:20px}
@@ -182,8 +178,8 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 @media(max-width:480px) and (orientation:portrait){
   .chase-panel{bottom:3%;width:46%;padding:2px 5px;gap:4px;border-radius:8px}
   .chase-end{width:22px;height:22px}
+  #gap-marker{width:20px;height:20px;margin-top:-13px}
   .chase-track{height:4px}
-  #gap-marker{font-size:8px;top:-5px}
   .touch-controls{inset:auto 3.5% 3%}
   .control{min-height:36px;min-width:60px;border-radius:10px;font-size:10px}
   .control>span{font-size:13px;margin-right:3px}
