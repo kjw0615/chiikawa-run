@@ -218,7 +218,7 @@ test('crouch is 36px on the ground only; beam leaves 8px of room above the crouc
   assert.ok(F - RULES.playerHeight < bottom, 'standing must collide');
 });
 
-test('beam: standing hits, crouching clears, releasing crouch under the beam is safe', () => {
+test('beam: standing hits, crouching clears, releasing crouch under the beam hits immediately', () => {
   for (const w of [120, 180, 240]) {
     assert.equal(attempt('beam', w, 'normal', null, null, false).clean, false, `stand ${w}`);
     for (const s of ['normal', 'exhausted', 'boost'] as State[]) {
@@ -228,8 +228,15 @@ test('beam: standing hits, crouching clears, releasing crouch under the beam is 
   }
   const m = quiet(); const x = m.distance + 20; put(m, 'beam', x, 240);
   while (m.distance < x - 0.2) { m.crouch = true; m.step(DT); }
-  for (let i = 0; i < 120 * 3; i++) { m.crouch = false; m.step(DT); }
   assert.equal(m.hits, 0);
+  const gapBefore = m.gap;
+  m.crouch = false; m.step(DT);
+  assert.equal(m.height, RULES.playerHeight);
+  assert.equal(m.hits, 1);
+  assert.equal(m.gap, gapBefore - RULES.hitCost);
+  assert.equal(m.hitFlash, RULES.hitInvulnerability);
+  run(m, 1);
+  assert.equal(m.hits, 1, 'the same beam must not hit twice');
 });
 
 test('beam is attached to the ceiling: no jump timing (single or double, any delay) passes it', () => {
