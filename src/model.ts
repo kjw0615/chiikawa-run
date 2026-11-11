@@ -18,7 +18,7 @@ export const difficultyAt = (distance: number) => {
 };
 // Upper bounds leave a tested timing window for the required jump(s).
 export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 170], pit: [120, 200], beam: [100, 220] } as const;
-export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2 } as const;
+export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2, foodPositionJitter: 8 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold'; used: boolean; variant?: number };
 export type Phase = 'ready' | 'running' | 'paused' | 'minigame' | 'over';
 export type Platform = { id: number; start: number; end: number; y: number; required: boolean; gateX?: number };
@@ -241,7 +241,7 @@ export class RunnerModel {
       // Unsafe slots are skipped rather than placing food against an obstacle.
       let foodX: number | undefined;
       for (let attempt = 0; attempt < 24; attempt++) {
-        const candidate = desired + (this.random('food') - .5) * 8;
+        const candidate = desired + (this.random('food') * 2 - 1) * COURSE_RANDOM.foodPositionJitter;
         if (safe(candidate)) { foodX = candidate; break; }
       }
       if (foodX === undefined) continue;
