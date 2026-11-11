@@ -6,7 +6,8 @@ export function createStartIntro(onComplete: () => void) {
   const resume = document.getElementById('intro-resume') as HTMLButtonElement;
   const loading = document.getElementById('intro-loading')!;
   const home = document.getElementById('home-screen')!;
-  let active = false, seen = false, timeout: ReturnType<typeof setTimeout> | undefined;
+  const playScreen = document.getElementById('play-screen')!;
+  let active = false, timeout: ReturnType<typeof setTimeout> | undefined;
   function finish() {
     if (!active) return;
     if (document.hidden) { video.pause(); return; }
@@ -17,6 +18,7 @@ export function createStartIntro(onComplete: () => void) {
     video.load();
     screen.hidden = true;
     home.inert = false;
+    playScreen.inert = false;
     document.body.style.overflow = '';
     onComplete();
   }
@@ -59,9 +61,9 @@ export function createStartIntro(onComplete: () => void) {
     get active() { return active; },
     start() {
       if (active) return;
-      if (seen) { onComplete(); return; }
-      seen = active = true;
+      active = true;
       home.inert = true;
+      playScreen.inert = true;
       loading.hidden = false;
       screen.hidden = false;
       document.body.style.overflow = 'hidden';

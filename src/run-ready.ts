@@ -3,7 +3,6 @@ export function createRunReady() {
   const screen = document.getElementById('run-ready')!;
   const number = document.getElementById('ready-number')!;
   const resume = document.getElementById('ready-resume') as HTMLButtonElement;
-  const home = document.getElementById('ready-home') as HTMLButtonElement;
   let active = false, paused = false, remaining = 3, last = 0, frame = 0;
   let complete = () => {};
   function tick(now: number) {
@@ -29,7 +28,7 @@ export function createRunReady() {
   screen.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
     e.preventDefault();
-    (resume.hidden || document.activeElement === resume ? home : resume).focus();
+    (resume.hidden ? screen : resume).focus();
   });
   return {
     get active() { return active; },

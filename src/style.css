@@ -196,11 +196,12 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 .intro-loading{position:absolute;color:#fff;pointer-events:none}
 .intro-loading[hidden]{display:none}
 
-.exit-button{display:block;margin:14px auto 0;padding:12px 20px;border:1px solid currentColor;border-radius:999px;background:#fffdf6;color:var(--ink);font:inherit;cursor:pointer}
-.exit-button[hidden]{display:none}
 .run-ready{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fffdf6e8;color:var(--ink);gap:12px}
 .run-ready[hidden]{display:none}.run-ready p{margin:0;font-size:clamp(14px,3vw,24px)}
-.run-ready strong{font-size:clamp(40px,9vw,90px);line-height:1.1}.run-ready .exit-button{margin:0}
+.run-ready strong{font-size:clamp(40px,9vw,90px);line-height:1.1}
 .coin-card{display:flex;align-items:center;gap:6px;background:#fffdf6ee;border:2px solid var(--ink);border-radius:999px;padding:3px 10px;font-size:22px;font-variant-numeric:tabular-nums}
 .coin-card img{width:32px;height:25px;object-fit:contain}
-@media(max-width:600px){.coin-card{font-size:16px;padding:2px 7px}.coin-card img{width:24px;height:19px}.run-ready{gap:6px}.run-ready .exit-button{font-size:12px;padding:8px 12px}}
+@media(max-width:600px){.coin-card{font-size:16px;padding:2px 7px}.coin-card img{width:24px;height:19px}.run-ready{gap:6px}}
+.intro-option{display:flex;align-items:center;gap:9px;width:fit-content;margin-top:20px;color:var(--ink-soft);font-size:16px;cursor:pointer}
+.intro-option input{width:20px;height:20px;accent-color:var(--pink-deep);cursor:pointer}
+@media(max-width:600px){.intro-option{margin-left:auto;margin-right:auto}}

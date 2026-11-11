@@ -20,7 +20,7 @@ export const difficultyAt = (distance: number) => {
 export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 170], pit: [120, 200], beam: [100, 220] } as const;
 export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2, foodPositionJitter: 8 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number };
-export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .15, goldValue: 3, firstCoinX: 10 } as const;
+export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .05, goldValue: 3, firstCoinX: 10 } as const;
 export const SPAWN_CLEARANCE = { encounter: 8, encounterHazard: 6, foodCoin: 5, coinHazard: 4 } as const;
 const collectible = (kind: Item['kind']) => kind === 'food' || kind === 'gold' || kind === 'coin';
 export type Phase = 'ready' | 'running' | 'paused' | 'minigame' | 'over';
@@ -70,6 +70,8 @@ export class RunnerModel {
     this.stamina = Math.min(100, this.stamina + reward.stamina);
     if (this.stamina >= RULES.recover) this.exhausted = false;
     this.eventBoost = reward.seconds; this.eventMultiplier = reward.speedMultiplier;
+    // Settled here, once: the phase check above rejects a second call for the same encounter.
+    const coins = Number.isFinite(reward.coins) ? Math.max(0, Math.floor(reward.coins!)) : 0; this.coins += coins;
     this.activeEncounter = null; this.crouch = false; this.jumpBuffer = 0; this.jumpHeld = false; this.phase = 'running';
     return true;
   }

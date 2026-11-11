@@ -12,7 +12,7 @@ export const SPEED_RULES = { roundScale: [1, 1.12, 1.25, 1.38, 1.5], cap: .88, c
 export type MiniPhase = 'selecting' | 'intro' | 'playing' | 'feedback' | 'result' | 'countdown' | 'done';
 export type Character = 'chiikawa' | 'hachiware' | 'usagi';
 export const CHARACTERS: readonly Character[] = ['chiikawa', 'hachiware', 'usagi'];
-export type Reward = { stamina: number; speedMultiplier: number; seconds: number };
+export type Reward = { stamina: number; speedMultiplier: number; seconds: number; coins?: number };
 
 export const rewardFor = (successes: number): Reward =>
   successes >= 5 ? { stamina: 40, speedMultiplier: 1.5, seconds: 3 }
@@ -57,6 +57,8 @@ export class StickerGame {
     if (this.phase === 'playing') return triangle(unit(this.seed, 10 + this.round) + this.speed * this.elapsed);
     return this.lastCursor;
   }
+  /** One coin per successful round; the caller adds it to the reward it hands to the runner. */
+  get coinReward() { return this.successes; }
   get reward(): Reward | null { return this.results.length >= MINI_RULES.rounds ? rewardFor(this.successes) : null; }
   get lastHit() { return this.results.length ? this.results[this.results.length - 1] : null; }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, MINI_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : MINI_RULES.countdownSeconds; }

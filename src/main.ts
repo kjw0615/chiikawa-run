@@ -34,7 +34,11 @@ function armStart() {
 }
 function begin() {
   if (intro.active || ready.active || preparing) return;
-  if (!home.hidden) intro.start(); else beginRun();
+  if ($<HTMLInputElement>('show-intro').checked) {
+    release(); releaseJump(); model.pause(); mini?.pause(); game?.loop.sleep();
+    if (mini) { mini = null; encounterId = null; updateMini(); }
+    intro.start();
+  } else beginRun();
 }
 function beginRun() {
   mini = null; encounterId = null; miniViewKey = ''; updateMini();
@@ -118,7 +122,7 @@ class RunnerScene extends Phaser.Scene {
     if (mini) {
       mini.step(Math.min(delta / 1000, .05));
       if (mini.phase === 'done' && mini.reward && encounterId !== null) {
-        model.completeEncounter(encounterId, mini.reward); mini = null; encounterId = null; accumulator = 0;
+        model.completeEncounter(encounterId, { ...mini.reward, coins: mini.coinReward }); mini = null; encounterId = null; accumulator = 0;
       }
       updateMini();
     }
@@ -258,9 +262,17 @@ function returnHome() {
 $('home-return').addEventListener('click', returnHome);
 $('pause-home').addEventListener('click', returnHome);
 $('countdown-home').addEventListener('click', returnHome);
-$('ready-home').addEventListener('click', returnHome);
 window.addEventListener('keydown', e => {
-  if (e.target instanceof HTMLButtonElement && e.target.classList.contains('exit-button') && ['Space', 'Enter'].includes(e.code)) return;
+  // Only the live play surface consumes browser navigation keys. Menus retain
+  // keyboard navigation, and browser shortcuts with modifiers remain intact.
+  const live = intro.active || ready.active || preparing
+    || !play.hidden && model.phase === 'running' && !mini
+    || !!mini && !mini.paused && ['selecting', 'playing', 'feedback', 'countdown'].includes(mini.phase);
+  if (live && !e.ctrlKey && !e.metaKey && !e.altKey && ['ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) {
+    e.preventDefault(); return;
+  }
+  if (home.hidden === false && e.target instanceof HTMLInputElement) return;
+  if (e.target instanceof HTMLButtonElement && e.target.classList.contains('stop-running') && ['Space', 'Enter'].includes(e.code)) return;
   if (intro.active) {
     if (e.code === 'Escape') { e.preventDefault(); intro.skip(); }
     if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code) && e.target instanceof HTMLVideoElement) e.preventDefault();
@@ -372,6 +384,6 @@ function updateMini() {
   miniActionButton.hidden = g.phase === 'selecting' && !g.paused;
   miniActionButton.disabled = g.phase === 'feedback' && !g.paused;
   miniActionButton.textContent = g.paused ? '계속하기' : g.phase === 'intro' ? '준비됐어요! 시작' : g.phase === 'result' ? '달리기로 돌아가기' : '스티커 붙이기';
-  if (g.phase === 'result' && g.reward) $('mini-reward').textContent = `체력 +${g.reward.stamina} · ${g.reward.speedMultiplier}배 속도 ${g.reward.seconds}초`;
+  if (g.phase === 'result' && g.reward) $('mini-reward').textContent = `동전 +${g.coinReward} · 체력 +${g.reward.stamina} · ${g.reward.speedMultiplier}배 속도 ${g.reward.seconds}초`;
   if (['intro','result'].includes(g.phase)) miniActionButton.focus({ preventScroll: true });
 }
