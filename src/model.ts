@@ -36,11 +36,11 @@ export class RunnerModel {
   private jumpHeld = false; private nextPlatformX = 80; private platformIndex = 0;
   private platformRandomState: number; private platformCourse: boolean;
   private nextHazardX = 19; private nextFoodX = 7; private id = 0; private jumpBuffer = 0;
-  private hazardState: number; private foodState: number; private artState: number;
+  private hazardState: number; private foodState: number; private artSeed: number;
   private generateCourse: boolean; private lastFoodX = -Infinity;
   constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean; encounters?: boolean } = {}) {
     this.hazardState = (seed ^ 0x243f6a88) >>> 0; this.foodState = (seed ^ 0xb7e15162) >>> 0;
-    this.artState = (seed ^ 0xdeadbeef) >>> 0; this.platformRandomState = (seed ^ 0x9e3779b9) >>> 0;
+    this.artSeed = (seed ^ 0xdeadbeef) >>> 0; this.platformRandomState = (seed ^ 0x9e3779b9) >>> 0;
     this.nextHazardX = COURSE_RANDOM.firstHazardMin + this.random('hazard') * (COURSE_RANDOM.firstHazardMax-COURSE_RANDOM.firstHazardMin);
     this.encounterState = (seed ^ 0x85ebca6b) >>> 0; this.encounterCourse = options.encounters !== false;
     this.generateCourse = generateCourse; this.platformCourse = options.platforms !== false; this.generate();
@@ -184,13 +184,18 @@ export class RunnerModel {
     }
     return distance;
   }
-  private random(stream: 'hazard' | 'food' | 'platform' | 'art') {
-    const key = stream === 'hazard' ? 'hazardState' : stream === 'food' ? 'foodState' : stream === 'platform' ? 'platformRandomState' : 'artState';
+  private random(stream: 'hazard' | 'food' | 'platform') {
+    const key = stream === 'hazard' ? 'hazardState' : stream === 'food' ? 'foodState' : 'platformRandomState';
     this[key] = (Math.imul(1664525, this[key]) + 1013904223) >>> 0; return this[key] / 4294967296;
   }
   private add(x: number, y: number, w: number, h: number, kind: Item['kind']) {
+    // Visual choice is position-seeded, so generating a distant branch first
+    // cannot change an already scheduled food's appearance.
+    let hash = Math.imul(this.artSeed ^ Math.round(x * 1024), 0x45d9f3b);
+    hash = Math.imul(hash ^ (hash >>> 16), 0x45d9f3b);
+    const variant = ((hash ^ (hash >>> 16)) >>> 0) % 3;
     this.items.push({ id: this.id++, x, y, w, h, kind, used: false,
-      ...(['food','gold'].includes(kind) ? {variant: Math.floor(this.random('art') * 3)} : {}) });
+      ...(['food','gold'].includes(kind) ? {variant} : {}) });
   }
   private generate() {
     if (!this.generateCourse) return;
