@@ -7,6 +7,11 @@ export const RULES = {
   rescueSeconds: .9, fallDepth: 100,
   foodHazardMargin: 4, minFoodSpacing: 8, foodLiftMin: 48, foodLiftMax: 205,
 };
+// Bounded progression keeps the course readable while increasing pressure.
+export const difficultyAt = (distance: number) => {
+  const level = Math.min(1, Math.max(0, distance) / 1200);
+  return { level, obstacleSpacing: 22 - 4 * level, foodSpacing: 30 + 12 * level };
+};
 // Upper bounds leave a tested timing window for the required jump(s).
 export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [48, 64], long: [140, 210], pit: [120, 220], beam: [100, 220] } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold'; used: boolean };
@@ -16,7 +21,7 @@ export class RunnerModel {
   phase: Phase = 'ready'; distance = 0; gap = 30; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
   y = RULES.floor; vy = 0; jumps = 0; crouch = false; hitFlash = 0; foods = 0; bonus = 0; hits = 0;
   items: Item[] = []; events: string[] = []; rescue: Rescue | null = null;
-  private nextChunk = 0; private id = 0; private jumpBuffer = 0; private jumpMotionScale = 1; private randomState: number; private generateCourse: boolean; private lastFoodX = -Infinity;
+  private nextHazardX = 19; private hazardIndex = 0; private nextFoodX = 7; private id = 0; private jumpBuffer = 0; private jumpMotionScale = 1; private randomState: number; private generateCourse: boolean; private lastFoodX = -Infinity;
   constructor(seed = 13579, generateCourse = true) { this.randomState = seed >>> 0; this.generateCourse = generateCourse; this.generate(); }
   get speed() { return this.boost > 0 ? RULES.boostSpeed : this.exhausted ? RULES.exhaustedSpeed : RULES.speed; }
   get grounded() { return !this.rescue && Math.abs(this.y - RULES.floor) < .01 && !this.pitAt(this.distance); }
@@ -104,23 +109,30 @@ export class RunnerModel {
   private add(x: number, y: number, w: number, h: number, kind: Item['kind']) { this.items.push({ id: this.id++, x, y, w, h, kind, used: false }); }
   private generate() {
     if (!this.generateCourse) return;
-    while (this.nextChunk * 24 < this.distance + 48) {
-      const n = this.nextChunk++, base = n * 24, type = n % 6;
+    // Generate hazards beyond the food horizon first, so future obstacles cannot
+    // invalidate an already placed food's approach/landing clearance.
+    while (this.nextHazardX < this.distance + 140) {
+      const n = this.hazardIndex++, x = this.nextHazardX, type = n % 6;
       const width = (kind: keyof typeof OBSTACLE_WIDTHS) => { const [lo, hi] = OBSTACLE_WIDTHS[kind]; return Math.round(lo + this.random() * (hi - lo)); };
-      if (n === 0) this.add(19, RULES.floor - 64, width('block'), 64, 'block');
-      else if (type === 1) this.add(base + 7, 84, width('beam'), RULES.floor - 44 - 84, 'beam');
-      else if (type === 2) this.add(base + 7, RULES.floor - 190, width('tower'), 190, 'tower');
-      else if (type === 3) this.add(base + 7, RULES.floor - 46, width('long'), 46, 'long');
-      else if (type === 4) this.add(base + 7, RULES.floor, width('pit'), 170, 'pit');
-      else this.add(base + 7, RULES.floor - 64, width('block'), 64, 'block');
-      // Separate horizontal safety from vertical reach. Food never forces an
-      // immediate jump after a hazard, and can also appear before it.
+      if (type === 1) this.add(x, 84, width('beam'), RULES.floor - 44 - 84, 'beam');
+      else if (type === 2) this.add(x, RULES.floor - 190, width('tower'), 190, 'tower');
+      else if (type === 3) this.add(x, RULES.floor - 46, width('long'), 46, 'long');
+      else if (type === 4) this.add(x, RULES.floor, width('pit'), 170, 'pit');
+      else this.add(x, RULES.floor - 64, width('block'), 64, 'block');
+      this.nextHazardX += difficultyAt(x).obstacleSpacing;
+    }
+    while (this.nextFoodX < this.distance + 96) {
+      const desired = this.nextFoodX;
+      this.nextFoodX += difficultyAt(desired).foodSpacing;
       const safe = (x: number) => x - this.lastFoodX >= RULES.minFoodSpacing && this.items.every(i => i.kind === 'food' || i.kind === 'gold' || Math.abs(x - i.x) > i.w / 2 / RULES.scale + (RULES.halfHitWidth + 16) / RULES.scale + RULES.foodHazardMargin);
-      let foodX = n === 0 ? 7 : base + 21;
+      // Bounded search near each scheduled food, never relaxing hazard clearance.
+      // Unsafe slots are skipped rather than placing food against an obstacle.
+      let foodX: number | undefined;
       for (let attempt = 0; attempt < 24; attempt++) {
-        const candidate = n === 0 ? 3 + this.random() * 7 : base - 3 + this.random() * 24;
+        const candidate = desired + (this.random() - .5) * 8;
         if (safe(candidate)) { foodX = candidate; break; }
       }
+      if (foodX === undefined) continue;
       this.lastFoodX = foodX;
       const lift = RULES.foodLiftMin + this.random() * (RULES.foodLiftMax - RULES.foodLiftMin);
       this.add(foodX, RULES.floor - lift, 32, 32, this.random() < RULES.goldChance ? 'gold' : 'food');
