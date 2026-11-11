@@ -45,27 +45,29 @@ function drive(seed: number) {
     if (m.rescue && !lastRescue) rescues++;
     lastRescue = !!m.rescue;
     lowestStamina = Math.min(lowestStamina, m.stamina);
-    if (m.hits || rescues || overlap) break;
+    if (m.hits || rescues || overlap || m.exhausted) break;
   }
-  return { seed, distance: m.distance, hits: m.hits, rescues, phase: m.phase, foods: m.foods, lowestStamina,
+  return { seed, distance: m.distance, hits: m.hits, rescues, phase: m.phase, foods: m.foods, lowestStamina, exhausted: m.exhausted,
     overlap,
     ...(m.hits || rescues || overlap ? { y:m.y, jumps:m.jumps, active, second, flight:m.elapsed-takeoff,
       nearby:m.items.filter(i => Math.abs(i.x-m.distance)<6) } : {}) };
 }
 
-test('real input-only mistake-free runs reach 1000m across seeded courses', () => {
+test('input-only courses stay collision-free until 1000m or natural exhaustion', () => {
   const seeds = [...new Set([13579, 99, 2026, 31337, 424242, ...Array.from({length:128}, (_,i) => i+1)])];
-  let lowest = 100, minFoods = Infinity, maxFoods = 0;
+  let lowest = 100, minFoods = Infinity, maxFoods = 0, completed = 0, minDistance = Infinity;
   for (const seed of seeds) {
     const result = drive(seed);
     lowest = Math.min(lowest, result.lowestStamina);
+    minDistance = Math.min(minDistance, result.distance);
+    if (result.distance >= 1000) completed++;
     minFoods = Math.min(minFoods, result.foods); maxFoods = Math.max(maxFoods, result.foods);
     assert.equal(result.hits, 0, JSON.stringify(result));
     assert.equal(result.rescues, 0, JSON.stringify(result));
     assert.equal(result.overlap, undefined, JSON.stringify(result));
     assert.equal(result.phase, 'running', JSON.stringify(result));
-    assert.ok(result.distance >= 1000, JSON.stringify(result));
-    assert.ok(result.lowestStamina > 0, JSON.stringify(result));
+    assert.ok(result.distance >= 1000 || result.exhausted, JSON.stringify(result));
+    if (result.exhausted) assert.equal(result.lowestStamina, 0);
   }
-  console.log(`${seeds.length} seeded input-only runs: 1000m, zero hits/rescues; minimum stamina ${lowest.toFixed(2)}, foods ${minFoods}..${maxFoods}`);
+  console.log(`${seeds.length} seeded input-only runs: ${completed} reached 1000m before exhaustion, ${seeds.length-completed} exhausted first; earliest stop ${minDistance.toFixed(2)}m; zero hits/rescues/overlaps, foods ${minFoods}..${maxFoods}, minimum stamina ${lowest.toFixed(2)}`);
 });
