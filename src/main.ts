@@ -3,16 +3,19 @@ import './style.css';
 import { RunnerModel, RULES } from './model';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-const ASSETS = ['momonga', 'dekatsuyo', 'food-pudding', 'food-pancake', 'food-cream-puff', 'obstacle-rock', 'obstacle-log', 'obstacle-vines'];
+const ASSETS = ['momonga', 'momonga-crouch', 'dekatsuyo', 'food-pudding', 'food-pancake', 'food-cream-puff', 'obstacle-rock', 'obstacle-log', 'obstacle-vines'];
 const FOOD = ['food-pudding', 'food-pancake', 'food-cream-puff'];
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
 const overlay = $('overlay'), start = $('start'), pause = $<HTMLButtonElement>('pause');
 const home = $('home-screen'), play = $('play-screen');
+const loading = document.createElement('div');
+loading.setAttribute('role', 'status'); loading.textContent = '모몽가가 숲으로 가는 중…';
+Object.assign(loading.style, { position: 'absolute', inset: '0', display: 'grid', placeItems: 'center', background: '#fffdf6', color: '#624b4b', zIndex: '20', fontSize: '18px' });
 function begin() {
   model = new RunnerModel(Date.now()); model.start(); accumulator = 0; crouchHeld = false; lastPhase = '';
   home.hidden = true; play.hidden = false;
-  if (!game) game = new Phaser.Game({ type: Phaser.AUTO, width: 1120, height: 630, parent: 'game', backgroundColor: '#edf4e7', scene: RunnerScene, render: { antialias: true }, audio: { noAudio: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH } });
+  if (!game) { play.appendChild(loading); game = new Phaser.Game({ type: Phaser.AUTO, width: 1120, height: 630, parent: 'game', backgroundColor: '#edf4e7', scene: RunnerScene, render: { antialias: true }, audio: { noAudio: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH } }); }
   else game.loop.wake();
   requestAnimationFrame(() => game?.scale.refresh());
   updateHud(); play.scrollIntoView({ block: 'center' });
@@ -53,13 +56,20 @@ class RunnerScene extends Phaser.Scene {
   private chaser!: Phaser.GameObjects.Image;
   private pool: Phaser.GameObjects.Image[] = [];
   private cursor = 0;
-  preload() { for (const key of ASSETS) this.load.image(key, `/assets/${key}.png`); this.load.json('asset-frames', '/assets/frames.json'); }
+  private loadFailed = false;
+  preload() {
+    this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
+    this.load.on('loaderror', () => { this.loadFailed = true; });
+    for (const key of ASSETS) this.load.image(key, `/assets/${key}.webp`);
+    this.load.json('asset-frames', '/assets/frames.json');
+  }
   create() {
+    if (this.loadFailed) { model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
     const frames = this.cache.json.get('asset-frames') as Record<string, { x: number; y: number; w: number; h: number }>;
     for (const key of ASSETS) { const f = frames[key]; this.textures.get(key).add('art', 0, f.x, f.y, f.w, f.h); }
     this.g = this.add.graphics(); this.hero = this.add.image(560, RULES.floor, 'momonga', 'art').setOrigin(.5, 1).setDepth(5);
     this.chaser = this.add.image(0, RULES.floor, 'dekatsuyo', 'art').setOrigin(.5, 1).setDepth(4);
-    this.scale.refresh();
+    this.scale.refresh(); loading.remove();
   }
   update(_time: number, delta: number) {
     if (model.phase === 'running') {
@@ -92,7 +102,8 @@ class RunnerScene extends Phaser.Scene {
       if (ix + item.w / 2 < -20 || ix - item.w / 2 > 1140) continue;
       if (item.kind === 'food' || item.kind === 'gold') {
         const iy = item.y + item.h / 2, golden = item.kind === 'gold';
-        const s = this.sprite(FOOD[item.id % FOOD.length], ix, iy, 43, 41);
+        const key = FOOD[item.id % FOOD.length], frame = this.textures.get(key).get('art'), fit = 43 / Math.max(frame.width, frame.height);
+        const s = this.sprite(key, ix, iy, frame.width * fit, frame.height * fit);
         if (golden) {
           s.setTint(0xffd252); g.fillStyle(0xffd468, .24).fillCircle(ix, iy, 29 + Math.sin(model.elapsed * 6) * 3);
           g.lineStyle(2, 0xfff3b8, .9);
@@ -107,10 +118,15 @@ class RunnerScene extends Phaser.Scene {
         g.lineStyle(4, 0xbaa482).lineBetween(bx, floor, bx, floor + 28).lineBetween(bx + item.w, floor, bx + item.w, floor + 28);
       } else {
         g.fillStyle(0x294b31, .1).fillEllipse(ix, floor + 3, item.w + 15, 10);
-        const key = item.kind === 'beam' ? 'obstacle-vines' : item.kind === 'long' ? 'obstacle-log' : 'obstacle-rock';
-        const y = item.kind === 'beam' ? (item.y + item.h) / 2 : item.y + item.h / 2;
-        const h = item.kind === 'beam' ? item.y + item.h : item.h;
-        this.sprite(key, ix, y, item.w * 1.04, h * 1.02);
+        if (item.kind === 'tower') {
+          const count = Math.ceil(item.h / (item.w / 1.7)), step = item.h / count;
+          for (let k = 0; k < count; k++) this.sprite('obstacle-rock', ix, floor - step * (k + .5), item.w * 1.02, step + 3);
+        } else {
+          const key = item.kind === 'beam' ? 'obstacle-vines' : item.kind === 'long' ? 'obstacle-log' : 'obstacle-rock';
+          const y = item.kind === 'beam' ? (item.y + item.h) / 2 : item.y + item.h / 2;
+          const h = item.kind === 'beam' ? item.y + item.h : item.h;
+          this.sprite(key, ix, y, item.w * 1.04, h * 1.02);
+        }
       }
     }
     const cx = center - model.gap * RULES.scale, moving = model.phase === 'running';
@@ -118,7 +134,7 @@ class RunnerScene extends Phaser.Scene {
     const hx = center - 34 * Math.sin(Math.PI * Math.min(1, model.hitFlash / RULES.hitInvulnerability));
     const duck = model.crouch && model.grounded, bob = moving && model.grounded && !duck ? Math.abs(Math.sin(model.elapsed * 13)) * 5 : 0;
     g.fillStyle(0x4c6b45, .15).fillEllipse(hx, floor + 4, model.grounded ? 86 : 54, 13);
-    this.hero.setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, duck ? 43 : 98).setRotation(duck ? .035 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .045 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
+    this.hero.setTexture(duck ? 'momonga-crouch' : 'momonga', 'art').setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, duck ? 43 : 98).setRotation(duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .045 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
     if (model.boost > 0) {
       this.hero.setTint(0xffeec1); g.lineStyle(3, 0xffe393).strokeEllipse(hx, model.y - model.height / 2, 132, model.height + 30);
       for (let j = 1; j < 4; j++) g.lineStyle(3, 0xffd979, .5 / j).lineBetween(hx - 60 - j * 18, model.y - j * 19, hx - 30 - j * 18, model.y - j * 19);
