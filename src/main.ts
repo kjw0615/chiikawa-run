@@ -266,7 +266,9 @@ function layoutMiniArt() {
   for (const {image} of lemons) portrait(image, 'lemon', Math.max(24, small));
   // The centre lemon is exactly the success band: its width is the band's share of the stage.
   const stage = $('stage-lemon'), box = $('stage-lemon').parentElement as HTMLElement, w = box.clientWidth || Math.min(480, inside);
-  portrait(stage, 'lemon', Math.min(compact ? 84 : 150, w * (MINI_RULES.targetMax - MINI_RULES.targetMin)));
+  const lw = w * (MINI_RULES.targetMax - MINI_RULES.targetMin); portrait(stage, 'lemon', lw);
+  // Show only the lower 128 px of the 224 px frame (the fruit body) so its centre sits on the sticker path.
+  stage.style.height = `${128 * lw / 192}px`; stage.style.backgroundPositionY = `${-98 * lw / 192}px`;
 }
 layoutMiniArt(); window.addEventListener('resize', layoutMiniArt);
 function miniAction() {
