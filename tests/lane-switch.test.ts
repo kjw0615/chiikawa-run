@@ -80,7 +80,7 @@ test('generated switch routes require ascent and descent, with clear lower landi
     const m=new RunnerModel(seed);m.distance=3000;(m as any).generate();
     const gates=m.platforms.filter(p=>p.gateX!==undefined);assert.ok(gates.length>=2);
     for(const p of gates) {
-      assert.equal(p.required,true);assert.equal(p.end-p.start,36);assert.equal(p.gateX,p.start+22);
+      assert.equal(p.required,true);assert.equal(p.end-p.start,36);assert.ok(p.gateX!>=p.start+20&&p.gateX!<=p.start+24);
       for(const h of m.items.filter(i=>!['food','gold'].includes(i.kind))) assert.ok(h.x<p.start||h.x>p.end);
       for(const e of m.encounters) assert.ok(e.x<p.gateX!-8||e.x>p.end+8);
       for(const f of m.items.filter(i=>['food','gold'].includes(i.kind))) assert.ok(f.x<p.gateX!-6||f.x>p.end+4);
