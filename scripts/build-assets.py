@@ -1,0 +1,48 @@
+"""Pack generated source PNGs for Phaser; keep source artwork unchanged.
+
+Optional authoring tool: Python + Pillow. Runtime/build uses committed outputs.
+Run from the project root: python scripts/build-assets.py
+"""
+import json
+from pathlib import Path
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parents[1]
+ASSETS = ROOT / 'public' / 'assets'
+TARGETS = {
+    'momonga': (256, 224), 'momonga-crouch': (320, 128), 'dekatsuyo': (320, 224),
+    'food-pudding': (96, 96), 'food-pancake': (96, 96), 'food-cream-puff': (96, 96),
+    'obstacle-rock': (160, 128), 'obstacle-log': (384, 128), 'obstacle-vines': (220, 416),
+}
+HOME = {'momonga', 'dekatsuyo', 'food-pudding', 'food-pancake', 'food-cream-puff'}
+atlas = Image.new('RGBA', (1024, 1024))
+frames, source_frames = {}, {}
+x = y = row_height = 2
+for name, size in TARGETS.items():
+    original = Image.open(ASSETS / f'{name}.png').convert('RGBA')
+    box = original.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox()
+    l, t, r, b = box
+    source_frames[name] = {'x': l, 'y': t, 'w': r-l, 'h': b-t}
+    cropped = original.crop(box)
+    if name in HOME:
+        home = cropped.copy()
+        home.thumbnail((512, 512) if name in {'momonga', 'dekatsuyo'} else (160, 160), Image.Resampling.LANCZOS)
+        home.save(ASSETS / f'{name}.webp', lossless=True, method=6, exact=True)
+    sprite = cropped.copy(); sprite.thumbnail(size, Image.Resampling.LANCZOS)
+    w, h = sprite.size
+    if x + w + 2 > atlas.width:
+        x = 2; y += row_height + 4; row_height = 0
+    if y + h + 2 > atlas.height:
+        raise RuntimeError('Atlas exceeds 1024x1024; reduce targets or add a page')
+    atlas.paste(sprite, (x, y))
+    frames[name] = {'frame': {'x': x, 'y': y, 'w': w, 'h': h}, 'rotated': False,
+                    'trimmed': False, 'spriteSourceSize': {'x': 0, 'y': 0, 'w': w, 'h': h},
+                    'sourceSize': {'w': w, 'h': h}}
+    x += w + 4; row_height = max(row_height, h)
+atlas.save(ASSETS / 'game-atlas.webp', lossless=True, method=6, exact=True)
+metadata = {'frames': frames, 'meta': {'image': 'game-atlas.webp', 'format': 'RGBA8888',
+                                     'size': {'w': 1024, 'h': 1024}, 'scale': '1'}}
+(ASSETS / 'game-atlas.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
+(ASSETS / 'frames.json').write_text(json.dumps(source_frames, indent=2), encoding='utf-8')
+print('Atlas:', (ASSETS / 'game-atlas.webp').stat().st_size, 'bytes; frames:', len(frames))
+print('Home:', sum((ASSETS / f'{k}.webp').stat().st_size for k in HOME), 'bytes')
