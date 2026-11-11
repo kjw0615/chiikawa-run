@@ -8,6 +8,7 @@ function drive(seed: number) {
   const m = new RunnerModel(seed); m.start();
   let active: Item | undefined, takeoff = 0, second = false, rescues = 0, lastRescue = false;
   let lowestStamina = 100;
+  let overlap: Item | undefined;
   const travel = (seconds: number) => Math.min(seconds, m.boost) * RULES.boostSpeed
     + Math.max(0, seconds-m.boost) * (m.exhausted ? RULES.exhaustedSpeed : RULES.speed);
   for (let frame = 0; frame < 120 * 260 && m.distance < 1000 && m.phase === 'running'; frame++) {
@@ -18,7 +19,10 @@ function drive(seed: number) {
     if (m.grounded) {
       active = undefined;
       const next = upcoming.find(i => i.kind !== 'beam' && i.x > m.distance
-        && (!['food','gold'].includes(i.kind) || RULES.floor-i.y >= RULES.playerHeight+32));
+        && (!['food','gold'].includes(i.kind) || RULES.floor-i.y >= RULES.playerHeight+32
+          // Skip an optional airborne gold just before a tower: its mid-flight
+          // acceleration can consume the tower's takeoff window before landing.
+          && !(i.kind === 'gold' && upcoming.some(h => h.kind === 'tower' && h.x > i.x && h.x-i.x < 8))));
       if (next) {
         const food = next.kind === 'food' || next.kind === 'gold';
         const lead = food ? travel(.6) : next.w/2/RULES.scale + RULES.halfHitWidth/RULES.scale
@@ -34,13 +38,18 @@ function drive(seed: number) {
       if (m.elapsed-takeoff >= delay) { m.jump(); second = true; }
     }
     m.step(1/120);
+    // Even natural gold immunity must not hide a mistimed obstacle avoidance.
+    overlap = m.items.find(i => !['food','gold','pit'].includes(i.kind)
+      && Math.abs((i.x-m.distance)*RULES.scale) < i.w/2+RULES.halfHitWidth
+      && m.y > i.y && m.y-m.height < i.y+i.h);
     if (m.rescue && !lastRescue) rescues++;
     lastRescue = !!m.rescue;
     lowestStamina = Math.min(lowestStamina, m.stamina);
-    if (m.hits || rescues) break;
+    if (m.hits || rescues || overlap) break;
   }
   return { seed, distance: m.distance, hits: m.hits, rescues, phase: m.phase, foods: m.foods, lowestStamina,
-    ...(m.hits || rescues ? { y:m.y, jumps:m.jumps, active, second, flight:m.elapsed-takeoff,
+    overlap,
+    ...(m.hits || rescues || overlap ? { y:m.y, jumps:m.jumps, active, second, flight:m.elapsed-takeoff,
       nearby:m.items.filter(i => Math.abs(i.x-m.distance)<6) } : {}) };
 }
 
@@ -53,6 +62,7 @@ test('real input-only mistake-free runs reach 1000m across seeded courses', () =
     minFoods = Math.min(minFoods, result.foods); maxFoods = Math.max(maxFoods, result.foods);
     assert.equal(result.hits, 0, JSON.stringify(result));
     assert.equal(result.rescues, 0, JSON.stringify(result));
+    assert.equal(result.overlap, undefined, JSON.stringify(result));
     assert.equal(result.phase, 'running', JSON.stringify(result));
     assert.ok(result.distance >= 1000, JSON.stringify(result));
     assert.ok(result.lowestStamina > 0, JSON.stringify(result));
