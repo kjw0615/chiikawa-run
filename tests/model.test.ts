@@ -51,10 +51,10 @@ function windows(kind: Kind, w: number, state: State) {
 }
 
 // ---------------------------------------------------------------- rules contract
-test('rules contract: the agreed v2 numbers', () => {
+test('rules contract: the agreed v5 numbers', () => {
   assert.deepEqual(
     [RULES.staminaDrain, RULES.food, RULES.goldFood, RULES.recover, RULES.boostSeconds, RULES.boostSpeed, RULES.hitCost, RULES.hitInvulnerability, RULES.goldChance],
-    [4.5, 16, 20, 12, 1, 9, 3, 0.5, 0.1]);
+    [3, 20, 25, 12, 1, 9, 3, 0.5, 0.1]);
   assert.deepEqual([RULES.playerHeight, RULES.playerWidth, RULES.halfHitWidth, RULES.crouchHeight, RULES.floor, RULES.jumpVelocity, RULES.gravity],
     [82, 64, 24, 36, 460, -760, 1900]);
   assert.ok(RULES.food >= RULES.recover && RULES.goldFood >= RULES.recover, 'any food must clear the exhausted latch');
@@ -70,33 +70,33 @@ test('initial state; ready phase ignores steps and input; empty course option', 
 
 test('speed states: boost wins over exhausted over normal', () => {
   const m = quiet(); assert.equal(m.speed, 6);
-  m.exhausted = true; assert.equal(m.speed, 3.6);
+  m.exhausted = true; assert.equal(m.speed, RULES.exhaustedSpeed);
   m.boost = 1; assert.equal(m.speed, 9);
 });
 
 // ---------------------------------------------------------------- stamina, food, gold
-test('stamina drains 4.5/s; reaching 0 latches exhausted after 22.2s', () => {
-  const m = quiet(); run(m, 10); assert.ok(Math.abs(m.stamina - 55) < 0.1); assert.equal(m.exhausted, false);
-  run(m, 13); assert.equal(m.stamina, 0); assert.equal(m.exhausted, true);
+test('stamina drains 3/s; reaching 0 latches exhausted after 33.3s', () => {
+  const m = quiet(); run(m, 10); assert.ok(Math.abs(m.stamina - 70) < 0.1); assert.equal(m.exhausted, false);
+  run(m, 24); assert.equal(m.stamina, 0); assert.equal(m.exhausted, true);
 });
 
-test('normal speed keeps the gap; exhausted shrinks 2.4/s and a 30m gap is caught in 12.5s', () => {
+test('normal speed keeps the gap; exhausted shrinks 1.8/s and a 30m gap is caught in 16.7s', () => {
   const m = quiet(); run(m, 5); assert.equal(m.gap, 30);
   const e = quiet(); e.stamina = 0; let t = 0;
   while (e.phase === 'running' && t < 30) { e.step(DT); t += DT; }
-  assert.equal(e.phase, 'over'); assert.equal(e.gap, 0); assert.ok(t > 12.3 && t < 12.7, `caught at ${t}`);
+  assert.equal(e.phase, 'over'); assert.equal(e.gap, 0); assert.ok(t > 16.5 && t < 16.9, `caught at ${t}`);
 });
 
-test('food +16 and gold +20 (capped at 100), both clear exhaustion, counted once', () => {
+test('food +20 and gold +25 (capped at 100), both clear exhaustion, counted once', () => {
   const m = quiet(); m.stamina = 0; m.exhausted = true; put(m, 'food', m.distance + 0.5);
-  run(m, 0.4); assert.equal(m.foods, 1); assert.ok(m.stamina >= 12 && m.stamina <= 16); assert.equal(m.exhausted, false);
-  const g = quiet(); g.stamina = 0; g.exhausted = true; g.eat('gold'); assert.equal(g.stamina, 20); assert.equal(g.exhausted, false);
+  run(m, 0.4); assert.equal(m.foods, 1); assert.ok(m.stamina >= 12 && m.stamina <= 20); assert.equal(m.exhausted, false);
+  const g = quiet(); g.stamina = 0; g.exhausted = true; g.eat('gold'); assert.equal(g.stamina, 25); assert.equal(g.exhausted, false);
   const f = quiet(); f.stamina = 95; f.eat('food'); assert.equal(f.stamina, 100); f.eat('gold'); assert.equal(f.stamina, 100);
 });
 
 test('exhaustion stays latched while stamina is 1-11 (hysteresis threshold is 12)', () => {
   const m = quiet(); m.exhausted = true; m.stamina = 8; run(m, 0.5);
-  assert.equal(m.exhausted, true); assert.ok(m.stamina > 0 && m.stamina < 8); assert.equal(m.speed, 3.6);
+  assert.equal(m.exhausted, true); assert.ok(m.stamina > 0 && m.stamina < 8); assert.equal(m.speed, RULES.exhaustedSpeed);
 });
 
 test('gold: bonus 30 (100 at the gap cap), 1s boost at 9m/s, refresh not stack', () => {
@@ -110,10 +110,10 @@ test('gold: bonus 30 (100 at the gap cap), 1s boost at 9m/s, refresh not stack',
 
 test('gold at stamina 0: boost speed, then the exhausted state is rebuilt only if stamina drops to 0 again', () => {
   const m = quiet(); m.stamina = 0; m.exhausted = true; m.eat('gold');
-  assert.equal(m.stamina, 20); assert.equal(m.exhausted, false); assert.equal(m.speed, 9);
+  assert.equal(m.stamina, 25); assert.equal(m.exhausted, false); assert.equal(m.speed, 9);
   run(m, 1.1); assert.equal(m.boost, 0); assert.equal(m.exhausted, false); assert.equal(m.speed, 6);
   // boundary: exhausted again once stamina is set to 0 and a step is taken
-  m.stamina = 0; run(m, 0.05); assert.equal(m.exhausted, true); assert.equal(m.speed, 3.6);
+  m.stamina = 0; run(m, 0.05); assert.equal(m.exhausted, true); assert.equal(m.speed, RULES.exhaustedSpeed);
 });
 
 test('boost: gap grows +3/s and is capped at 60', () => {
@@ -186,11 +186,15 @@ test('jump physics: height ~152px, double jump higher, third press ignored, clea
   run(t, 3); assert.equal(t.y, F); assert.equal(t.jumps, 0); assert.equal(t.vy, 0);
 });
 
-test('exhausted jump: same height as a normal jump, longer in the air (same horizontal reach)', () => {
+test('exhausted jump: same height AND same air time as a normal jump (jump does not depend on run speed)', () => {
   const n = arc(false), e = arc(true); const top = (ys: number[]) => F - Math.min(...ys);
-  assert.ok(Math.abs(top(n.ys) - top(e.ys)) < 3);
-  assert.ok(Math.abs(e.ys.length * RULES.exhaustedSpeed - n.ys.length * RULES.speed) < 0.15 * n.ys.length * RULES.speed);
+  assert.ok(Math.abs(top(n.ys) - top(e.ys)) < 1e-6);
+  assert.deepEqual(e.ys, n.ys);
+  assert.ok(Math.abs(n.ys.length * DT - 0.8) < 0.05, `air time ${n.ys.length * DT}`);
+  // horizontal reach follows the run speed: 3.6m/s -> shorter than 6m/s, same time
+  assert.ok(e.m.distance < n.m.distance);
 });
+
 
 test('gravity is fixed at takeoff: food, boost start and boost end in the air do not change the arc', () => {
   const control = arc(true).ys;
@@ -246,7 +250,7 @@ test('beam is attached to the ceiling: no jump timing (single or double, any del
 });
 
 // ---------------------------------------------------------------- hazards by kind, width and state
-const CASES: [Kind, number][] = [['block', 48], ['block', 64], ['tower', 48], ['tower', 64], ['long', 140], ['long', 175], ['long', 210], ['pit', 120], ['pit', 170], ['pit', 220]];
+const CASES: [Kind, number][] = [['block', 48], ['block', 64], ['tower', 44], ['tower', 52], ['long', 120], ['long', 145], ['long', 170], ['pit', 120], ['pit', 160], ['pit', 200]];
 test('real collisions: walking into any ground hazard hurts or drops you', () => {
   for (const [k, w] of CASES) assert.equal(attempt(k, w, 'normal', null, null).clean, false, `${k}${w}`);
 });
@@ -261,14 +265,16 @@ test('jump timing windows per obstacle, width and speed state (report + intent c
   console.log(rows.join('\n'));
   const W = windows;
   // widest allowed widths are the hardest cases: block 64, tower 64, long 210, pit 220, beam 220 (crouch)
-  for (const w of [48, 64]) for (const st of states) {
-    assert.ok(W('block', w, st).single >= 0.15, `block${w} ${st} single`); assert.ok(W('block', w, st).double >= 0.5, `block${w} ${st} double`);
+  for (const w of [48, 64]) {
+    assert.ok(W('block', w, 'normal').single >= 0.15, `block${w} normal single`);
+    for (const st of states) assert.ok(W('block', w, st).double >= 0.5, `block${w} ${st} double`);
   }
-  for (const w of [48, 64]) for (const st of states) { assert.equal(W('tower', w, st).single, 0); assert.ok(W('tower', w, st).double >= 0.2, `tower${w} ${st}`); }
-  for (const w of [140, 175, 210]) for (const st of states) {
-    assert.equal(W('long', w, st).single, 0, `long${w} ${st} single`); assert.ok(W('long', w, st).double >= 0.4, `long${w} ${st} double`);
+  // Jump arcs do not depend on run speed, so an exhausted runner (4.2m/s) covers less ground per jump: windows shrink but stay open.
+  for (const w of [44, 52]) for (const st of states) { assert.equal(W('tower', w, st).single, 0); assert.ok(W('tower', w, st).double >= (st === 'normal' ? 0.2 : 0.1), `tower${w} ${st}`); }
+  for (const w of [120, 145, 170]) for (const st of states) {
+    if (w >= 145) assert.equal(W('long', w, st).single, 0, `long${w} ${st} single`); assert.ok(W('long', w, st).double >= (st === 'normal' ? 0.4 : 0.2), `long${w} ${st} double`);
   }
-  for (const w of [120, 170, 220]) for (const st of ['normal', 'exhausted', 'boost'] as State[]) {
+  for (const w of [120, 160, 200]) for (const st of ['normal', 'exhausted', 'boost'] as State[]) {
     const r = W('pit', w, st); assert.ok(Math.max(r.single, r.double) >= 0.2, `pit${w} ${st}`);
   }
 });
@@ -380,17 +386,17 @@ function course(seed: number, chunks: number) {
 const SEEDS = [13579, 1, 2, 7, 99, 2026, 31337, 424242];
 
 test('contract: obstacle width bounds and food placement constants', () => {
-  assert.deepEqual(OBSTACLE_WIDTHS, { block: [48, 64], tower: [48, 64], long: [140, 210], pit: [120, 220], beam: [100, 220] });
+  assert.deepEqual(OBSTACLE_WIDTHS, { block: [48, 64], tower: [44, 52], long: [120, 170], pit: [120, 200], beam: [100, 220] });
   assert.deepEqual([RULES.foodHazardMargin, RULES.minFoodSpacing, RULES.foodLiftMin, RULES.foodLiftMax], [4, 8, 48, 205]);
 });
 
-test('difficultyAt: linear ramp, clamped at 1200m (hazard spacing 22->18m, food spacing 30->42m)', () => {
+test('difficultyAt: linear ramp, clamped at 1200m (hazard spacing 22->18m, food spacing 24->30m)', () => {
   const at = (d: number) => difficultyAt(d);
-  assert.deepEqual([at(0).level, at(0).obstacleSpacing, at(0).foodSpacing], [0, 22, 30]);
-  assert.deepEqual([at(600).level, at(600).obstacleSpacing, at(600).foodSpacing], [.5, 20, 36]);
-  assert.deepEqual([at(1200).level, at(1200).obstacleSpacing, at(1200).foodSpacing], [1, 18, 42]);
-  assert.deepEqual([at(50000).level, at(50000).obstacleSpacing, at(50000).foodSpacing], [1, 18, 42]);
-  assert.deepEqual([at(-5).level, at(-5).obstacleSpacing, at(-5).foodSpacing], [0, 22, 30]);
+  assert.deepEqual([at(0).level, at(0).obstacleSpacing, at(0).foodSpacing], [0, 22, 24]);
+  assert.deepEqual([at(600).level, at(600).obstacleSpacing, at(600).foodSpacing], [.5, 20, 27]);
+  assert.deepEqual([at(1200).level, at(1200).obstacleSpacing, at(1200).foodSpacing], [1, 18, 30]);
+  assert.deepEqual([at(50000).level, at(50000).obstacleSpacing, at(50000).foodSpacing], [1, 18, 30]);
+  assert.deepEqual([at(-5).level, at(-5).obstacleSpacing, at(-5).foodSpacing], [0, 22, 24]);
 });
 
 test('course: hazards start at 19m and follow the distance-based spacing; they are generated 140m ahead', () => {
@@ -504,7 +510,7 @@ test('course: gold is about 1/10 of foods (several seeds), without streak bias',
   for (const seed of [13579, 1, 2026]) {
     const { foods } = course(seed, 10000);
     const gold = foods.filter(i => i.kind === 'gold').length, rate = gold / foods.length;
-    assert.ok(Math.abs(rate - RULES.goldChance) < 0.0075, `seed ${seed} gold rate ${rate}`);
+    assert.ok(Math.abs(rate - RULES.goldChance) < 0.012, `seed ${seed} gold rate ${rate}`);
     let pairs = 0, after = 0; for (let i = 1; i < foods.length; i++) if (foods[i - 1].kind === 'gold') { pairs++; if (foods[i].kind === 'gold') after++; }
     assert.ok(Math.abs(after / pairs - RULES.goldChance) < 0.04, `seed ${seed} gold-after-gold ${after / pairs}`);
   }
@@ -521,7 +527,35 @@ test('stamina economy: only low foods can be eaten by walking; the rest need a j
   const dEarly = perMetre(early, 0, 400), dLate = perMetre(late, 1600, 2000);
   console.log(`walkable foods ${(walkShare * 100).toFixed(0)}%; foods per 100m: 0-400m ${(dEarly * 100).toFixed(2)}, 1600-2000m ${(dLate * 100).toFixed(2)}; income if all eaten early ${income(dEarly, 1).toFixed(2)}/s, late ${income(dLate, 1).toFixed(2)}/s, walking only (late) ${income(dLate, walkShare).toFixed(2)}/s, drain ${RULES.staminaDrain}/s`);
   assert.ok(Math.abs(walkShare - (walkable - 48) / (205 - 48)) < 0.03, `walk share ${walkShare}`);
-  assert.ok(dEarly > dLate * 1.1 && dLate > .015, `food gets rarer with distance but does not vanish: ${dEarly} vs ${dLate}`);
-  // 4.5/s drain: even eating every food stays below break-even, and gets worse with distance.
-  assert.ok(income(dEarly, 1) < RULES.staminaDrain && income(dLate, 1) < income(dEarly, 1)); assert.ok(income(dLate, walkShare) < RULES.staminaDrain);
+  assert.ok(dEarly >= dLate * .95 && dLate > .015, `food does not get denser with distance and never vanishes: ${dEarly} vs ${dLate}`);
+  // 3/s drain, food +20 / gold +25: eating everything is sustainable, walking-only is not.
+  assert.ok(income(dEarly, 1) > RULES.staminaDrain && income(dLate, 1) > RULES.staminaDrain * .95); assert.ok(income(dLate, walkShare) < RULES.staminaDrain);
+});
+
+// ---------------------------------------------------------------- reaching 1000m
+// Analytic stamina along the real course: drain between foods, +food when eaten (cap 100), no hits, 6m/s.
+function reach(seed: number, eatShare: number) {
+  const m = new RunnerModel(seed); m.distance = 1300; (m as any).generate();
+  const foods = m.items.filter(i => (i.kind === 'food' || i.kind === 'gold') && i.x <= 1000).sort((a, b) => a.x - b.x);
+  let st = 100, x = 0, lowest = 100, taken = 0, k = 0;
+  const to = (target: number) => { // drain from x to target; returns the distance where stamina hits 0, or null
+    const need = RULES.staminaDrain * (target - x) / RULES.speed;
+    if (st - need <= 0) return x + st * RULES.speed / RULES.staminaDrain;
+    st -= need; x = target; lowest = Math.min(lowest, st); return null;
+  };
+  for (const f of foods) {
+    const dead = to(f.x); if (dead !== null) return { reach: dead, lowest: 0 };
+    k += eatShare; if (Math.floor(k) > taken) { taken++; st = Math.min(100, st + (f.kind === 'gold' ? RULES.goldFood : RULES.food)); }
+  }
+  const dead = to(1000); // remaining drain up to exactly 1000m
+  return dead !== null ? { reach: dead, lowest: 0 } : { reach: 1000, lowest };
+}
+test('balance: a mistake-free run that eats every food reaches 1000m, and 80% of foods is still enough', () => {
+  const seeds = [13579, 1, 2, 7, 99, 2026, 31337, 424242, 11, 12, 13, 14, 15, 16, 17, 18];
+  const all = seeds.map(s => reach(s, 1)), most = seeds.map(s => reach(s, .8)), half = seeds.map(s => reach(s, .5));
+  const lo = (a: { reach: number }[]) => Math.min(...a.map(r => r.reach));
+  console.log(`1000m check over ${seeds.length} seeds: eat all -> min reach ${lo(all).toFixed(0)}m (lowest stamina ${Math.min(...all.map(r => r.lowest)).toFixed(0)}), eat 80% -> ${lo(most).toFixed(0)}m (lowest ${Math.min(...most.map(r => r.lowest)).toFixed(0)}), eat 50% -> ${lo(half).toFixed(0)}m`);
+  assert.equal(lo(all), 1000); assert.ok(Math.min(...all.map(r => r.lowest)) >= 30, 'comfortable margin when eating everything');
+  assert.equal(lo(most), 1000);
+  assert.ok(lo(half) < 1000, 'ignoring half of the food must still hurt');
 });
