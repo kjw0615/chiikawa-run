@@ -114,15 +114,16 @@ class RunnerScene extends Phaser.Scene {
         g.lineStyle(3, 0x503f32).strokeRoundedRect(left - 10, p.y + 10, 46, floor - p.y, 9);
         g.lineStyle(3, 0x9a7651).lineBetween(left + 6, p.y + 29, left + 6, floor);
       }
-      g.fillStyle(0x98714f).fillRoundedRect(left, p.y, width, 26, 12);
-      g.lineStyle(3, 0x624d38).strokeRoundedRect(left, p.y, width, 26, 12);
-      g.fillStyle(0xb3ce84).fillRoundedRect(left, p.y - 3, width, 10, 5);
+      g.fillStyle(0x98714f).fillRoundedRect(left, p.y, width, 16, 7);
+      g.lineStyle(3, 0x624d38).strokeRoundedRect(left, p.y, width, 16, 7);
+      g.fillStyle(0xb3ce84).fillRoundedRect(left, p.y - 3, width, 8, 4);
       for (let x = p.start + 1; x < p.end; x += 2) {
         const sx = center + (x - model.distance) * RULES.scale;
         if (sx < -30 || sx > 1150) continue;
-        g.lineStyle(2, 0x72543f).lineBetween(sx - 16, p.y + 17, sx + 15, p.y + 17);
-        g.lineStyle(3, 0x7da16c).lineBetween(sx, p.y + 24, sx + 5, p.y + 40);
-        g.fillStyle(0x9cbd80).fillEllipse(sx + 9, p.y + 34, 14, 7);
+        g.lineStyle(2, 0x72543f).lineBetween(sx - 16, p.y + 11, sx + 15, p.y + 11);
+        // Small leaves stay above the walking clearance of the lower lane.
+        g.lineStyle(3, 0x7da16c).lineBetween(sx, p.y + 13, sx + 6, p.y + 17);
+        g.fillStyle(0x9cbd80).fillEllipse(sx + 11, p.y + 15, 14, 6);
       }
     }
     for (const item of model.items) {

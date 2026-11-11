@@ -20,7 +20,7 @@ function drive(seed: number, platforms = false) {
     if (m.grounded) {
       active = undefined;
       const branch = m.platforms.find(p => p.end > m.distance && p.start >= m.distance && m.y > p.y);
-      if (branch && branch.start-m.distance <= travel(.28)) {
+      if (branch && branch.start-m.distance <= travel(.34)) {
         m.crouch = false; press();
       } else {
       const next = upcoming.find(i => i.kind !== 'beam' && i.x > m.distance

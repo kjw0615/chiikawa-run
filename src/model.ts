@@ -6,7 +6,7 @@ export const RULES = {
   playerHeight: 82, playerWidth: 64, halfHitWidth: 24, crouchHeight: 36,
   rescueSeconds: .9, fallDepth: 100,
   foodHazardMargin: 4, minFoodSpacing: 8, foodLiftMin: 48, foodLiftMax: 205,
-  jumpReleaseVelocity: -500, platformHeight: 100, platformApproach: 8,
+  jumpReleaseVelocity: -500, platformHeight: 110, platformApproach: 8,
   platformExit: 8, platformFirstHazard: 10,
 };
 // Bounded progression keeps the course readable while increasing pressure.
