@@ -14,10 +14,13 @@ export type Character = 'chiikawa' | 'hachiware' | 'usagi';
 export const CHARACTERS: readonly Character[] = ['chiikawa', 'hachiware', 'usagi'];
 export type Reward = { stamina: number; speedMultiplier: number; seconds: number; coins?: number };
 
-export const rewardFor = (successes: number): Reward =>
-  successes >= 5 ? { stamina: 40, speedMultiplier: 1.5, seconds: 3 }
-    : successes >= 2 ? { stamina: 25, speedMultiplier: 1.25, seconds: 2 }
-      : { stamina: 10, speedMultiplier: 1.1, seconds: 1 };
+// Reward grows in proportion to the successful rounds (0..5): stamina +6, boost +0.2 s and
+// +0.1 speed multiplier each. Rounding keeps float dust (0.2 * 3) out of the values.
+const tenth = (n: number) => Math.round(n * 10) / 10;
+export const rewardFor = (successes: number): Reward => {
+  const n = Math.max(0, Math.min(MINI_RULES.rounds, Math.floor(Number.isFinite(successes) ? successes : 0)));
+  return { stamina: n * 6, speedMultiplier: tenth(1 + n / 10), seconds: tenth(n / 5) };
+};
 
 const EPS = 1e-9;
 // Deterministic mixing so each (seed, salt) pair gives an independent value in [0, 1).
