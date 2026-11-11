@@ -144,13 +144,16 @@ test('ground hazards keep clear of every branch, its approach and its descent (1
   }
 });
 
-test('upper hazards: none on 12 m branches, exactly one 10 m after the start on longer ones, sized from the platform floor', () => {
-  let seen = { beam: 0, block: 0, long: 0 };
+test('upper hazards: none on 12 m branches (36 m gate branches use the vine instead), exactly one 10 m after the start on longer ones, sized from the platform floor', () => {
+  let seen = { beam: 0, block: 0, long: 0 }, gates = 0;
   for (const seed of SEEDS) {
     const m = course(seed);
     for (const p of m.platforms) {
       const mine = m.items.filter(i => !isFood(i.kind) && i.x >= p.start && i.x <= p.end);
       const length = p.end - p.start;
+      if (p.gateX !== undefined) { // lane-switch gate branch: fixed 36 m, the vine replaces the ordinary upper hazard
+        assert.equal(length, 36); assert.equal(p.gateX, p.start + 22); assert.equal(mine.length, 0, `seed ${seed}: gate branch ${p.id} keeps a hazard`); gates++; continue;
+      }
       if (length < 20) { assert.equal(mine.length, 0, `seed ${seed}: short branch ${p.id} has a hazard`); continue; }
       assert.equal(mine.length, 1, `seed ${seed}: branch ${p.id}`);
       const h = mine[0]; assert.equal(h.x, p.start + RULES.platformFirstHazard);
@@ -161,7 +164,7 @@ test('upper hazards: none on 12 m branches, exactly one 10 m after the start on 
       seen[h.kind as 'beam']++;
     }
   }
-  assert.ok(seen.beam > 0 && seen.block > 0 && seen.long > 0, JSON.stringify(seen));
+  assert.ok(seen.beam > 0 && seen.block > 0 && seen.long > 0 && gates > 0, JSON.stringify({ ...seen, gates }));
 });
 
 test('branch food: one dedicated item 3 m in at 80 px over the platform; optional lower lane stays foodless (132 seeds)', () => {
