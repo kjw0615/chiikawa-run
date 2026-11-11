@@ -1,0 +1,193 @@
+{
+  "frames": {
+    "momonga": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 256,
+        "h": 217
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 217
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 217
+      }
+    },
+    "momonga-crouch": {
+      "frame": {
+        "x": 262,
+        "y": 2,
+        "w": 320,
+        "h": 106
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 106
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 106
+      }
+    },
+    "dekatsuyo": {
+      "frame": {
+        "x": 586,
+        "y": 2,
+        "w": 320,
+        "h": 193
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 193
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 193
+      }
+    },
+    "food-pudding": {
+      "frame": {
+        "x": 910,
+        "y": 2,
+        "w": 96,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 65
+      }
+    },
+    "food-pancake": {
+      "frame": {
+        "x": 2,
+        "y": 223,
+        "w": 96,
+        "h": 83
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 83
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 83
+      }
+    },
+    "food-cream-puff": {
+      "frame": {
+        "x": 102,
+        "y": 223,
+        "w": 96,
+        "h": 93
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 93
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 93
+      }
+    },
+    "obstacle-rock": {
+      "frame": {
+        "x": 202,
+        "y": 223,
+        "w": 160,
+        "h": 91
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 91
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 91
+      }
+    },
+    "obstacle-log": {
+      "frame": {
+        "x": 366,
+        "y": 223,
+        "w": 384,
+        "h": 97
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 384,
+        "h": 97
+      },
+      "sourceSize": {
+        "w": 384,
+        "h": 97
+      }
+    },
+    "obstacle-vines": {
+      "frame": {
+        "x": 754,
+        "y": 223,
+        "w": 220,
+        "h": 217
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 220,
+        "h": 217
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 217
+      }
+    }
+  },
+  "meta": {
+    "image": "game-atlas.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1024,
+      "h": 512
+    },
+    "scale": "1"
+  }
+}
