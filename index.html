@@ -13,6 +13,12 @@
 </head>
 <body>
 <main class="shell">
+  <section id="start-intro" class="start-intro" role="dialog" aria-modal="true" aria-label="게임 시작 영상" hidden>
+    <p id="intro-loading" class="intro-loading" role="status">Loading video…</p>
+    <video id="intro-video" playsinline preload="none" aria-label="모몽가의 도주 시작 영상"></video>
+    <button id="intro-skip" class="intro-skip" type="button">건너뛰기 →</button>
+    <button id="intro-resume" class="intro-resume big-button" type="button" hidden>영상 계속 보기</button>
+  </section>
 
   <!-- 홈 화면 -->
   <section id="home-screen" class="home" aria-labelledby="home-title">

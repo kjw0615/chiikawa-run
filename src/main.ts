@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './style.css';
 import './minigame.css';
+import { createStartIntro } from './start-intro';
 import { RunnerModel, RULES } from './model';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
@@ -18,7 +19,12 @@ const home = $('home-screen'), play = $('play-screen');
 const loading = document.createElement('div');
 loading.setAttribute('role', 'status'); loading.textContent = '모몽가가 숲으로 가는 중…';
 Object.assign(loading.style, { position: 'absolute', inset: '0', display: 'grid', placeItems: 'center', background: '#fffdf6', color: '#624b4b', zIndex: '20', fontSize: '18px' });
+const intro = createStartIntro(beginRun);
 function begin() {
+  if (intro.active) return;
+  if (!home.hidden) intro.start(); else beginRun();
+}
+function beginRun() {
   mini = null; encounterId = null; miniViewKey = ''; updateMini();
   model = new RunnerModel(Date.now()); model.start(); accumulator = 0; crouchHeld = false; lastPhase = '';
   home.hidden = true; play.hidden = false; displayGap = model.gap; release(); releaseJump();
@@ -228,6 +234,11 @@ function returnHome() {
 }
 $('home-return').addEventListener('click', returnHome);
 window.addEventListener('keydown', e => {
+  if (intro.active) {
+    if (e.code === 'Escape') { e.preventDefault(); intro.skip(); }
+    if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code) && e.target instanceof HTMLVideoElement) e.preventDefault();
+    return;
+  }
   if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); if (e.repeat) return;
   if (mini) { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); miniAction(); } if (e.code === 'KeyP' || e.code === 'Escape') togglePause(); return; }
   if (e.code === 'Space' || e.code === 'ArrowUp') { jumpButton.classList.add('held'); if (home.hidden === false || model.phase === 'ready' || model.phase === 'over') begin(); else if (model.phase === 'paused') togglePause(); else { model.crouch = crouchHeld; model.jump(); } }
