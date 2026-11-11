@@ -1,0 +1,61 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { RunnerModel, RULES, type Item } from '../src/model.ts';
+
+// Drives the real generated course through public inputs only. No invulnerability,
+// stamina refill, teleporting, item deletion or score/gap mutation is allowed.
+function drive(seed: number) {
+  const m = new RunnerModel(seed); m.start();
+  let active: Item | undefined, takeoff = 0, second = false, rescues = 0, lastRescue = false;
+  let lowestStamina = 100;
+  const travel = (seconds: number) => Math.min(seconds, m.boost) * RULES.boostSpeed
+    + Math.max(0, seconds-m.boost) * (m.exhausted ? RULES.exhaustedSpeed : RULES.speed);
+  for (let frame = 0; frame < 120 * 260 && m.distance < 1000 && m.phase === 'running'; frame++) {
+    const upcoming = m.items.filter(i => !i.used && i.x + (i.w/2+RULES.halfHitWidth)/RULES.scale > m.distance)
+      .sort((a,b) => a.x-b.x);
+    const beam = upcoming.find(i => i.kind === 'beam');
+    m.crouch = !!beam && beam.x-m.distance < beam.w/2/RULES.scale + .9;
+    if (m.grounded) {
+      active = undefined;
+      const next = upcoming.find(i => i.kind !== 'beam' && i.x > m.distance
+        && (!['food','gold'].includes(i.kind) || RULES.floor-i.y >= RULES.playerHeight+32));
+      if (next) {
+        const food = next.kind === 'food' || next.kind === 'gold';
+        const lead = food ? travel(.6) : next.w/2/RULES.scale + RULES.halfHitWidth/RULES.scale
+          + travel(next.kind === 'tower' ? .4 : next.kind === 'long' ? .16 : .22);
+        // A beam before this target must be fully cleared before taking off.
+        const blockedByBeam = beam && beam.x < next.x && beam.x + (beam.w/2+RULES.halfHitWidth)/RULES.scale > m.distance;
+        if (!blockedByBeam && next.x-m.distance <= lead) {
+          m.crouch = false; m.jump(); active = next; takeoff = m.elapsed; second = false;
+        }
+      }
+    } else if (active && !second) {
+      const delay = active.kind === 'tower' ? .3 : active.kind === 'long' ? .6 : active.kind === 'pit' ? .4 : m.exhausted && active.kind === 'block' ? .3 : Infinity;
+      if (m.elapsed-takeoff >= delay) { m.jump(); second = true; }
+    }
+    m.step(1/120);
+    if (m.rescue && !lastRescue) rescues++;
+    lastRescue = !!m.rescue;
+    lowestStamina = Math.min(lowestStamina, m.stamina);
+    if (m.hits || rescues) break;
+  }
+  return { seed, distance: m.distance, hits: m.hits, rescues, phase: m.phase, foods: m.foods, lowestStamina,
+    ...(m.hits || rescues ? { y:m.y, jumps:m.jumps, active, second, flight:m.elapsed-takeoff,
+      nearby:m.items.filter(i => Math.abs(i.x-m.distance)<6) } : {}) };
+}
+
+test('real input-only mistake-free runs reach 1000m across seeded courses', () => {
+  const seeds = [...new Set([13579, 99, 2026, 31337, 424242, ...Array.from({length:128}, (_,i) => i+1)])];
+  let lowest = 100, minFoods = Infinity, maxFoods = 0;
+  for (const seed of seeds) {
+    const result = drive(seed);
+    lowest = Math.min(lowest, result.lowestStamina);
+    minFoods = Math.min(minFoods, result.foods); maxFoods = Math.max(maxFoods, result.foods);
+    assert.equal(result.hits, 0, JSON.stringify(result));
+    assert.equal(result.rescues, 0, JSON.stringify(result));
+    assert.equal(result.phase, 'running', JSON.stringify(result));
+    assert.ok(result.distance >= 1000, JSON.stringify(result));
+    assert.ok(result.lowestStamina > 0, JSON.stringify(result));
+  }
+  console.log(`${seeds.length} seeded input-only runs: 1000m, zero hits/rescues; minimum stamina ${lowest.toFixed(2)}, foods ${minFoods}..${maxFoods}`);
+});
