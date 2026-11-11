@@ -235,7 +235,6 @@ function returnHome() {
 }
 $('home-return').addEventListener('click', returnHome);
 $('pause-home').addEventListener('click', returnHome);
-$('mini-home').addEventListener('click', returnHome);
 $('countdown-home').addEventListener('click', returnHome);
 window.addEventListener('keydown', e => {
   if (e.target instanceof HTMLButtonElement && e.target.classList.contains('exit-button') && ['Space', 'Enter'].includes(e.code)) return;
@@ -305,7 +304,6 @@ function updateMini() {
     $<HTMLButtonElement>('jump').disabled = false; $<HTMLButtonElement>('crouch').disabled = false; return;
   }
   const g = mini, countdown = g.phase === 'countdown';
-  $('mini-home').hidden = !g.paused;
   $('countdown-home').hidden = !g.paused;
   document.querySelector<HTMLElement>('.hud-buttons')!.hidden = true;
   miniScreen.hidden = countdown; $('mini-countdown').hidden = !countdown;
