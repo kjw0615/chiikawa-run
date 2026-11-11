@@ -16,7 +16,6 @@
 
 황금 음식은 위의 음식 PNG를 그대로 사용하고 Phaser의 금색 tint와 반짝임을 더한다. 음식의 체력 회복과 황금 효과는 게임의 창작 규칙이다. 바위·쓰러진 나무·덩굴은 치이카와의 숲 분위기를 참고한 배경 장애물이며 원작의 특정 고유 장애물을 재현했다고 주장하지 않는다.
 
-생성 원본 PNG의 알파를 보존했다. 사용자 요청에 따라 게임용 크기로 여백 제거·비율 유지 축소·패킹한 `game-atlas.webp`와 `game-atlas.json`을 제공한다. 9개 프레임이 1024×512 텍스처 한 장에 들어가며 파일은 약 297KB다. 음식은 최대 96px, 캐릭터는 256~320px, 장애물은 쓰임에 따라 최대 416px로 준비한다. 홈 화면용 5개 WebP는 합계 약 336KB다. 원본 PNG를 게임에서 직접 내려받지 않는다.
 
 `art-source/frames.json`은 원본의 투명 여백 좌표 기록이고 런타임에서는 아틀라스 JSON을 사용한다. `python scripts/build-assets.py`로 재생성할 수 있다(Python과 Pillow 필요). 생성 PNG 자체는 가공하지 않으며, 배포용 축소본을 무손실 WebP로 인코딩한다. 원본은 `public` 밖에 두어 배포 빌드에 복사되지 않는다. 배포 폴더에는 아틀라스와 홈에서 쓰는 5개 WebP만 포함한다. 달리는 포즈와 엎드린 포즈 두 장에 상하 움직임·기울임을 적용하며 다중 프레임 원작 애니메이션이 아니다. 높은 바위는 한 장을 길게 늘이지 않고 여러 개를 쌓아 표현한다.
 
@@ -36,3 +35,7 @@
 ## 사용한 생성 프롬프트
 
 모든 작업에 `transparent_background: true`를 사용했다. 프롬프트 원문은 [asset-prompts.json](asset-prompts.json)에 기록했다. 제작 방식은 내장 도구이며 API/CLI 우회나 API 키를 사용하지 않았다.
+
+## Running animation v3
+
+Two generated transparent 2x2 source sheets are stored as `art-source/momonga-run-sheet.png` and `art-source/dekatsuyo-run-sheet.png`. Exact prompts: `art-source/motion-prompts.json`. Four alternating gait frames per character are packed with the original nine frames into a 2048x1024 WebP atlas (937,292 bytes). All frames share a bottom-aligned canvas per character. Runtime uses 12 fps for Momonga and 14 fps for Dekatsuyo; pause freezes animation. Warm rim lighting, contact shadows and flattened projected silhouettes provide a 2.5D effect. Basic obstacles use logs; wide obstacles use a single stretched rock.
