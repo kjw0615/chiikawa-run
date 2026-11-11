@@ -185,10 +185,49 @@ test('timing windows: usable at normal/boost speed (>=0.2s)', () => {
   assert.ok(timingWindow('tower', 'boost', true) >= 0.2);
 });
 
-test('KNOWN BALANCE ISSUE: exhausted single-jump over a block has a tiny window (<0.1s)', () => {
-  const w = timingWindow('block', 'exhausted', false);
-  console.log(`exhausted block single-jump window = ${w.toFixed(3)}s; double-jump = ${timingWindow('block', 'exhausted', true).toFixed(3)}s; tower double = ${timingWindow('tower', 'exhausted', true).toFixed(3)}s`);
-  assert.ok(w > 0 && w < 0.1);
+test('regression: exhausted timing windows are >= 0.2s (block single jump, tower double jump)', () => {
+  const block = timingWindow('block', 'exhausted', false), tower = timingWindow('tower', 'exhausted', true);
+  console.log(`exhausted windows: block single ${block.toFixed(3)}s, block double ${timingWindow('block', 'exhausted', true).toFixed(3)}s, tower double ${tower.toFixed(3)}s`);
+  assert.ok(block >= 0.2, `block ${block}`);
+  assert.ok(tower >= 0.2, `tower ${tower}`);
+});
+
+// y per step of one jump; `mid` may change the state in the air (eat, boost end, ...).
+function arc(exhausted: boolean, mid?: (m: RunnerModel, i: number) => void): { ys: number[]; m: RunnerModel } {
+  const m = quiet(); m.exhausted = exhausted; m.jump(); const ys: number[] = [];
+  for (let i = 0; i < 120 * 3; i++) { m.stamina = 50; m.gap = 30; mid?.(m, i); m.step(DT); ys.push(m.y); if (i > 5 && m.grounded) break; }
+  return { ys, m };
+}
+
+test('exhausted jump keeps the same height as a normal jump but stays in the air longer', () => {
+  const n = arc(false), e = arc(true);
+  const top = (ys: number[]) => RULES.floor - Math.min(...ys);
+  assert.ok(Math.abs(top(n.ys) - top(e.ys)) < 3, `${top(n.ys)} vs ${top(e.ys)}`);
+  assert.ok(e.ys.length > n.ys.length * 1.5);
+  // same horizontal clearance: airtime * speed matches
+  assert.ok(Math.abs(e.ys.length * RULES.exhaustedSpeed - n.ys.length * RULES.speed) < 0.15 * n.ys.length * RULES.speed);
+});
+
+test('gravity is fixed at takeoff: food, boost start or boost end in the air do not change the arc', () => {
+  const control = arc(true).ys;
+  const ate = arc(true, (m, i) => { if (i === 40) { m.exhausted = true; m.eat('food'); m.exhausted = false; } }).ys;
+  const boostStart = arc(true, (m, i) => { if (i === 40) m.eat('gold'); }).ys;
+  const boostEnd = arc(true, (m, i) => { if (i === 40) m.boost = 0.1; }).ys;
+  assert.deepEqual(ate, control); assert.deepEqual(boostStart, control); assert.deepEqual(boostEnd, control);
+});
+
+test('landing after a state change resets gravity: next normal jump is a normal jump', () => {
+  const { m } = arc(true, (mm, i) => { if (i === 30) mm.eat('food'); });
+  assert.ok(m.grounded); assert.equal(m.jumps, 0);
+  m.exhausted = false; m.boost = 0; const n = arc(false);
+  m.jump(); let top = m.y; for (let i = 0; i < 120; i++) { m.stamina = 50; m.step(DT); top = Math.min(top, m.y); }
+  assert.ok(Math.abs((RULES.floor - top) - (RULES.floor - Math.min(...n.ys))) < 2);
+});
+
+test('exhausted double jump: second jump is also scaled and the player lands cleanly', () => {
+  const m = quiet(); m.exhausted = true; m.jump(); run(m, 0.4, mm => { mm.stamina = 50; }); m.jump();
+  run(m, 3, mm => { mm.stamina = 50; mm.gap = 30; });
+  assert.ok(m.grounded); assert.equal(m.jumps, 0); assert.equal(m.vy, 0);
 });
 
 test('authored course: first chunk teaches food before the first block; hazards are >=7m apart', () => {

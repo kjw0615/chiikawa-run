@@ -1,78 +1,79 @@
-# Shape Chase Runner (prototype)
+# 도형 추격 러너 (프로토타입)
 
-A shape-only side-scrolling runner prototype: run left to right with the player fixed at screen centre, eat food to keep stamina up, jump / double-jump / crouch past obstacles, and stay ahead of an off-screen chaser shown only as a distance bar. This is a rules prototype: no character art, no sound, no accounts, no ads, no payments.
+도형만 쓰는 횡스크롤 러너 프로토타입입니다. 주인공은 화면 중앙에 고정되어 왼쪽에서 오른쪽으로 달리고, 음식을 먹어 체력(달리기 수치)을 유지하며, 점프·2단점프·앉기로 장애물을 피합니다. 추격자는 화면에 항상 보이지 않고 하단 거리 바로 표시됩니다. 규칙 검증용 프로토타입이라 캐릭터 그림, 소리, 로그인, 광고, 결제는 없습니다.
 
-Stack: Phaser 4.2.1 + TypeScript + Vite. Game rules live in `src/model.ts` (no Phaser dependency); `src/main.ts` draws and handles input.
+기술: Phaser 4.2.1 + TypeScript + Vite. 게임 규칙은 `src/model.ts`(Phaser 의존 없음)에 있고, `src/main.ts`는 그리기와 입력을 담당합니다.
 
-## Run
+## 실행
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm run build    # type-check + production build
-npm test         # model tests, no dependencies needed (Node 24)
+npm run build    # 타입 검사 + 빌드
+npm test         # 모델 테스트, 의존성 설치 없이 실행 가능 (Node 24)
 ```
 
-`npm test` runs `node --experimental-strip-types --test tests/model.test.ts`.
+`npm test`는 `node --experimental-strip-types --test tests/model.test.ts`를 실행합니다.
 
-## Controls
+## 조작
 
-| Action | Keyboard | Touch |
+| 동작 | 키보드 | 터치 |
 |---|---|---|
-| Jump / double jump (press again in the air) | Space / Up | Jump button |
-| Crouch (hold) | Down | Crouch button (hold) |
-| Pause / resume | P / Esc | Pause button |
+| 점프 / 2단점프(공중에서 한 번 더) | Space / ↑ | 점프 버튼 |
+| 앉기(누르고 있기) | ↓ | 앉기 버튼(누르고 있기) |
+| 일시정지 / 계속 | P / Esc | 일시정지 버튼 |
 
-The game also pauses when the tab loses focus or the device rotates.
+탭이 가려지거나 기기를 회전하면 자동으로 일시정지됩니다.
 
-## Rules as implemented (starting values, to be tuned)
+## 구현된 규칙 (시작값, 이후 튜닝 대상)
 
-- Speeds: normal 6 m/s, exhausted 3.6 m/s, boost 7.8 m/s (x1.3). Chaser 6 m/s.
-- Gap to the chaser starts at 30 m, is capped at 60 m, and caught = gap <= 0.
-- Stamina 0-100, drains 8/s, food gives +25. Reaching 0 sets "exhausted" and it stays latched until a food brings stamina to 20 or more.
-- Gold food: boost for 4 s, re-eating refreshes to 4 s (no stacking). Boost overrides exhausted speed, but the exhausted latch stays and applies again when boost ends.
-- Obstacle hit: gap -5 m once per obstacle, then 0.9 s during which further hits are ignored. No other slow-down.
-- Obstacles: block (jump), beam (crouch), tower (needs double jump).
+- 속도: 보통 6m/s, 탈진 3.6m/s, 가속 7.8m/s(×1.3). 추격자 6m/s.
+- 추격자와의 거리(gap): 시작 30m, 최대 60m, 0 이하가 되면 잡힘.
+- 체력 0~100, 초당 8 소모, 음식 +25. 0이 되면 탈진 상태가 되고, 음식으로 20 이상이 될 때까지 유지됩니다(음식이 +25라 먹으면 항상 해제).
+- 황금 음식: 4초 가속, 다시 먹으면 4초로 갱신(중첩 없음). 가속은 탈진 속도보다 우선하지만 탈진 상태는 유지되어 가속이 끝나면 다시 느려집니다.
+- 장애물 충돌: 장애물 하나당 한 번 거리 -5m. 이후 0.9초 동안은 충돌 면역이며, **이 면역 시간에 닿은 장애물은 페널티 없이 사라집니다(의도된 동작)**. 그 밖의 감속은 없습니다.
+- 장애물: 블록(점프), 빔(앉기), 타워(2단점프 필요).
+- 탈진 중 점프: 이륙 시 속도 비율(탈진 3.6/6 = 0.6)로 점프 속도와 중력을 함께 조절해 같은 높이와 수평 이동 거리를 유지하면서 체공 시간만 늘립니다. 이 값은 이륙할 때 고정되어, 공중에서 음식을 먹거나 가속이 시작·종료되어도 중력이 바뀌지 않고, 착지 또는 다음 점프에서만 갱신됩니다.
 
-## Scope
+## 범위
 
-In: one screen, one mode, geometric shapes, hand-authored repeating course, HUD, pause, restart, local best distance.
-Out: art, sound, characters and their abilities, mini-games, chaser acceleration, PWA/app packaging, any use of third-party IP.
+포함: 한 화면, 한 가지 모드, 도형, 손으로 만든 반복 코스, HUD, 일시정지, 다시 시작, 로컬 최고 거리.
+제외: 그림, 소리, 캐릭터와 능력, 미니게임, 추격자 가속, PWA/앱 포장, 제3자 IP 사용.
 
-## What was actually verified
+## 실제로 검증한 것
 
-`tests/model.test.ts` (23 tests, all passing on Node 24.15.0, driving `src/model.ts` at the same 1/120 s step as the game):
+`tests/model.test.ts` 27개가 모두 통과했습니다(Node 24.15.0). 게임과 같은 1/120초 고정 간격으로 `src/model.ts`를 직접 구동합니다.
 
-- starting state, ready phase ignores steps and input
-- speed states and their priority (boost > exhausted > normal)
-- stamina drain, latched exhaustion at 0, food +25 with cap 100, latch stays while stamina is 1-19
-- exhausted gap shrink (2.4 m/s) and being caught after about 12.5 s from 30 m
-- gold: bonus, 4 s boost, refresh without stacking, boost at stamina 0, latch after boost ends
-- gap +1.8 m/s in boost, cap at 60 m
-- one hit = -5 m exactly once, 0.9 s hit immunity, catching ends the run
-- pause freezes distance/gap/stamina/boost/time and drops input; resume continues
-- jump physics, double jump, a third press does not add a jump
-- real collisions: block (walk = hit, jump = clear, too-early jump = hit), beam (stand = hit, crouch = clear, releasing crouch under a beam is safe), tower (single jump never clears, double jump clears)
-- jump timing windows at the three speeds (see below)
-- authored course: food before the first block, hazards at least 7 m apart
-- same inputs give the same run
+- 시작 상태, ready 단계에서 입력과 step 무시
+- 속도 상태와 우선순위(가속 > 탈진 > 보통)
+- 체력 소모, 0에서 탈진 유지, 음식 +25와 상한 100, 체력 1~19에서도 탈진 유지
+- 탈진 시 gap 초당 2.4m 감소와 30m에서 약 12.5초 뒤 잡힘
+- 황금 음식: 보너스, 4초 가속, 갱신(중첩 없음), 체력 0에서의 가속, 종료 후 탈진 유지
+- 가속 중 gap 초당 +1.8m, 상한 60m
+- 충돌 1회 -5m(장애물당 한 번), 0.9초 면역, 잡히면 종료
+- 일시정지 시 거리·gap·체력·가속·시간 정지, 입력 무시, 재개
+- 점프 물리, 2단점프, 세 번째 입력은 무시
+- 실제 충돌: 블록(그냥 달리면 충돌, 점프하면 통과, 너무 일찍 뛰면 충돌), 빔(서 있으면 충돌, 앉으면 통과, 빔 아래에서 앉기를 놓아도 안전), 타워(한 번 점프로는 통과 불가, 2단점프로 통과)
+- 탈진 점프가 보통 점프와 같은 높이이면서 체공은 더 길다는 것
+- 공중에서 음식 섭취, 가속 시작, 가속 종료가 있어도 점프 궤적이 변하지 않는 것, 착지 후 다음 점프는 보통 점프로 돌아오는 것, 탈진 2단점프 후 정상 착지
+- 코스: 첫 블록 전에 음식이 먼저 나옴, 장애물 간격 7m 이상
+- 같은 입력이면 같은 결과(결정성)
 
-## Known issue found by the tests (not fixed here)
+### 통과 가능한 점프 타이밍 창 (모델에서 측정)
 
-Timing windows that clear an obstacle, measured in the model:
-
-| State | Block, single jump | Block, double jump | Tower, double jump |
+| 상태 | 블록 한 번 점프 | 블록 2단점프 | 타워 2단점프 |
 |---|---|---|---|
-| normal | 0.22 s | 0.73 s | 0.27 s |
-| boost | 0.30 s | 0.81 s | 0.34 s |
-| exhausted | 0.03 s | 0.54 s | 0.07 s |
+| 보통 | 0.22초 | 0.73초 | 0.27초 |
+| 가속 | 0.30초 | 0.81초 | 0.34초 |
+| 탈진(수정 전) | 0.03초 | 0.54초 | 0.07초 |
+| 탈진(수정 후) | 0.38초 | 1.22초 | 0.47초 |
 
-When exhausted, a single jump over a block leaves only about 0.03 s to time it, and the tower about 0.07 s even with a double jump. That is a few frames at 60 fps, so it is close to unplayable. The chaser also closes in at 2.4 m/s in that state. A wider window needs a change to the speed, jump or obstacle size values, which is outside this test branch.
+수정 전에는 탈진 상태에서 블록을 한 번 점프로 넘을 타이밍이 약 0.03초뿐이었습니다. 이제 탈진 블록·타워 타이밍 창이 0.2초 이상인지 확인하는 회귀 테스트가 있습니다.
 
-## Not verified
+## 검증하지 못한 것
 
-- Rendering, input handling, HUD and touch buttons in a real browser. No browser tool was available, so only the model was tested. `src/main.ts` is untested.
-- `npm run build` and `tsc` type-check on this branch.
-- Feel and difficulty with real players; the numbers above are starting guesses.
-- Portrait layout and reaction time on small screens.
-- Whether using Chiikawa characters in a public app is allowed; this prototype uses no such assets.
+- 실제 브라우저에서의 화면 그리기, 입력, HUD, 터치 버튼. 브라우저 도구가 없어 모델만 테스트했고 `src/main.ts`는 테스트하지 않았습니다.
+- 이 브랜치에서의 `npm run build`와 타입 검사.
+- 실제 사람이 플레이했을 때의 재미와 난이도. 위 수치는 시작값입니다.
+- 세로 화면 배치와 작은 화면에서의 반응 시간.
+- 치이카와 캐릭터를 공개 앱에 쓸 수 있는지. 이 프로토타입은 해당 자료를 쓰지 않습니다.
