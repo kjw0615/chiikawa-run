@@ -21,3 +21,10 @@ test('the mini game card has no top-right buttons; the countdown keeps its own r
   for (const gone of ['mini-pause', 'mini-home', 'mini-top-buttons']) assert.equal(main.includes(`'${gone}'`), false, `${gone} left in main.ts`);
   assert.match(html, /id="countdown-resume"[^>]*\shidden/);
 });
+
+test('while a mini game exists the runner HUD buttons stay hidden; a paused selection still shows the resume button', () => {
+  assert.match(main, /querySelector<HTMLElement>\('\.hud-buttons'\)!\.hidden = true;/, 'HUD buttons hidden for every mini phase');
+  assert.match(main, /if \(!mini\) \{[^}]*\.hud-buttons'\)!\.hidden = false/s, 'restored when there is no mini game');
+  assert.match(main, /miniActionButton\.hidden = g\.phase === 'selecting' && !g\.paused;/);
+  assert.match(main, /if \(mini\.paused\) mini\.resume\(\);\s*else if \(mini\.phase === 'intro'\) mini\.start\(\)/, 'a paused press only resumes');
+});

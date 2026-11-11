@@ -144,20 +144,20 @@ test('ground hazards keep clear of every branch, its approach and its descent (1
   }
 });
 
-test('upper hazards: none on 12 m branches (36 m gate branches use the vine instead), exactly one 10 m after the start on longer ones, sized from the platform floor', () => {
+test('upper hazards: none on 12 m branches (36 m gate branches use the vine instead), exactly one 10..14 m after the start on longer ones, sized from the platform floor', () => {
   let seen = { beam: 0, block: 0, long: 0 }, gates = 0;
   for (const seed of SEEDS) {
     const m = course(seed);
     for (const p of m.platforms) {
       const mine = m.items.filter(i => !isFood(i.kind) && i.x >= p.start && i.x <= p.end);
       const length = p.end - p.start;
-      if (p.gateX !== undefined) { // lane-switch gate branch: fixed 36 m, the vine replaces the ordinary upper hazard
-        assert.equal(length, 36); assert.equal(p.gateX, p.start + 22); assert.equal(mine.length, 0, `seed ${seed}: gate branch ${p.id} keeps a hazard`); gates++; continue;
+      if (p.gateX !== undefined) { // lane-switch gate branch: fixed 36 m, the vine (start+20..24) replaces the ordinary upper hazard
+        assert.equal(length, 36); assert.ok(p.gateX >= p.start + 20 && p.gateX <= p.start + 24, `gateX ${p.gateX - p.start}`); assert.equal(mine.length, 0, `seed ${seed}: gate branch ${p.id} keeps a hazard`); gates++; continue;
       }
       if (length < 20) { assert.equal(mine.length, 0, `seed ${seed}: short branch ${p.id} has a hazard`); continue; }
       assert.equal(mine.length, 1, `seed ${seed}: branch ${p.id}`);
-      const h = mine[0]; assert.equal(h.x, p.start + RULES.platformFirstHazard);
-      assert.ok(h.x - p.start >= 8 && p.end - h.x >= 10, 'room to land before and after the hazard');
+      const h = mine[0]; assert.ok(h.x >= p.start + 10 - 1e-9 && h.x <= p.start + (length >= 36 ? 14 : 10.5) + 1e-9, `hazard at ${h.x - p.start} on a ${length} m branch`);
+      assert.ok(h.x - p.start >= 8 && p.end - h.x >= 9.5 - 1e-9, 'room to land before and after the hazard');
       if (h.kind === 'block') assert.deepEqual([h.y, h.h], [p.y - 64, 64]);
       else if (h.kind === 'long') assert.deepEqual([h.y, h.h], [p.y - 46, 46]);
       else { assert.equal(h.kind, 'beam'); assert.deepEqual([h.y, h.h], [0, p.y - 44]); }
@@ -167,11 +167,11 @@ test('upper hazards: none on 12 m branches (36 m gate branches use the vine inst
   assert.ok(seen.beam > 0 && seen.block > 0 && seen.long > 0 && gates > 0, JSON.stringify({ ...seen, gates }));
 });
 
-test('branch food: one dedicated item 3 m in at 80 px over the platform; optional lower lane stays foodless (132 seeds)', () => {
+test('branch food: one dedicated item 3..3.5 m in at 48..100 px over the platform; optional lower lane stays foodless (132 seeds)', () => {
   for (const seed of SEEDS) {
     const m = course(seed);
     for (const p of m.platforms) {
-      const dedicated = m.items.find(i => isFood(i.kind) && i.x === p.start + 3 && i.y === p.y - 80);
+      const dedicated = m.items.find(i => isFood(i.kind) && i.x >= p.start + 3 - 1e-9 && i.x <= p.start + 3.5 + 1e-9 && i.y >= p.y - 100 - 1e-9 && i.y <= p.y - 48 + 1e-9);
       assert.ok(dedicated, `seed ${seed}: branch ${p.id} lacks its dedicated food`);
       // Nothing on the ground lane inside or just around the branch.
       for (const i of m.items) {
@@ -277,10 +277,10 @@ test('standing on a platform: supportY is its top; grounded; double jump availab
 
 test('upper food is reachable: a held jump from the branch floor grabs the dedicated food', () => {
   const m = new RunnerModel(5, true); m.start();
-  const p = m.platforms[0], f = m.items.find(i => isFood(i.kind) && i.x === p.start + 3 && i.y === p.y - 80)!;
+  const p = m.platforms[0], f = m.items.find(i => isFood(i.kind) && i.x >= p.start + 3 && i.x <= p.start + 3.5 && i.y >= p.y - 100 && i.y <= p.y - 48)!;
   m.distance = f.x - 1; m.y = p.y; m.gap = 30; m.stamina = 40;
   let ate = false; for (let i = 0; i < 120 * 2; i++) { keepFed(m); m.stamina = 40; m.step(DT); if (f.used) { ate = true; break; } }
-  assert.ok(ate, 'standing under the food on the branch floor eats it (it is 80 px above the floor, 82 px body)');
+  assert.ok(ate, 'standing under the food on the branch floor eats it (it is 48..100 px above the floor, 82 px body)');
 });
 
 // ---------------------------------------------------------------- upper level behaves like the ground

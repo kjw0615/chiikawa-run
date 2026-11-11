@@ -289,7 +289,7 @@ function updateMini() {
     $<HTMLButtonElement>('jump').disabled = false; $<HTMLButtonElement>('crouch').disabled = false; return;
   }
   const g = mini, countdown = g.phase === 'countdown';
-  document.querySelector<HTMLElement>('.hud-buttons')!.hidden = countdown;
+  document.querySelector<HTMLElement>('.hud-buttons')!.hidden = true;
   miniScreen.hidden = countdown; $('mini-countdown').hidden = !countdown;
   play.inert = !countdown; document.body.style.overflow = countdown ? '' : 'hidden';
   $<HTMLButtonElement>('jump').disabled = true; $<HTMLButtonElement>('crouch').disabled = true;
@@ -325,7 +325,7 @@ function updateMini() {
     mark.hidden = result === undefined; mark.textContent = result ? '✓' : '×';
     cell.setAttribute('aria-label', `레몬 ${n + 1}${result === undefined ? '' : result ? ' 성공' : ' 실패'}`);
   }
-  miniActionButton.hidden = g.phase === 'selecting';
+  miniActionButton.hidden = g.phase === 'selecting' && !g.paused;
   miniActionButton.disabled = g.phase === 'feedback' && !g.paused;
   miniActionButton.textContent = g.paused ? '계속하기' : g.phase === 'intro' ? '준비됐어요! 시작' : g.phase === 'result' ? '달리기로 돌아가기' : '스티커 붙이기';
   if (g.phase === 'result' && g.reward) $('mini-reward').textContent = `체력 +${g.reward.stamina} · ${g.reward.speedMultiplier}배 속도 ${g.reward.seconds}초`;
