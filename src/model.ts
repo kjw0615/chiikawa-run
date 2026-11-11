@@ -1,6 +1,6 @@
 export const RULES = {
-  speed: 6, chaserSpeed: 6, exhaustedSpeed: 3.6, boostSpeed: 9,
-  staminaDrain: 4.5, food: 16, goldFood: 20, recover: 12, goldChance: .1,
+  speed: 6, chaserSpeed: 6, exhaustedSpeed: 4.2, boostSpeed: 9,
+  staminaDrain: 3, food: 20, goldFood: 25, recover: 12, goldChance: .1,
   boostSeconds: 1, maxGap: 60, hitCost: 3, hitInvulnerability: .5,
   gravity: 1900, jumpVelocity: -760, floor: 460, scale: 44,
   playerHeight: 82, playerWidth: 64, halfHitWidth: 24, crouchHeight: 36,
@@ -10,10 +10,10 @@ export const RULES = {
 // Bounded progression keeps the course readable while increasing pressure.
 export const difficultyAt = (distance: number) => {
   const level = Math.min(1, Math.max(0, distance) / 1200);
-  return { level, obstacleSpacing: 22 - 4 * level, foodSpacing: 30 + 12 * level };
+  return { level, obstacleSpacing: 22 - 4 * level, foodSpacing: 24 + 6 * level };
 };
 // Upper bounds leave a tested timing window for the required jump(s).
-export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [48, 64], long: [140, 210], pit: [120, 220], beam: [100, 220] } as const;
+export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 170], pit: [120, 200], beam: [100, 220] } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold'; used: boolean };
 export type Phase = 'ready' | 'running' | 'paused' | 'over';
 type Rescue = { time: number; fromX: number; toX: number; fromY: number };
@@ -21,7 +21,7 @@ export class RunnerModel {
   phase: Phase = 'ready'; distance = 0; gap = 30; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
   y = RULES.floor; vy = 0; jumps = 0; crouch = false; hitFlash = 0; foods = 0; bonus = 0; hits = 0;
   items: Item[] = []; events: string[] = []; rescue: Rescue | null = null;
-  private nextHazardX = 19; private hazardIndex = 0; private nextFoodX = 7; private id = 0; private jumpBuffer = 0; private jumpMotionScale = 1; private randomState: number; private generateCourse: boolean; private lastFoodX = -Infinity;
+  private nextHazardX = 19; private hazardIndex = 0; private nextFoodX = 7; private id = 0; private jumpBuffer = 0; private randomState: number; private generateCourse: boolean; private lastFoodX = -Infinity;
   constructor(seed = 13579, generateCourse = true) { this.randomState = seed >>> 0; this.generateCourse = generateCourse; this.generate(); }
   get speed() { return this.boost > 0 ? RULES.boostSpeed : this.exhausted ? RULES.exhaustedSpeed : RULES.speed; }
   get grounded() { return !this.rescue && Math.abs(this.y - RULES.floor) < .01 && !this.pitAt(this.distance); }
@@ -48,8 +48,7 @@ export class RunnerModel {
     const boostingThisStep = this.boost > 0;
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     if (this.jumpBuffer > 0 && this.jumps < 2 && !this.rescue && this.y < RULES.floor + RULES.fallDepth) {
-      this.jumpMotionScale = Math.min(1, this.speed / RULES.speed);
-      this.vy = RULES.jumpVelocity * this.jumpMotionScale;
+      this.vy = RULES.jumpVelocity; // jump arc is independent of the current run speed
       this.jumps++; this.crouch = false; this.jumpBuffer = 0;
       this.events.push(this.jumps === 2 ? '더블 점프' : '점프');
     }
@@ -66,12 +65,12 @@ export class RunnerModel {
       const t = r.time / RULES.rescueSeconds;
       this.distance = r.fromX + (r.toX - r.fromX) * t;
       this.y = r.fromY + (RULES.floor - r.fromY) * t - Math.sin(t * Math.PI) * 205;
-      if (t >= 1) { this.rescue = null; this.y = RULES.floor; this.vy = 0; this.jumps = 0; this.jumpMotionScale = 1; }
+      if (t >= 1) { this.rescue = null; this.y = RULES.floor; this.vy = 0; this.jumps = 0; }
     } else {
-      this.vy += RULES.gravity * this.jumpMotionScale ** 2 * dt; this.y += this.vy * dt;
+      this.vy += RULES.gravity * dt; this.y += this.vy * dt;
       const pit = this.pitAt(this.distance);
       if (this.y >= RULES.floor && this.vy >= 0 && !pit && this.y < RULES.floor + 25) {
-        this.y = RULES.floor; this.vy = 0; this.jumps = 0; this.jumpMotionScale = 1;
+        this.y = RULES.floor; this.vy = 0; this.jumps = 0;
       }
       if (this.y >= RULES.floor + RULES.fallDepth) {
         const lastPit = pit ?? this.items.filter(i => i.kind === 'pit' && i.x < this.distance + 5).at(-1);
