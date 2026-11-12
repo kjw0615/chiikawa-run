@@ -6,6 +6,7 @@ import { createRunReady } from './run-ready';
 import { RunnerModel, RULES } from './model';
 import { Background } from './background';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
+import { createMiniGame, type MiniGame } from './mini-game';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
 let displayGap = RULES.initialGap;
 
@@ -15,7 +16,7 @@ const EVENT_ATLAS = 'event-art';
 const OBSTACLE_ATLAS = 'meadow-obstacles';
 const FOOD = ['food-pudding', 'food-pancake', 'food-cream-puff'];
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
-let mini: StickerGame | null = null, encounterId: number | null = null, miniViewKey = '';
+let mini: MiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
 const overlay = $('overlay'), start = $('start'), pause = $<HTMLButtonElement>('pause');
 const home = $('home-screen'), play = $('play-screen');
@@ -69,7 +70,7 @@ function beginRun() {
 function togglePause() {
   if (ready.active) { ready.pause(); return; }
   if (play.hidden) return;
-  if (mini) { if (mini.paused) mini.resume(); else mini.pause(); release(); releaseJump(); accumulator = 0; updateMini(); updateHud(); return; }
+  if (mini) { if (mini.paused) mini.resume(); else { mini.release(); mini.pause(); } release(); releaseJump(); accumulator = 0; updateMini(); updateHud(); return; }
   if (model.phase === 'running') { model.pause(); release(); releaseJump(); } else if (model.phase === 'paused') { model.start(); accumulator = 0; }
   updateHud();
 }
@@ -144,7 +145,7 @@ class RunnerScene extends Phaser.Scene {
       while (accumulator >= 1 / 120) { model.crouch = crouchHeld; model.step(1 / 120); accumulator -= 1 / 120; }
     }
     if (model.activeEncounter && !mini) {
-      encounterId = model.activeEncounter.id; mini = new StickerGame(model.activeEncounter.seed);
+      encounterId = model.activeEncounter.id; mini = createMiniGame(model.activeEncounter.seed);
       miniViewKey = ''; accumulator = 0; release(); releaseJump();
     }
     if (mini) {
@@ -313,7 +314,7 @@ window.addEventListener('keydown', e => {
   // Horizontal navigation is suppressed while playing; Tab is handled globally.
   const live = intro.active || ready.active || preparing
     || !play.hidden && model.phase === 'running' && !mini
-    || !!mini && !mini.paused && ['selecting', 'playing', 'feedback', 'countdown'].includes(mini.phase);
+    || !!mini && !mini.paused && mini.inPlay;
   if (live && !e.ctrlKey && !e.metaKey && !e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.code)) {
     e.preventDefault(); return;
   }
@@ -336,8 +337,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'ArrowDown' && !play.hidden) { crouchHeld = true; model.crouch = true; crouchButton.classList.add('held'); }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
 });
-window.addEventListener('keyup', e => { if (e.code === 'ArrowDown') release(); if (e.code === 'Space' || e.code === 'ArrowUp') releaseJump(); });
-function backgroundPause() { ready.pause(); release(); releaseJump(); model.pause(); mini?.pause(); updateMini(); if (!play.hidden) updateHud(); }
+window.addEventListener('keyup', e => { if (mini && (e.code === 'Space' || e.code === 'Enter')) { mini.release(); updateMini(); } if (e.code === 'ArrowDown') release(); if (e.code === 'Space' || e.code === 'ArrowUp') releaseJump(); });
+function backgroundPause() { ready.pause(); release(); releaseJump(); model.pause(); mini?.release(); mini?.pause(); updateMini(); if (!play.hidden) updateHud(); }
 document.addEventListener('visibilitychange', () => { if (document.hidden) backgroundPause(); });
 window.addEventListener('blur', backgroundPause); window.addEventListener('orientationchange', backgroundPause);
 document.querySelectorAll<HTMLElement>('.control small,.modal-help').forEach(el => { el.hidden = true; });
@@ -377,11 +378,26 @@ function miniAction() {
   if (!mini) return;
   if (mini.paused) mini.resume();
   else if (mini.phase === 'intro') mini.start();
-  else if (mini.phase === 'playing') mini.stamp();
   else if (mini.phase === 'result') { release(); releaseJump(); mini.continue(); }
+  else mini.press();
   updateMini();
 }
-miniActionButton.addEventListener('click', miniAction);
+// Hold games need the pointer's down and up. In an interactive phase the button acts on pointerdown and
+// releases on pointerup/cancel/capture loss; the click that follows is ignored. Every other phase keeps click.
+let pointerPressed = false, swallowClick = false, swallowTimer = 0;
+miniActionButton.addEventListener('pointerdown', e => {
+  swallowClick = false;
+  if (!mini || mini.paused || !mini.interactive || e.button > 0) return;
+  e.preventDefault(); miniActionButton.setPointerCapture(e.pointerId);
+  pointerPressed = true; swallowClick = true; mini.press(); updateMini();
+});
+const pointerRelease = () => {
+  if (!pointerPressed) return;
+  pointerPressed = false; mini?.release(); updateMini();
+  clearTimeout(swallowTimer); swallowTimer = window.setTimeout(() => { swallowClick = false; }, 400); // the click of this press, if any, arrives first
+};
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) miniActionButton.addEventListener(type, pointerRelease);
+miniActionButton.addEventListener('click', () => { if (swallowClick) { swallowClick = false; return; } miniAction(); });
 $('countdown-resume').addEventListener('click', togglePause);
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
@@ -400,6 +416,7 @@ function updateMini() {
     $('countdown-number').textContent = g.paused ? 'Ⅱ' : String(Math.max(1, Math.ceil(g.countdownRemaining)));
     $('countdown-resume').hidden = !g.paused; return;
   }
+  if (!(g instanceof StickerGame)) return; // other mini games render their own screen
   if (g.phase === 'selecting') {
     const t = Math.min(1, g.elapsed / MINI_RULES.selectionSeconds), steps = 12 + CHARACTERS.indexOf(g.selected);
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
