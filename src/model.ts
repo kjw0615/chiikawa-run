@@ -1,4 +1,5 @@
 import type { Reward } from './sticker-game';
+import { FOOD_ART } from './food-art.ts';
 export const RULES = {
   speed: 6, chaserSpeed: 6.1, exhaustedSpeed: 4.2, boostSpeed: 9,
   staminaDrain: 4, food: 20, goldFood: 25, recover: 12, goldChance: .1,
@@ -286,9 +287,9 @@ export class RunnerModel {
     // cannot change an already scheduled food's appearance.
     let hash = Math.imul(this.artSeed ^ Math.round(x * 1024), 0x45d9f3b);
     hash = Math.imul(hash ^ (hash >>> 16), 0x45d9f3b);
-    const variant = ((hash ^ (hash >>> 16)) >>> 0) % 3;
+    const variant = ((hash ^ (hash >>> 16)) >>> 0) % FOOD_ART.length;
     this.items.push({ id: this.id++, x, y, w, h, kind, used: false,
-      // Food picks one of 3 sprites; a block is a stump (0) or a rock (1). Both are the same 1-jump obstacle, so the
+      // Food picks one of 9 sprites; a block is a stump (0) or a rock (1). Both are the same 1-jump obstacle, so the
       // choice only changes how it is drawn (position-seeded: no random numbers are drawn, courses do not change).
       ...(['food','gold'].includes(kind) ? {variant} : kind === 'block' ? {variant: (hash >>> 20) & 1} : {}) });
   }

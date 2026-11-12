@@ -5,6 +5,7 @@ import { createStartIntro } from './start-intro';
 import { createRunReady } from './run-ready';
 import { RunnerModel, RULES } from './model';
 import { Background } from './background';
+import { FOOD_ART, FOOD_DISPLAY_SIZE } from './food-art';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
 import { SlottedMiniGame, ROSTER, type RosterEntry } from './mini-roster';
 import { KurimanjuGame } from './kurimanju-game';
@@ -16,7 +17,7 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const ATLAS = 'game-art';
 const EVENT_ATLAS = 'event-art';
 const OBSTACLE_ATLAS = 'meadow-obstacles';
-const FOOD = ['food-pudding', 'food-pancake', 'food-cream-puff'];
+const FOOD_ATLAS = 'food-art';
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
 let mini: SlottedMiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
@@ -124,6 +125,7 @@ class RunnerScene extends Phaser.Scene {
     this.load.atlas(ATLAS, '/assets/game-atlas.webp', '/assets/game-atlas.json');
     this.load.atlas(EVENT_ATLAS, '/assets/event-atlas.webp', '/assets/event-atlas.json');
     this.load.atlas(OBSTACLE_ATLAS, '/assets/meadow-obstacles.webp', '/assets/meadow-obstacles.json');
+    this.load.atlas(FOOD_ATLAS, '/assets/food-atlas.webp', '/assets/food-atlas.json');
     this.load.spritesheet('coin-spin', '/assets/coin-spin.webp', { frameWidth: 128, frameHeight: 128 });
     this.load.spritesheet('coin-gold-spin', '/assets/coin-gold-spin.webp', { frameWidth: 128, frameHeight: 128 });
   }
@@ -237,8 +239,8 @@ class RunnerScene extends Phaser.Scene {
         this.sprite(frame, ix, item.y + item.h / 2, 38, 38, item.coinValue === 3 ? 'coin-gold-spin' : 'coin-spin');
       } else if (item.kind === 'food' || item.kind === 'gold') {
         const iy = item.y + item.h / 2, golden = item.kind === 'gold';
-        const key = FOOD[item.variant ?? item.id % FOOD.length], frame = this.textures.get(ATLAS).get(key), fit = 54 / Math.max(frame.width, frame.height);
-        const s = this.sprite(key, ix, iy, frame.width * fit, frame.height * fit);
+        const key = FOOD_ART[(item.variant ?? item.id) % FOOD_ART.length];
+        const s = this.sprite(key, ix, iy, FOOD_DISPLAY_SIZE, FOOD_DISPLAY_SIZE, FOOD_ATLAS);
         if (golden) {
           s.setTint(0xffd252); g.fillStyle(0xffd468, .24).fillCircle(ix, iy, 29 + Math.sin(model.elapsed * 6) * 3);
           g.lineStyle(2, 0xfff3b8, .9);
