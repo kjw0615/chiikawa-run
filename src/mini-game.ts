@@ -2,8 +2,6 @@
 // (advanced only by step(dt)), never touches the runner model, and only reports a reward; the caller
 // applies it once when the phase becomes 'done'. Input is two events: press() and release(), so
 // tap games (lemon) and hold games (kurimanju) share one path: key down/up, pointer down/up.
-import { StickerGame } from './sticker-game';
-import { KurimanjuGame } from './kurimanju-game';
 export type MiniReward = { stamina: number; speedMultiplier: number; seconds: number; coins?: number };
 export interface MiniGame {
   readonly phase: string;
@@ -23,9 +21,4 @@ export interface MiniGame {
   press(): void;
   release(): void;
 }
-// Mini games that are playable; the pick is by seed, so a given encounter is always the same game.
-export const ENABLED_MINI_GAMES: readonly ('lemon' | 'kuri')[] = ['lemon', 'kuri'];
-export function createMiniGame(seed: number, enabled: readonly ('lemon' | 'kuri')[] = ENABLED_MINI_GAMES): MiniGame {
-  const kind = enabled[(Math.imul(seed >>> 0, 2654435761) >>> 16) % enabled.length] ?? 'lemon';
-  return kind === 'kuri' ? new KurimanjuGame(seed) : new StickerGame(seed);
-}
+// Encounters run the slot and then the winner's game: see SlottedMiniGame and ROSTER in mini-roster.ts.
