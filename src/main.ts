@@ -86,8 +86,10 @@ function updateHud() {
   $('stamina-fill').style.background = model.stamina < 25 ? '#e59992' : '#8bbf90';
   $('distance').textContent = String(Math.floor(model.distance));
   $('coin-count').textContent = String(model.coins);
-  $('gap-fill').style.width = `${chaseMarkerPercent(displayGap)}%`; $('gap-fill').style.background = model.gap < 12 ? '#ed9b8c' : '#9acbad';
-  $('gap-marker').style.left = `${chaseMarkerPercent(displayGap)}%`;
+  const chaserPercent = 100 - chaseMarkerPercent(model.phase === 'over' ? model.gap : displayGap);
+  $('gap-fill').style.left = `${chaserPercent}%`; $('gap-fill').style.width = `${92 - chaserPercent}%`;
+  $('gap-fill').style.background = model.gap < 12 ? '#ed9b8c' : '#9acbad';
+  $('chase-monster').style.left = `${chaserPercent}%`;
   // Gameplay contains gauges, not tutorial prompts or obstacle labels.
   $('status').hidden = true; $('status').textContent = '';
   pause.disabled = model.phase === 'ready' || model.phase === 'over'; pause.classList.toggle('paused', model.phase === 'paused' || !!mini?.paused);
@@ -176,7 +178,7 @@ class RunnerScene extends Phaser.Scene {
     this.cursor = 0; for (const s of this.pool) s.setVisible(false);
     g.clear(); this.bg.update(progress);
     if (!this.bg.ready) this.drawFallbackBackdrop(g, floor, progress);
-    this.drawGround(g, floor, progress);
+    if (!this.bg.ready) this.drawGround(g, floor, progress);
     // A single repeating moss-covered branch, painted at world coordinates.
     // Its shape and grain never depend on the slot currently occupying the screen.
     for (const p of model.platforms) {
@@ -236,7 +238,7 @@ class RunnerScene extends Phaser.Scene {
         const beamTop = -300;
         const y = item.kind === 'beam' ? (beamTop + item.y + item.h) / 2 : item.y + item.h / 2;
         const h = item.kind === 'beam' ? item.y + item.h - beamTop : item.h;
-        this.sprite(key, ix, y, item.w * 1.04, h * 1.02);
+        this.sprite(key, ix, y, item.w, h * 1.02);
       }
     }
     for (const npc of model.encounters) {
@@ -359,8 +361,8 @@ function layoutMiniArt() {
   // The centre lemon is exactly the success band: its width is the band's share of the stage.
   const stage = $('stage-lemon'), box = $('stage-lemon').parentElement as HTMLElement, w = box.clientWidth || Math.min(480, inside);
   const lw = w * (MINI_RULES.targetMax - MINI_RULES.targetMin); portrait(stage, 'lemon', lw);
-  // Show only the lower 128 px of the 224 px frame (the fruit body) so its centre sits on the sticker path.
-  stage.style.height = `${128 * lw / 192}px`; stage.style.backgroundPositionY = `${-98 * lw / 192}px`;
+  // The full lemon (including its leaf) fits in atlas rows84..223; trim only empty space.
+  stage.style.height = `${140 * lw / 192}px`; stage.style.backgroundPositionY = `${-84 * lw / 192}px`;
 }
 layoutMiniArt(); window.addEventListener('resize', layoutMiniArt);
 function miniAction() {
