@@ -175,9 +175,14 @@ class RunnerScene extends Phaser.Scene {
       .setCrop(0, 0, frame.width * visibleWidth / width, frame.height * visibleHeight / height);
   }
   private curtain(x: number, top: number, bottom: number, width: number, gate = false) {
-    const prefix = gate ? 'gate' : 'beam', bodyBottom = bottom - 48;
-    for (let y = top; y < bodyBottom; y += 160)
-      this.obstaclePart(`${prefix}-body`, x - width / 2, y, width, 160, width, Math.min(160, bodyBottom - y));
+    const prefix = gate ? 'gate' : 'beam', bodyTop = top + 56, bodyBottom = bottom - 48;
+    this.obstaclePart(`${prefix}-top`, x - width / 2, top, width, 56);
+    // Repeat complete middle modules. Evenly distributing the final partial
+    // height keeps both connection rows intact instead of cutting across leaves.
+    const count = Math.max(1, Math.ceil((bodyBottom - bodyTop) / 160));
+    const height = (bodyBottom - bodyTop) / count;
+    for (let i = 0; i < count; i++)
+      this.obstaclePart(`${prefix}-middle`, x - width / 2, bodyTop + i * height, width, height);
     this.obstaclePart(`${prefix}-bottom`, x - width / 2, bodyBottom, width, 48);
   }
   private drawFallbackBackdrop(g: Phaser.GameObjects.Graphics, floor: number, progress: number) {
@@ -209,9 +214,12 @@ class RunnerScene extends Phaser.Scene {
         for (let y = p.y + 24; y < floor; y += 46)
           this.obstaclePart('platform-support', left - 10, y, 46, 46, 46, Math.min(46, floor - y));
       }
+      const middleWidth = width - 128, count = Math.max(1, Math.ceil(middleWidth / 128)), tileWidth = middleWidth / count;
+      for (let i = 0; i < count; i++) {
+        const x = left + 64 + i * tileWidth;
+        if (x > -128 && x < 1140) this.obstaclePart('platform-middle', x, p.y - 3, tileWidth, 32);
+      }
       this.obstaclePart('platform-left', left, p.y - 3, 64, 32);
-      for (let x = left + 64; x < left + width - 64; x += 128)
-        if (x > -128 && x < 1140) this.obstaclePart('platform-middle', x, p.y - 3, 128, 32, Math.min(128, left + width - 64 - x));
       this.obstaclePart('platform-right', left + width - 64, p.y - 3, 64, 32);
     }
     // Vine gate (platform.gateX, set by the model): a solid hanging curtain from above the view down to the branch.
@@ -240,14 +248,15 @@ class RunnerScene extends Phaser.Scene {
           }
         }
       } else if (item.kind === 'pit') {
-        const bx = ix - item.w / 2;
-        g.fillStyle(0x5c4238).fillRect(bx, floor, item.w, 170);
-        this.obstaclePart('pit-left', bx - 64, floor - 3, 64, 170);
-        this.obstaclePart('pit-right', bx + item.w, floor - 3, 64, 170);
+        // The original painted banks, cliff walls and textured depth are one
+        // fixed-size object. Its 160px opening matches the actual fall zone.
+        this.obstaclePart('pit', ix - 108, floor - 8, 216, 200);
       } else {
-        const obstacleFloor = item.y + item.h + (item.kind === 'beam' ? 44 : 0);
+        const overhead = item.kind === 'beam' || item.kind === 'crawl';
+        const obstacleFloor = item.y + item.h + (overhead ? 44 : 0);
         g.fillStyle(0x294b31, .1).fillEllipse(ix, obstacleFloor + 3, item.w + 15, 10);
         if (item.kind === 'beam') this.curtain(ix, -300, item.y + item.h, item.w);
+        else if (item.kind === 'crawl') this.obstaclePart('crawl', ix - item.w / 2, item.y, item.w, item.h);
         else this.sprite(item.kind === 'block' ? 'block' : item.kind === 'tower' ? 'tower' : 'obstacle-log',
           ix, item.y + item.h / 2, item.w, item.h, item.kind === 'long' ? ATLAS : OBSTACLE_ATLAS);
       }
