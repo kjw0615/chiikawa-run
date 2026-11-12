@@ -254,11 +254,12 @@ class RunnerScene extends Phaser.Scene {
     const crawlFrame = Math.floor(model.elapsed * 10) % 4;
     const heroFrame = gliding ? 'momonga-glide' : duck ? moving ? `momonga-crouch-${crawlFrame}` : 'momonga-crouch'
       : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
-    this.hero.setTexture(ATLAS, heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(gliding ? 138 : duck ? 120 : 110, gliding ? 101 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
+    // Preserve the glide artwork's aspect ratio while matching the running head/body scale.
+    this.hero.setTexture(ATLAS, heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
     if (gliding) {
       for (let j = 0; j < 3; j++) {
-        const y = model.y - 72 + j * 22 - bob;
-        g.lineStyle(2, 0xa8cbdc, .55).lineBetween(hx - 101 - j * 6, y, hx - 77 - j * 3, y);
+        const y = model.y - 56 + j * 18 - bob;
+        g.lineStyle(2, 0xa8cbdc, .55).lineBetween(hx - 82 - j * 6, y, hx - 62 - j * 3, y);
       }
     }
     if (model.eventBoost > 0 && model.boost === 0) {
