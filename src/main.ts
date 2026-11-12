@@ -234,7 +234,9 @@ class RunnerScene extends Phaser.Scene {
     const height = Math.max(0, shadowFloor-model.y);
     g.fillStyle(0x355340, .16/(1+height/200)).fillEllipse(hx, shadowFloor + 7, Math.max(42, 88-height*.12), 12);
     g.fillStyle(0x355340, .18).fillEllipse(cx, floor+7, MONSTER_WIDTH*.55, 14);
-    const heroFrame = duck ? 'momonga-crouch' : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
+    const crawlFrame = Math.floor(model.elapsed * 10) % 4;
+    const heroFrame = duck ? moving ? `momonga-crouch-${crawlFrame}` : 'momonga-crouch'
+      : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
     this.hero.setTexture(ATLAS, heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, duck ? 43 : 98).setRotation(duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
     if (model.eventBoost > 0 && model.boost === 0) {
       for (let j = 1; j < 4; j++) g.lineStyle(3, 0x98bf90, .5 / j).lineBetween(hx - 60 - j * 18, model.y - j * 19, hx - 30 - j * 18, model.y - j * 19);
