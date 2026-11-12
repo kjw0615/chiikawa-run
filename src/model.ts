@@ -16,19 +16,10 @@ export const difficultyAt = (distance: number) => {
   const level = Math.min(1, Math.max(0, distance) / 1200);
   return { level, obstacleSpacing: 22 - 4 * level, foodSpacing: 24 + 6 * level };
 };
-// Upper bounds leave a tested timing window for the required jump(s).
-export const OBSTACLE_BASE_WIDTHS = { block: 56, tower: 48, long: 145, pit: 160, beam: 160 } as const;
-export const OBSTACLE_WIDTH_SCALE = { min: .8, max: 1.2 } as const;
-// Preserve existing jump windows when already inside the scale limits; only narrow outliers.
-const widthRange = (base: number, low: number, high: number): readonly [number, number] =>
-  [Math.max(low, Math.ceil(base * OBSTACLE_WIDTH_SCALE.min)), Math.min(high, Math.floor(base * OBSTACLE_WIDTH_SCALE.max))];
-export const OBSTACLE_WIDTHS = {
-  block: widthRange(OBSTACLE_BASE_WIDTHS.block, 48, 64), tower: widthRange(OBSTACLE_BASE_WIDTHS.tower, 44, 52),
-  long: widthRange(OBSTACLE_BASE_WIDTHS.long, 120, 170), pit: widthRange(OBSTACLE_BASE_WIDTHS.pit, 120, 200),
-  beam: widthRange(OBSTACLE_BASE_WIDTHS.beam, 100, 220),
-} as const;
+// Each object has one readable silhouette; difficulty changes spacing, never its width.
+export const OBSTACLE_WIDTHS = { block: 56, tower: 48, long: 145, pit: 160, beam: 160, crawl: 320 } as const;
 export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2, foodPositionJitter: 8 } as const;
-export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number };
+export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'crawl' | 'pit' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number };
 export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .05, goldValue: 3, firstCoinX: 10 } as const;
 export const GLIDE_TRAIL = { pick: .68, minHeight: 150, maxHeight: 195, lowest: 60, landingClear: 5 } as const;
 export const SPAWN_CLEARANCE = { encounter: 8, encounterHazard: 6, foodCoin: 5, coinHazard: 4 } as const;
@@ -51,6 +42,7 @@ export class RunnerModel {
   private jumpHeld = false; private nextPlatformX = 80; private platformIndex = 0;
   private platformRandomState: number; private platformCourse: boolean;
   private nextHazardX = 19; private nextFoodX = 7; private id = 0; private jumpBuffer = 0;
+  private lastGroundHazard: { x: number; w: number } | null = null;
   private hazardState: number; private foodState: number; private artSeed: number;
   private generateCourse: boolean; private lastFoodX = -Infinity;
   private coinCourse: boolean; private coinState: number; private nextCoinX: number = COIN_RULES.firstCoinX; private coinId = 1000000; private coinGroupIndex = 0; private foodFreeDistance: number;
@@ -315,25 +307,36 @@ export class RunnerModel {
       if (length >= 20 && !switching) {
         const x = start + RULES.platformFirstHazard + this.random('platform') * (length === 20 ? .5 : 4);
         const type = Math.floor(this.random('platform') * 3);
-        if (type === 0) this.add(x, 0, OBSTACLE_WIDTHS.beam[0], p.y - 44, 'beam');
-        else if (type === 1) this.add(x, p.y - 64, 56, 64, 'block');
-        else this.add(x, p.y - 46, 120, 46, 'long');
+        // A fixed 160px beam needs half a metre more food clearance at the
+        // earliest upper slot; keep every other upper obstacle's timing intact.
+        if (type === 0) this.add(Math.max(x, start + RULES.platformFirstHazard + .5), 0, OBSTACLE_WIDTHS.beam, p.y - 44, 'beam');
+        else if (type === 1) this.add(x, p.y - 64, OBSTACLE_WIDTHS.block, 64, 'block');
+        else this.add(x, p.y - 46, OBSTACLE_WIDTHS.long, 46, 'long');
       }
     }
     // Generate hazards beyond the food horizon first, so future obstacles cannot
     // invalidate an already placed food's approach/landing clearance.
     while (this.nextHazardX < this.distance + 140) {
-      const x = this.nextHazardX;
-      this.nextHazardX += difficultyAt(x).obstacleSpacing + this.random('hazard') * COURSE_RANDOM.hazardExtra;
+      let x = this.nextHazardX;
+      const spacing = difficultyAt(x).obstacleSpacing + this.random('hazard') * COURSE_RANDOM.hazardExtra;
+      this.nextHazardX = x + spacing;
       // Clear both the lower lane and the approach/descent of every branch.
       if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
       const type = Math.floor(this.random('hazard') * 6);
-      const width = (kind: keyof typeof OBSTACLE_WIDTHS) => { const [lo, hi] = OBSTACLE_WIDTHS[kind]; return Math.round(lo + this.random('hazard') * (hi - lo)); };
-      if (type === 1) this.add(x, 84, width('beam'), RULES.floor - 44 - 84, 'beam');
-      else if (type === 2) this.add(x, RULES.floor - 190, width('tower'), 190, 'tower');
-      else if (type === 3) this.add(x, RULES.floor - 46, width('long'), 46, 'long');
-      else if (type === 4) this.add(x, RULES.floor, width('pit'), 170, 'pit');
-      else this.add(x, RULES.floor - 64, width('block'), 64, 'block');
+      const kind = (['block', 'beam', 'tower', 'long', 'pit', 'crawl'] as const)[type];
+      // The long crawl object gets enough approach/exit space without changing
+      // its width. Persist the last placement so pruning cannot change a seed.
+      if (this.lastGroundHazard) x = Math.max(x, this.lastGroundHazard.x
+        + (this.lastGroundHazard.w + OBSTACLE_WIDTHS[kind]) / 2 / RULES.scale + 13);
+      this.nextHazardX = x + spacing;
+      if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
+      this.lastGroundHazard = { x, w: OBSTACLE_WIDTHS[kind] };
+      if (type === 1) this.add(x, 84, OBSTACLE_WIDTHS.beam, RULES.floor - 44 - 84, 'beam');
+      else if (type === 2) this.add(x, RULES.floor - 190, OBSTACLE_WIDTHS.tower, 190, 'tower');
+      else if (type === 3) this.add(x, RULES.floor - 46, OBSTACLE_WIDTHS.long, 46, 'long');
+      else if (type === 4) this.add(x, RULES.floor, OBSTACLE_WIDTHS.pit, 170, 'pit');
+      else if (type === 5) this.add(x, RULES.floor - 156, OBSTACLE_WIDTHS.crawl, 112, 'crawl');
+      else this.add(x, RULES.floor - 64, OBSTACLE_WIDTHS.block, 64, 'block');
     }
     while (this.nextFoodX < this.distance + 96) {
       const desired = this.nextFoodX;
