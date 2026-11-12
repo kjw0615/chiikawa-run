@@ -12,6 +12,7 @@ let displayGap = RULES.initialGap;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const ATLAS = 'game-art';
 const EVENT_ATLAS = 'event-art';
+const OBSTACLE_ATLAS = 'meadow-obstacles';
 const FOOD = ['food-pudding', 'food-pancake', 'food-cream-puff'];
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
 let mini: StickerGame | null = null, encounterId: number | null = null, miniViewKey = '';
@@ -86,8 +87,9 @@ function updateHud() {
   $('stamina-fill').style.background = model.stamina < 25 ? '#e59992' : '#8bbf90';
   $('distance').textContent = String(Math.floor(model.distance));
   $('coin-count').textContent = String(model.coins);
-  const chaserPercent = 100 - chaseMarkerPercent(model.phase === 'over' ? model.gap : displayGap);
-  $('gap-fill').style.left = `${chaserPercent}%`; $('gap-fill').style.width = `${92 - chaserPercent}%`;
+  const gapFraction = (chaseMarkerPercent(model.phase === 'over' ? model.gap : displayGap) - 8) / 84;
+  const chaserPercent = 100 - 92 * gapFraction;
+  $('gap-fill').style.left = `${chaserPercent}%`; $('gap-fill').style.width = `${100 - chaserPercent}%`;
   $('gap-fill').style.background = model.gap < 12 ? '#ed9b8c' : '#9acbad';
   $('chase-monster').style.left = `${chaserPercent}%`;
   // Gameplay contains gauges, not tutorial prompts or obstacle labels.
@@ -109,6 +111,7 @@ class RunnerScene extends Phaser.Scene {
   private cursor = 0;
   private loadFailed = false;
   private world!: Phaser.GameObjects.Container;
+  private playfield!: Phaser.GameObjects.Container;
   private cameraLift = 0;
   private bg = new Background(this);
   preload() {
@@ -117,16 +120,20 @@ class RunnerScene extends Phaser.Scene {
     Background.preload(this);
     this.load.atlas(ATLAS, '/assets/game-atlas.webp', '/assets/game-atlas.json');
     this.load.atlas(EVENT_ATLAS, '/assets/event-atlas.webp', '/assets/event-atlas.json');
+    this.load.atlas(OBSTACLE_ATLAS, '/assets/meadow-obstacles.webp', '/assets/meadow-obstacles.json');
     this.load.spritesheet('coin-spin', '/assets/coin-spin.webp', { frameWidth: 128, frameHeight: 128 });
     this.load.spritesheet('coin-gold-spin', '/assets/coin-gold-spin.webp', { frameWidth: 128, frameHeight: 128 });
   }
   create() {
     if (this.loadFailed) { preparing = false; model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
     this.world = this.add.container(0, 0);
+    const scenery = this.add.container(0, 0);
+    this.playfield = this.add.container(0, 0);
+    this.world.add([scenery, this.playfield]);
     this.g = this.add.graphics(); this.hero = this.add.image(560, RULES.floor, ATLAS, 'momonga').setOrigin(.5, 1).setDepth(5);
     this.chaser = this.add.image(0, RULES.floor, ATLAS, 'dekatsuyo').setOrigin(.5, 1).setDepth(4);
-    this.world.add([this.g, this.chaser, this.hero]);
-    this.bg.build(this.world);
+    this.playfield.add([this.g, this.chaser, this.hero]);
+    this.bg.build(scenery);
     this.scale.refresh(); loading.remove();
     sceneReady = true;
     armStart();
@@ -156,8 +163,19 @@ class RunnerScene extends Phaser.Scene {
   }
   private sprite(key: string | number, x: number, y: number, w: number, h: number, atlas = ATLAS) {
     let s = this.pool[this.cursor++];
-    if (!s) { s = this.add.image(0, 0, atlas, key).setDepth(2); this.pool.push(s); this.world.addAt(s, 1); }
-    return s.setTexture(atlas, key).setPosition(x, y).setDisplaySize(w, h).setOrigin(.5).setRotation(0).setAlpha(1).clearTint().setVisible(true);
+    if (!s) { s = this.add.image(0, 0, atlas, key).setDepth(2); this.pool.push(s); this.playfield.addAt(s, this.playfield.length - 2); }
+    return s.setTexture(atlas, key).setCrop().setPosition(x, y).setDisplaySize(w, h).setOrigin(.5).setRotation(0).setAlpha(1).clearTint().setVisible(true);
+  }
+  private obstaclePart(key: string, left: number, top: number, width: number, height: number, visibleWidth = width, visibleHeight = height) {
+    const frame = this.textures.get(OBSTACLE_ATLAS).get(key);
+    return this.sprite(key, left, top, width, height, OBSTACLE_ATLAS).setOrigin(0, 0)
+      .setCrop(0, 0, frame.width * visibleWidth / width, frame.height * visibleHeight / height);
+  }
+  private curtain(x: number, top: number, bottom: number, width: number, gate = false) {
+    const prefix = gate ? 'gate' : 'beam', bodyBottom = bottom - 48;
+    for (let y = top; y < bodyBottom; y += 160)
+      this.obstaclePart(`${prefix}-body`, x - width / 2, y, width, 160, width, Math.min(160, bodyBottom - y));
+    this.obstaclePart(`${prefix}-bottom`, x - width / 2, bodyBottom, width, 48);
   }
   private drawFallbackBackdrop(g: Phaser.GameObjects.Graphics, floor: number, progress: number) {
     g.fillStyle(0xeff6e9).fillRect(0, -240, 1120, 1100);
@@ -185,27 +203,19 @@ class RunnerScene extends Phaser.Scene {
       const left = center + (p.start - model.distance) * RULES.scale, width = (p.end - p.start) * RULES.scale;
       if (left > 1140 || left + width < -20) continue;
       if (p.required) {
-        g.fillStyle(0x725340).fillRoundedRect(left - 10, p.y + 10, 46, floor - p.y, 9);
-        g.lineStyle(3, 0x503f32).strokeRoundedRect(left - 10, p.y + 10, 46, floor - p.y, 9);
-        g.lineStyle(3, 0x9a7651).lineBetween(left + 6, p.y + 29, left + 6, floor);
+        for (let y = p.y + 24; y < floor; y += 46)
+          this.obstaclePart('platform-support', left - 10, y, 46, 46, 46, Math.min(46, floor - y));
       }
-      g.fillStyle(0x98714f).fillRoundedRect(left, p.y, width, 16, 7);
-      g.lineStyle(3, 0x624d38).strokeRoundedRect(left, p.y, width, 16, 7);
-      g.fillStyle(0xb3ce84).fillRoundedRect(left, p.y - 3, width, 8, 4);
-      for (let x = p.start + 1; x < p.end; x += 2) {
-        const sx = center + (x - model.distance) * RULES.scale;
-        if (sx < -30 || sx > 1150) continue;
-        g.lineStyle(2, 0x72543f).lineBetween(sx - 16, p.y + 11, sx + 15, p.y + 11);
-        // Small leaves stay above the walking clearance of the lower lane.
-        g.lineStyle(3, 0x7da16c).lineBetween(sx, p.y + 13, sx + 6, p.y + 17);
-        g.fillStyle(0x9cbd80).fillEllipse(sx + 11, p.y + 15, 14, 6);
-      }
+      this.obstaclePart('platform-left', left, p.y - 3, 64, 32);
+      for (let x = left + 64; x < left + width - 64; x += 128)
+        if (x > -128 && x < 1140) this.obstaclePart('platform-middle', x, p.y - 3, 128, 32, Math.min(128, left + width - 64 - x));
+      this.obstaclePart('platform-right', left + width - 64, p.y - 3, 64, 32);
     }
     // Vine gate (platform.gateX, set by the model): a solid hanging curtain from above the view down to the branch.
     for (const p of model.platforms) {
       const gx = (p as { gateX?: number }).gateX; if (gx === undefined) continue;
       const gxs = center + (gx - model.distance) * RULES.scale; if (gxs < -80 || gxs > 1200) continue;
-      this.sprite('obstacle-vines', gxs, (-300 + p.y + 10) / 2, 64 * 1.04, (p.y + 10 + 300) * 1.02);
+      this.curtain(gxs, -300, p.y + 10, RULES.gateWidth, true);
     }
     for (const item of model.items) {
       if (item.used && item.kind !== 'pit') continue;
@@ -228,17 +238,15 @@ class RunnerScene extends Phaser.Scene {
         }
       } else if (item.kind === 'pit') {
         const bx = ix - item.w / 2;
-        g.fillStyle(0x354c3e).fillRect(bx, floor, item.w, 170); g.fillStyle(0x243a30).fillRect(bx + 8, floor + 18, item.w - 16, 152);
-        g.lineStyle(4, 0xbaa482).lineBetween(bx, floor, bx, floor + 28).lineBetween(bx + item.w, floor, bx + item.w, floor + 28);
+        g.fillStyle(0x5c4238).fillRect(bx, floor, item.w, 170);
+        this.obstaclePart('pit-left', bx - 64, floor - 3, 64, 170);
+        this.obstaclePart('pit-right', bx + item.w, floor - 3, 64, 170);
       } else {
         const obstacleFloor = item.y + item.h + (item.kind === 'beam' ? 44 : 0);
         g.fillStyle(0x294b31, .1).fillEllipse(ix, obstacleFloor + 3, item.w + 15, 10);
-        const key = item.kind === 'beam' ? 'obstacle-vines' : item.kind === 'block' ? 'obstacle-log' : 'obstacle-rock';
-        // Extend hanging foliage above the highest camera view; no exposed top edge.
-        const beamTop = -300;
-        const y = item.kind === 'beam' ? (beamTop + item.y + item.h) / 2 : item.y + item.h / 2;
-        const h = item.kind === 'beam' ? item.y + item.h - beamTop : item.h;
-        this.sprite(key, ix, y, item.w, h * 1.02);
+        if (item.kind === 'beam') this.curtain(ix, -300, item.y + item.h, item.w);
+        else this.sprite(item.kind === 'block' ? 'block' : item.kind === 'tower' ? 'tower' : 'obstacle-log',
+          ix, item.y + item.h / 2, item.w, item.h, item.kind === 'long' ? ATLAS : OBSTACLE_ATLAS);
       }
     }
     for (const npc of model.encounters) {

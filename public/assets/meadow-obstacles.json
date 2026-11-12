@@ -1,0 +1,253 @@
+{
+  "frames": {
+    "beam-body": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 320,
+        "h": 320
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 320
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "beam-bottom": {
+      "frame": {
+        "x": 326,
+        "y": 2,
+        "w": 320,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 96
+      }
+    },
+    "gate-body": {
+      "frame": {
+        "x": 650,
+        "y": 2,
+        "w": 128,
+        "h": 320
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 320
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 320
+      }
+    },
+    "gate-bottom": {
+      "frame": {
+        "x": 782,
+        "y": 2,
+        "w": 128,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 96
+      }
+    },
+    "block": {
+      "frame": {
+        "x": 914,
+        "y": 2,
+        "w": 112,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 112,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 112,
+        "h": 128
+      }
+    },
+    "tower": {
+      "frame": {
+        "x": 1030,
+        "y": 2,
+        "w": 96,
+        "h": 380
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 380
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 380
+      }
+    },
+    "platform-left": {
+      "frame": {
+        "x": 1130,
+        "y": 2,
+        "w": 128,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 64
+      }
+    },
+    "platform-middle": {
+      "frame": {
+        "x": 1262,
+        "y": 2,
+        "w": 256,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 64
+      }
+    },
+    "platform-right": {
+      "frame": {
+        "x": 1522,
+        "y": 2,
+        "w": 128,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 64
+      }
+    },
+    "platform-support": {
+      "frame": {
+        "x": 1654,
+        "y": 2,
+        "w": 92,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 92
+      }
+    },
+    "pit-left": {
+      "frame": {
+        "x": 1750,
+        "y": 2,
+        "w": 128,
+        "h": 340
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 340
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 340
+      }
+    },
+    "pit-right": {
+      "frame": {
+        "x": 1882,
+        "y": 2,
+        "w": 128,
+        "h": 340
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 340
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 340
+      }
+    }
+  },
+  "meta": {
+    "image": "meadow-obstacles.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2048,
+      "h": 512
+    },
+    "scale": "1"
+  }
+}
