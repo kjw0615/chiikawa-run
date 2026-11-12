@@ -7,8 +7,8 @@
 export const KURI_RULES = {
   beerRate: .4,          // glass fill per second while the beer button is held
   foamRate: .3,          // glass fill per second while the foam button is held
-  perfect: .03,          // |error| of the glass fill (0..1) that earns a perfect
-  good: .09,             // |error| that earns a good
+  perfect: .05,          // |error| of the glass fill (0..1) that earns a perfect
+  good: .12,             // |error| that earns a good
   points: { perfect: 4, good: 2, bad: 0 },
   maxScore: 8,
   readySeconds: 3,       // time to press before the stage is lost (counts as bad)
