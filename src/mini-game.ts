@@ -23,8 +23,8 @@ export interface MiniGame {
   press(): void;
   release(): void;
 }
-// Mini games that are playable. Add 'kuri' here once its art is in; the pick is by seed, so a course is stable.
-export const ENABLED_MINI_GAMES: readonly ('lemon' | 'kuri')[] = ['lemon'];
+// Mini games that are playable; the pick is by seed, so a given encounter is always the same game.
+export const ENABLED_MINI_GAMES: readonly ('lemon' | 'kuri')[] = ['lemon', 'kuri'];
 export function createMiniGame(seed: number, enabled: readonly ('lemon' | 'kuri')[] = ENABLED_MINI_GAMES): MiniGame {
   const kind = enabled[(Math.imul(seed >>> 0, 2654435761) >>> 16) % enabled.length] ?? 'lemon';
   return kind === 'kuri' ? new KurimanjuGame(seed) : new StickerGame(seed);
