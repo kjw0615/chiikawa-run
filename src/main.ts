@@ -4,6 +4,7 @@ import './minigame.css';
 import { createStartIntro } from './start-intro';
 import { createRunReady } from './run-ready';
 import { RunnerModel, RULES } from './model';
+import { Background } from './background';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
 let displayGap = RULES.initialGap;
@@ -107,9 +108,11 @@ class RunnerScene extends Phaser.Scene {
   private loadFailed = false;
   private world!: Phaser.GameObjects.Container;
   private cameraLift = 0;
+  private bg = new Background(this);
   preload() {
     this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
-    this.load.on('loaderror', () => { this.loadFailed = true; });
+    this.load.on('loaderror', (file: { key: string }) => { if (!Background.owns(file.key)) this.loadFailed = true; });
+    Background.preload(this);
     this.load.atlas(ATLAS, '/assets/game-atlas.webp', '/assets/game-atlas.json');
     this.load.atlas(EVENT_ATLAS, '/assets/event-atlas.webp', '/assets/event-atlas.json');
     this.load.spritesheet('coin-spin', '/assets/coin-spin.webp', { frameWidth: 128, frameHeight: 128 });
@@ -121,6 +124,7 @@ class RunnerScene extends Phaser.Scene {
     this.g = this.add.graphics(); this.hero = this.add.image(560, RULES.floor, ATLAS, 'momonga').setOrigin(.5, 1).setDepth(5);
     this.chaser = this.add.image(0, RULES.floor, ATLAS, 'dekatsuyo').setOrigin(.5, 1).setDepth(4);
     this.world.add([this.g, this.chaser, this.hero]);
+    this.bg.build(this.world);
     this.scale.refresh(); loading.remove();
     sceneReady = true;
     armStart();
@@ -153,10 +157,8 @@ class RunnerScene extends Phaser.Scene {
     if (!s) { s = this.add.image(0, 0, atlas, key).setDepth(2); this.pool.push(s); this.world.addAt(s, 1); }
     return s.setTexture(atlas, key).setPosition(x, y).setDisplaySize(w, h).setOrigin(.5).setRotation(0).setAlpha(1).clearTint().setVisible(true);
   }
-  private draw() {
-    const g = this.g, floor = RULES.floor, center = 560, progress = model.distance * RULES.scale;
-    this.cursor = 0; for (const s of this.pool) s.setVisible(false);
-    g.clear(); g.fillStyle(0xeff6e9).fillRect(0, -240, 1120, 1100);
+  private drawFallbackBackdrop(g: Phaser.GameObjects.Graphics, floor: number, progress: number) {
+    g.fillStyle(0xeff6e9).fillRect(0, -240, 1120, 1100);
     g.fillStyle(0xffe4ad).fillCircle(913, 127, 49); g.fillStyle(0xffffff, .4).fillCircle(913, 127, 65);
     for (let i = -1; i < 6; i++) { const hx = i * 310 - progress * .14 % 310; g.fillStyle(0xd7e7c4).fillEllipse(hx + 140, 406, 440, 260); }
     for (let i = -1; i < 11; i++) {
@@ -164,8 +166,17 @@ class RunnerScene extends Phaser.Scene {
       g.fillStyle(0xc5cfab, .7).fillRoundedRect(tx + 17, 333, 16, 130, 8);
       g.fillStyle(0xc0d9b1, .85).fillCircle(tx + 25, 322, 38);
     }
+  }
+  private drawGround(g: Phaser.GameObjects.Graphics, floor: number, progress: number) {
     g.fillStyle(0xa9c78c).fillRect(0, floor, 1120, 9); g.fillStyle(0x8caa76).fillRect(0, floor + 9, 1120, 39); g.fillStyle(0x68876a).fillRect(0, floor + 48, 1120, 400);
     for (let i = -1; i < 25; i++) g.fillStyle(0xb0c597).fillRoundedRect(i * 53 - progress % 53, floor + 25, 20, 3, 2);
+  }
+  private draw() {
+    const g = this.g, floor = RULES.floor, center = 560, progress = model.distance * RULES.scale;
+    this.cursor = 0; for (const s of this.pool) s.setVisible(false);
+    g.clear(); this.bg.update(progress);
+    if (!this.bg.ready) this.drawFallbackBackdrop(g, floor, progress);
+    this.drawGround(g, floor, progress);
     // A single repeating moss-covered branch, painted at world coordinates.
     // Its shape and grain never depend on the slot currently occupying the screen.
     for (const p of model.platforms) {
