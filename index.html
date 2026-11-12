@@ -28,7 +28,7 @@
         <h1 id="home-title">치이카와 <span>런</span></h1>
         <p class="home-sub">뒤에서 데카츠요가 쫓아와요!<br>맛있는 걸 먹고, 뛰어넘고, 끝까지 도망쳐요.</p>
         <button id="home-play" class="big-button" type="button">달리기 시작 <span aria-hidden="true">▶</span></button>
-        <label class="intro-option"><input id="show-intro" type="checkbox" checked/> 시작 영상 보기</label>
+        <button id="show-intro" class="intro-option" type="button" role="switch" aria-checked="true"><span>시작 영상 보기</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
         <p class="home-keys"><kbd>Space</kbd> 점프 <i></i> <kbd>↓</kbd> 앉기 <i></i> <kbd>P</kbd> 일시정지</p>
       </div>
 
@@ -77,7 +77,7 @@
     <div id="status" class="status" aria-live="polite">준비됐나요?</div>
     <div class="chase-panel" aria-label="데카츠요와의 거리"><img class="chase-end" src="/assets/dekatsuyo.webp" alt="데카츠요" onerror="this.style.visibility='hidden'"/><div class="chase-track"><div id="gap-fill"></div><img id="gap-marker" src="/assets/momonga.webp" alt="모몽가" onerror="this.style.visibility='hidden'"/></div></div>
     <div class="touch-controls"><button id="crouch" class="control" type="button"><span>↓</span>앉기<small>누르고 유지</small></button><button id="jump" class="control jump" type="button"><span>↑</span>점프<small>공중에서 한 번 더</small></button></div>
-    <div id="overlay" class="overlay"><div class="modal"><span id="modal-kicker" class="eyebrow">준비됐나요, 모몽가?</span><h2 id="modal-title">한 입 먹고,<br>한 발 더 멀리.</h2><p id="modal-copy">장애물을 피하며 맛있는 음식을 챙겨요.<br>뒤에서 쫓아오는 데카츠요에게 잡히지 마세요!</p><div id="result" class="result" hidden></div><button id="start" class="primary" type="button">달리기 시작 <span>→</span></button><button id="pause-home" class="primary stop-running" type="button" hidden>그만 달리기 <span aria-hidden="true">↗</span></button><p class="modal-help">Space 점프 · ↓ 앉기 · P 일시정지</p></div></div>
+    <div id="overlay" class="overlay"><div class="modal"><span id="modal-kicker" class="eyebrow">준비됐나요, 모몽가?</span><h2 id="modal-title">한 입 먹고,<br>한 발 더 멀리.</h2><p id="modal-copy">장애물을 피하며 맛있는 음식을 챙겨요.<br>뒤에서 쫓아오는 데카츠요에게 잡히지 마세요!</p><div id="result" class="result" hidden></div><button id="overlay-show-intro" class="intro-option" type="button" role="switch" aria-checked="true"><span>&#49884;&#51089; &#50689;&#49345; &#48372;&#44592;</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button><button id="start" class="primary" type="button">달리기 시작 <span>→</span></button><button id="pause-home" class="primary stop-running" type="button" hidden>그만 달리기 <span aria-hidden="true">↗</span></button><p class="modal-help">Space 점프 · ↓ 앉기 · P 일시정지</p></div></div>
     <div id="mini-countdown" class="mini-countdown" role="status" hidden><p>다시 달릴 준비!</p><strong id="countdown-number">3</strong><button id="countdown-resume" class="primary" type="button" hidden>계속하기</button><button id="countdown-home" class="primary stop-running" type="button" hidden>그만 달리기 <span aria-hidden="true">↗</span></button></div>
   </section>
 

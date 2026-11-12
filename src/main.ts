@@ -17,6 +17,17 @@ let mini: StickerGame | null = null, encounterId: number | null = null, miniView
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
 const overlay = $('overlay'), start = $('start'), pause = $<HTMLButtonElement>('pause');
 const home = $('home-screen'), play = $('play-screen');
+const introSwitches = [$('show-intro'), $('overlay-show-intro')];
+let showIntro = true;
+for (const button of introSwitches) button.addEventListener('click', () => {
+  showIntro = !showIntro;
+  for (const peer of introSwitches) peer.setAttribute('aria-checked', String(showIntro));
+});
+// This dedicated game page owns Tab in every screen, including modal focus traps.
+window.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' && e.code !== 'Tab') return;
+  e.preventDefault(); e.stopImmediatePropagation();
+}, { capture: true });
 const loading = document.createElement('div');
 loading.setAttribute('role', 'status'); loading.textContent = '모몽가가 숲으로 가는 중…';
 Object.assign(loading.style, { position: 'absolute', inset: '0', display: 'grid', placeItems: 'center', background: '#fffdf6', color: '#624b4b', zIndex: '20', fontSize: '18px' });
@@ -34,7 +45,7 @@ function armStart() {
 }
 function begin() {
   if (intro.active || ready.active || preparing) return;
-  if ($<HTMLInputElement>('show-intro').checked) {
+  if (showIntro) {
     release(); releaseJump(); model.pause(); mini?.pause(); game?.loop.sleep();
     if (mini) { mini = null; encounterId = null; updateMini(); }
     intro.start();
@@ -273,15 +284,15 @@ $('home-return').addEventListener('click', returnHome);
 $('pause-home').addEventListener('click', returnHome);
 $('countdown-home').addEventListener('click', returnHome);
 window.addEventListener('keydown', e => {
-  // Only the live play surface consumes browser navigation keys. Menus retain
-  // keyboard navigation, and browser shortcuts with modifiers remain intact.
+  // Horizontal navigation is suppressed while playing; Tab is handled globally.
   const live = intro.active || ready.active || preparing
     || !play.hidden && model.phase === 'running' && !mini
     || !!mini && !mini.paused && ['selecting', 'playing', 'feedback', 'countdown'].includes(mini.phase);
-  if (live && !e.ctrlKey && !e.metaKey && !e.altKey && ['ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) {
+  if (live && !e.ctrlKey && !e.metaKey && !e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.code)) {
     e.preventDefault(); return;
   }
   if (home.hidden === false && e.target instanceof HTMLInputElement) return;
+  if (e.target instanceof HTMLElement && e.target.closest('[role="switch"]') && ['Space', 'Enter'].includes(e.code)) return;
   if (e.target instanceof HTMLButtonElement && e.target.classList.contains('stop-running') && ['Space', 'Enter'].includes(e.code)) return;
   if (intro.active) {
     if (e.code === 'Escape') { e.preventDefault(); intro.skip(); }
