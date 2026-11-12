@@ -339,6 +339,86 @@
         "w": 448,
         "h": 320
       }
+    },
+    "momonga-crouch-0": {
+      "frame": {
+        "x": 906,
+        "y": 547,
+        "w": 192,
+        "h": 72
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 72
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 72
+      }
+    },
+    "momonga-crouch-1": {
+      "frame": {
+        "x": 1102,
+        "y": 547,
+        "w": 192,
+        "h": 72
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 72
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 72
+      }
+    },
+    "momonga-crouch-2": {
+      "frame": {
+        "x": 1298,
+        "y": 547,
+        "w": 192,
+        "h": 72
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 72
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 72
+      }
+    },
+    "momonga-crouch-3": {
+      "frame": {
+        "x": 1494,
+        "y": 547,
+        "w": 192,
+        "h": 72
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 72
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 72
+      }
     }
   },
   "meta": {
