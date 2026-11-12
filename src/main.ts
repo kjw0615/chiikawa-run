@@ -176,8 +176,8 @@ class RunnerScene extends Phaser.Scene {
     return this.sprite(key, left, top, width, height, OBSTACLE_ATLAS).setOrigin(0, 0)
       .setCrop(0, 0, frame.width * visibleWidth / width, frame.height * visibleHeight / height);
   }
-  private curtain(x: number, top: number, bottom: number, width: number, gate = false) {
-    const prefix = gate ? 'gate' : 'beam', bodyTop = top + 56, bodyBottom = bottom - 48;
+  private curtain(x: number, top: number, bottom: number, width: number) {
+    const prefix = 'beam', bodyTop = top + 56, bodyBottom = bottom - 48;
     this.obstaclePart(`${prefix}-top`, x - width / 2, top, width, 56);
     // Repeat complete middle modules. Evenly distributing the final partial
     // height keeps both connection rows intact instead of cutting across leaves.
@@ -212,10 +212,6 @@ class RunnerScene extends Phaser.Scene {
     for (const p of model.platforms) {
       const left = center + (p.start - model.distance) * RULES.scale, width = (p.end - p.start) * RULES.scale;
       if (left > 1140 || left + width < -20) continue;
-      if (p.required) {
-        for (let y = p.y + 24; y < floor; y += 46)
-          this.obstaclePart('platform-support', left - 10, y, 46, 46, 46, Math.min(46, floor - y));
-      }
       const middleWidth = width - 128, count = Math.max(1, Math.ceil(middleWidth / 128)), tileWidth = middleWidth / count;
       for (let i = 0; i < count; i++) {
         const x = left + 64 + i * tileWidth;
@@ -223,12 +219,6 @@ class RunnerScene extends Phaser.Scene {
       }
       this.obstaclePart('platform-left', left, p.y - 3, 64, 32);
       this.obstaclePart('platform-right', left + width - 64, p.y - 3, 64, 32);
-    }
-    // Vine gate (platform.gateX, set by the model): a solid hanging curtain from above the view down to the branch.
-    for (const p of model.platforms) {
-      const gx = (p as { gateX?: number }).gateX; if (gx === undefined) continue;
-      const gxs = center + (gx - model.distance) * RULES.scale; if (gxs < -80 || gxs > 1200) continue;
-      this.curtain(gxs, -300, p.y + 10, RULES.gateWidth, true);
     }
     for (const item of model.items) {
       if (item.used && item.kind !== 'pit') continue;
