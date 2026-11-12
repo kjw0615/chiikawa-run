@@ -28,7 +28,7 @@ export function createRunReady() {
   screen.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
     e.preventDefault();
-    (resume.hidden ? screen : resume).focus();
+    screen.focus();
   });
   return {
     get active() { return active; },

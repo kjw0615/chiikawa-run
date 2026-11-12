@@ -24,9 +24,13 @@ for (const button of introSwitches) button.addEventListener('click', () => {
   for (const peer of introSwitches) peer.setAttribute('aria-checked', String(showIntro));
 });
 // This dedicated game page owns Tab in every screen, including modal focus traps.
+// Keyboard never selects or presses buttons: arrows and Enter lose their default action everywhere
+// (the game's own key handler below still sees them), and no code moves focus onto a button.
+const dropFocus = () => (document.activeElement as HTMLElement | null)?.blur?.();
 window.addEventListener('keydown', e => {
-  if (e.key !== 'Tab' && e.code !== 'Tab') return;
-  e.preventDefault(); e.stopImmediatePropagation();
+  if (e.key === 'Tab' || e.code === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); return; }
+  const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
+  if (e.code === 'Enter' || e.code === 'NumpadEnter' || (!typing && e.code.startsWith('Arrow'))) e.preventDefault();
 }, { capture: true });
 const loading = document.createElement('div');
 loading.setAttribute('role', 'status'); loading.textContent = '모몽가가 숲으로 가는 중…';
@@ -40,7 +44,7 @@ function armStart() {
   preparing = false;
   ready.start(() => {
     release(); releaseJump(); accumulator = 0;
-    model.start(); updateHud(); pause.focus({ preventScroll: true });
+    model.start(); updateHud(); dropFocus();
   });
 }
 function begin() {
@@ -278,7 +282,7 @@ for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) crouch
 function returnHome() {
   preparing = false; ready.cancel();
   release(); releaseJump(); model.pause(); mini = null; encounterId = null; updateMini(); updateHud();
-  play.hidden = true; home.hidden = false; game?.loop.sleep(); $('home-play').focus(); window.scrollTo({ top: 0 });
+  play.hidden = true; home.hidden = false; game?.loop.sleep(); dropFocus(); window.scrollTo({ top: 0 });
 }
 $('home-return').addEventListener('click', returnHome);
 $('pause-home').addEventListener('click', returnHome);
@@ -406,5 +410,5 @@ function updateMini() {
   miniActionButton.disabled = g.phase === 'feedback' && !g.paused;
   miniActionButton.textContent = g.paused ? '계속하기' : g.phase === 'intro' ? '준비됐어요! 시작' : g.phase === 'result' ? '달리기로 돌아가기' : '스티커 붙이기';
   if (g.phase === 'result' && g.reward) $('mini-reward').textContent = `동전 +${g.coinReward} · 체력 +${g.reward.stamina} · ${g.reward.speedMultiplier}배 속도 ${g.reward.seconds}초`;
-  if (['intro','result'].includes(g.phase)) miniActionButton.focus({ preventScroll: true });
+  if (['intro','result'].includes(g.phase)) dropFocus();
 }

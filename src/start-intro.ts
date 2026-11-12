@@ -44,11 +44,6 @@ export function createStartIntro(onComplete: () => void) {
   video.addEventListener('error', finish);
   skip.addEventListener('click', finish);
   resume.addEventListener('click', () => video.ended || video.error ? finish() : play());
-  screen.addEventListener('keydown', e => {
-    if (e.key !== 'Tab') return;
-    e.preventDefault();
-    (resume.hidden || document.activeElement === resume ? skip : resume).focus();
-  });
   document.addEventListener('visibilitychange', () => {
     if (!active) return;
     if (document.hidden) {
@@ -68,7 +63,7 @@ export function createStartIntro(onComplete: () => void) {
       screen.hidden = false;
       document.body.style.overflow = 'hidden';
       video.src = '/assets/start-intro-720p.mp4';
-      skip.focus({ preventScroll: true });
+      (document.activeElement as HTMLElement | null)?.blur?.();
       play();
     },
     skip: finish,
