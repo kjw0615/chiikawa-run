@@ -72,6 +72,8 @@ export class KurimanjuGame {
   get reaction() { return this.reward ? reactionFor(this.score) : ''; }
   get coinReward() { return successesFor(this.score); }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, KURI_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : KURI_RULES.countdownSeconds; }
+  get inPlay() { return this.phase !== 'intro' && this.phase !== 'result' && this.phase !== 'done'; }
+  get interactive() { return this.phase === 'beer-ready' || this.phase === 'beer-pour' || this.phase === 'foam-ready' || this.phase === 'foam-pour'; }
   pause() { this.paused = true; }
   resume() { this.paused = false; }
 

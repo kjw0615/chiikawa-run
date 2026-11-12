@@ -63,6 +63,11 @@ export class StickerGame {
   /** One coin per successful round; the caller adds it to the reward it hands to the runner. */
   get coinReward() { return this.successes; }
   get reward(): Reward | null { return this.results.length >= MINI_RULES.rounds ? rewardFor(this.successes) : null; }
+  get inPlay() { return this.phase === 'selecting' || this.phase === 'playing' || this.phase === 'feedback' || this.phase === 'countdown'; }
+  get interactive() { return this.phase === 'playing'; }
+  /** Tap input: stamps during a round, ignored in every other phase. */
+  press() { if (this.phase === 'playing') this.stamp(); }
+  release() { /* tap game: nothing to do */ }
   get lastHit() { return this.results.length ? this.results[this.results.length - 1] : null; }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, MINI_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : MINI_RULES.countdownSeconds; }
   pause() { this.paused = true; }
