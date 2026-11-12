@@ -1,15 +1,12 @@
 // Screen for the kurimanju mini game. It only draws from the game's state; input goes through main.ts.
 import { KurimanjuGame } from './kurimanju-game';
+import { renderBeerPour } from './beer-pour-view';
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 export interface KuriView { buttonText: string; buttonDisabled: boolean }
 
 /** Draws the cheap part (fill levels, guide lines) every frame and rewrites text only when the state key changes. */
 export function renderKurimanju(g: KurimanjuGame, state: { key: string }): KuriView {
-  $('kuri-beer').style.height = `${g.beer * 100}%`;
-  const foam = $('kuri-foam').style; foam.bottom = `${g.beer * 100}%`; foam.height = `${g.foam * 100}%`;
-  // Both guide lines are visible from the very start.
-  $('kuri-beer-line').style.bottom = `${g.beerLine * 100}%`; $('kuri-foam-line').style.bottom = `${g.foamLine * 100}%`;
-  $('kuri-glass').classList.toggle('pouring', g.phase.endsWith('pour') && !g.paused);
+  renderBeerPour(g);
   const view: KuriView = {
     buttonText: g.paused ? '계속하기' : g.phase === 'intro' ? '준비됐어요! 시작' : g.phase === 'result' ? '달리기로 돌아가기' : '꾹 눌러서 따르기',
     buttonDisabled: false,
