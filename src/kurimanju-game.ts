@@ -2,7 +2,7 @@
 // It owns its own clock (advanced only by step(dt)) and never touches the runner model. The caller
 // forwards one hold button: press() / release(). Rewards are computed here and applied by the caller once.
 //
-// Rules: stage 1, hold to pour the beer, release at the beer line. Stage 2, hold again to pour the foam on
+// Nothing is judged out loud until the result screen. Rules: stage 1, hold to pour the beer, release at the beer line. Stage 2, hold again to pour the foam on
 // top, release at the foam line. Each stage scores perfect 4 / good 2 / bad 0, so the total is 0..8.
 export const KURI_RULES = {
   beerRate: .4,          // glass fill per second while the beer button is held
@@ -12,12 +12,11 @@ export const KURI_RULES = {
   points: { perfect: 4, good: 2, bad: 0 },
   maxScore: 8,
   readySeconds: 3,       // time to press before the stage is lost (counts as bad)
-  feedbackSeconds: .9,
   beerLineMin: .42, beerLineMax: .62,
   foamThickMin: .12, foamThickMax: .2, // foam line = beer line + thickness, always below the rim (1)
   countdownSeconds: 3,
 } as const;
-export type KuriPhase = 'intro' | 'beer-ready' | 'beer-pour' | 'beer-feedback' | 'foam-ready' | 'foam-pour' | 'foam-feedback' | 'result' | 'countdown' | 'done';
+export type KuriPhase = 'intro' | 'beer-ready' | 'beer-pour' | 'foam-ready' | 'foam-pour' | 'result' | 'countdown' | 'done';
 export type Grade = 'perfect' | 'good' | 'bad';
 export type KuriReward = { stamina: number; speedMultiplier: number; seconds: number; coins: number };
 
@@ -63,6 +62,8 @@ export class KurimanjuGame {
     this.beerLine = lerp(KURI_RULES.beerLineMin, KURI_RULES.beerLineMax, unit(seed, 1));
     this.foamLine = this.beerLine + lerp(KURI_RULES.foamThickMin, KURI_RULES.foamThickMax, unit(seed, 2));
   }
+  /** Overall verdict, shown only on the result screen: 8 perfect, 4-6 good, 0-2 bad. */
+  get finalGrade(): Grade { return this.score >= KURI_RULES.maxScore ? 'perfect' : this.score >= 4 ? 'good' : 'bad'; }
   get foamTop() { return this.beer + this.foam; }
   get score() {
     const p = KURI_RULES.points;
@@ -96,19 +97,19 @@ export class KurimanjuGame {
   }
   private finishBeer() {
     this.beerGrade = this.beer > 1 - 1e-9 ? 'bad' : gradeFor(Math.abs(this.beer - this.beerLine));
-    this.to('beer-feedback');
+    this.to('foam-ready'); // straight on to the foam: no pause and no mid-game verdict
   }
   private finishFoam() {
     this.foamGrade = this.foamTop > 1 - 1e-9 ? 'bad' : gradeFor(Math.abs(this.foamTop - this.foamLine));
-    this.to('foam-feedback');
+    this.to('result');
   }
 
   step(dt: number) {
     if (this.paused || !(dt > 0)) return;
     this.elapsed += dt;
     switch (this.phase) {
-      case 'beer-ready': if (this.elapsed >= KURI_RULES.readySeconds) { this.beerGrade = 'bad'; this.to('beer-feedback'); } break;
-      case 'foam-ready': if (this.elapsed >= KURI_RULES.readySeconds) { this.foamGrade = 'bad'; this.to('foam-feedback'); } break;
+      case 'beer-ready': if (this.elapsed >= KURI_RULES.readySeconds) { this.beerGrade = 'bad'; this.to('foam-ready'); } break;
+      case 'foam-ready': if (this.elapsed >= KURI_RULES.readySeconds) { this.foamGrade = 'bad'; this.to('result'); } break;
       case 'beer-pour':
         this.beer = Math.min(1, this.beer + KURI_RULES.beerRate * dt);
         if (this.beer >= 1) { this.holding = false; this.finishBeer(); } // overflow: the pour stops by itself
@@ -117,8 +118,6 @@ export class KurimanjuGame {
         this.foam = Math.min(1 - this.beer, this.foam + KURI_RULES.foamRate * dt);
         if (this.foamTop >= 1 - 1e-9) { this.holding = false; this.finishFoam(); }
         break;
-      case 'beer-feedback': if (this.elapsed >= KURI_RULES.feedbackSeconds) this.to('foam-ready'); break;
-      case 'foam-feedback': if (this.elapsed >= KURI_RULES.feedbackSeconds) this.to('result'); break;
       case 'countdown': if (this.elapsed >= KURI_RULES.countdownSeconds) this.to('done'); break;
       default: break; // intro, result and done wait for the caller
     }
