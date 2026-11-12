@@ -9,7 +9,7 @@ export const RULES = {
   foodHazardMargin: 4, minFoodSpacing: 8, foodLiftMin: 48, foodLiftMax: 205,
   jumpReleaseVelocity: -500, platformHeight: 110, platformApproach: 8,
   platformExit: 8, platformFirstHazard: 10,
-  dropVelocity: 100, gateWidth: 64, gateTop: -600, gateUnderhang: 10,
+  glideSeconds: 1, glideVelocity: 125, dropVelocity: 100, gateWidth: 64, gateTop: -600, gateUnderhang: 10,
 };
 // Bounded progression keeps the course readable while increasing pressure.
 export const difficultyAt = (distance: number) => {
@@ -21,6 +21,7 @@ export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 1
 export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2, foodPositionJitter: 8 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number };
 export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .05, goldValue: 3, firstCoinX: 10 } as const;
+export const GLIDE_TRAIL = { pick: .68, minHeight: 150, maxHeight: 195, lowest: 60, landingClear: 5 } as const;
 export const SPAWN_CLEARANCE = { encounter: 8, encounterHazard: 6, foodCoin: 5, coinHazard: 4 } as const;
 const collectible = (kind: Item['kind']) => kind === 'food' || kind === 'gold' || kind === 'coin';
 export type Phase = 'ready' | 'running' | 'paused' | 'minigame' | 'over';
@@ -28,6 +29,7 @@ export type Platform = { id: number; start: number; end: number; y: number; requ
 export type Encounter = { id: number; x: number; y: number; seed: number; used: boolean };
 type Rescue = { time: number; fromX: number; toX: number; fromY: number };
 export class RunnerModel {
+  glideLeft: number = RULES.glideSeconds; // shared by every glide of one airtime; refilled on landing
   coins = 0; // this run only: no stamina, speed or distance effect, never saved
   phase: Phase = 'ready'; distance = 0; gap = RULES.initialGap; stamina = 100; exhausted = false; boost = 0; elapsed = 0;
   y = RULES.floor; vy = 0; jumps = 0; crouch = false; hitFlash = 0; foods = 0; bonus = 0; hits = 0;
@@ -62,6 +64,12 @@ export class RunnerModel {
     return this.platforms.find(p => p.id !== this.droppingPlatformId && this.distance >= p.start && this.distance <= p.end && Math.abs(this.y - p.y) < .01)?.y ?? RULES.floor;
   }
   get grounded() { return !this.rescue && this.vy === 0 && Math.abs(this.y - this.supportY) < .01 && (this.supportY < RULES.floor || !this.pitAt(this.distance)); }
+  /** Glide: holding jump in the air after the first jump, on the way down, within the shared glideLeft budget. */
+  get gliding() { return this.glideActive(this.vy); }
+  private glideActive(vy: number) {
+    return this.phase === 'running' && this.jumpHeld && !this.crouch && !this.rescue && this.droppingPlatformId === null
+      && this.jumps >= 1 && this.glideLeft > 0 && vy >= 0;
+  }
   get height() { return this.crouch && this.grounded ? RULES.crouchHeight : RULES.playerHeight; }
   get invulnerable() { return this.boost > 0 || this.hitFlash > 0 || this.rescue !== null; }
   start() { if (this.phase === 'ready' || this.phase === 'paused') this.phase = 'running'; }
@@ -119,7 +127,8 @@ export class RunnerModel {
     const speed = this.speed;
     const previousX = this.distance, previousY = this.y;
     let nextX = this.distance + speed * dt;
-    const predictedY = this.y + (this.vy + RULES.gravity * dt) * dt;
+    const nextVy = this.vy + RULES.gravity * dt;
+    const predictedY = this.y + (this.glideActive(nextVy) ? Math.min(nextVy, RULES.glideVelocity) : nextVy) * dt;
     const wall = this.platforms.find(p => p.required && previousX <= p.start && nextX + RULES.halfHitWidth / RULES.scale > p.start && predictedY > p.y + .01);
     this.blocked = !!wall && !this.rescue;
     if (this.blocked) nextX = Math.max(previousX, wall!.start - RULES.halfHitWidth / RULES.scale);
@@ -142,14 +151,16 @@ export class RunnerModel {
       const t = r.time / RULES.rescueSeconds;
       this.distance = r.fromX + (r.toX - r.fromX) * t;
       this.y = r.fromY + (RULES.floor - r.fromY) * t - Math.sin(t * Math.PI) * 205;
-      if (t >= 1) { this.rescue = null; this.y = RULES.floor; this.vy = 0; this.jumps = 0; this.droppingPlatformId = null; }
+      if (t >= 1) { this.rescue = null; this.y = RULES.floor; this.vy = 0; this.jumps = 0; this.droppingPlatformId = null; this.glideLeft = RULES.glideSeconds; }
     } else {
-      this.vy += RULES.gravity * dt; this.y += this.vy * dt;
+      this.vy += RULES.gravity * dt;
+      if (this.glideActive(this.vy)) { this.vy = Math.min(this.vy, RULES.glideVelocity); this.glideLeft = Math.max(0, this.glideLeft - dt); }
+      this.y += this.vy * dt;
       const pit = this.pitAt(this.distance);
       const landing = this.platforms.filter(p => p.id !== this.droppingPlatformId && this.distance >= p.start && this.distance <= p.end && previousY <= p.y + .01 && this.y >= p.y && this.vy >= 0).sort((a,b) => a.y-b.y)[0];
-      if (landing) { this.y = landing.y; this.vy = 0; this.jumps = 0; }
+      if (landing) { this.y = landing.y; this.vy = 0; this.jumps = 0; this.glideLeft = RULES.glideSeconds; }
       else if (this.y >= RULES.floor && this.vy >= 0 && !pit && this.y < RULES.floor + 25) {
-        this.y = RULES.floor; this.vy = 0; this.jumps = 0; this.droppingPlatformId = null;
+        this.y = RULES.floor; this.vy = 0; this.jumps = 0; this.droppingPlatformId = null; this.glideLeft = RULES.glideSeconds;
       }
       if (this.y >= RULES.floor + RULES.fallDepth) {
         const lastPit = pit ?? this.items.filter(i => i.kind === 'pit' && i.x < this.distance + 5).at(-1);
@@ -213,6 +224,16 @@ export class RunnerModel {
             break;
           }
         }
+      }
+      if (this.separateSpawns && lanePick < GLIDE_TRAIL.pick) {
+        // Air trail on the glide descent line: 4-5 coins sloping down at glideVelocity / speed, 150-195 px above the floor.
+        const dx = COIN_RULES.arcSpacing, drop = RULES.glideVelocity / (RULES.speed * S) * dx * S;
+        const high = GLIDE_TRAIL.minHeight + this.coinRandom() * (GLIDE_TRAIL.maxHeight - GLIDE_TRAIL.minHeight);
+        const n = this.coinRandom() < .5 ? 4 : 5, m = high - drop * (n - 1) >= GLIDE_TRAIL.lowest ? n : 4;
+        const last = start + (m - 1) * dx;
+        if (clearOfPlatforms(start - 1, last + GLIDE_TRAIL.landingClear) && clearOfHazards(start - 1, last + GLIDE_TRAIL.landingClear))
+          spots = Array.from({ length: m }, (_, k) => ({ x: start + k * dx, top: floor - (high - drop * k) - C / 2 }));
+        if (!spots) { this.nextCoinX += 2; continue; }
       }
       if (!spots) {
         const xs = Array.from({ length: count }, (_, k) => start + k * COIN_RULES.spacing);
