@@ -229,15 +229,23 @@ class RunnerScene extends Phaser.Scene {
     const monsterFrame = `dekatsuyo-run-${Math.floor(model.elapsed * 14) % 4}`;
     this.chaser.setTexture(ATLAS, monsterFrame).setVisible(cx + MONSTER_WIDTH/2 > 0).setPosition(cx, floor + (moving ? Math.sin(model.elapsed * 14) * 3 : 0)).setDisplaySize(MONSTER_WIDTH, MONSTER_HEIGHT).setRotation(moving ? Math.sin(model.elapsed * 7) * .012 : 0);
     const hx = center - 34 * Math.sin(Math.PI * Math.min(1, model.hitFlash / RULES.hitInvulnerability));
-    const duck = model.crouch && model.grounded, bob = moving && model.grounded && !duck ? Math.abs(Math.sin(model.elapsed * 13)) * 3 : 0;
+    const gliding = (model as { gliding?: boolean }).gliding === true;
+    const duck = model.crouch && model.grounded, bob = gliding ? Math.sin(model.elapsed * 7) * 1.5
+      : moving && model.grounded && !duck ? Math.abs(Math.sin(model.elapsed * 13)) * 3 : 0;
     const shadowFloor = model.platforms.find(p => model.distance >= p.start && model.distance <= p.end && model.y <= p.y + .1)?.y ?? floor;
     const height = Math.max(0, shadowFloor-model.y);
     g.fillStyle(0x355340, .16/(1+height/200)).fillEllipse(hx, shadowFloor + 7, Math.max(42, 88-height*.12), 12);
     g.fillStyle(0x355340, .18).fillEllipse(cx, floor+7, MONSTER_WIDTH*.55, 14);
     const crawlFrame = Math.floor(model.elapsed * 10) % 4;
-    const heroFrame = duck ? moving ? `momonga-crouch-${crawlFrame}` : 'momonga-crouch'
+    const heroFrame = gliding ? 'momonga-glide' : duck ? moving ? `momonga-crouch-${crawlFrame}` : 'momonga-crouch'
       : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
-    this.hero.setTexture(ATLAS, heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, duck ? 43 : 98).setRotation(duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
+    this.hero.setTexture(ATLAS, heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(gliding ? 138 : duck ? 120 : 110, gliding ? 101 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
+    if (gliding) {
+      for (let j = 0; j < 3; j++) {
+        const y = model.y - 72 + j * 22 - bob;
+        g.lineStyle(2, 0xa8cbdc, .55).lineBetween(hx - 101 - j * 6, y, hx - 77 - j * 3, y);
+      }
+    }
     if (model.eventBoost > 0 && model.boost === 0) {
       for (let j = 1; j < 4; j++) g.lineStyle(3, 0x98bf90, .5 / j).lineBetween(hx - 60 - j * 18, model.y - j * 19, hx - 30 - j * 18, model.y - j * 19);
     }

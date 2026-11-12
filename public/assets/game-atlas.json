@@ -419,6 +419,26 @@
         "w": 192,
         "h": 72
       }
+    },
+    "momonga-glide": {
+      "frame": {
+        "x": 906,
+        "y": 623,
+        "w": 138,
+        "h": 101
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 138,
+        "h": 101
+      },
+      "sourceSize": {
+        "w": 138,
+        "h": 101
+      }
     }
   },
   "meta": {
