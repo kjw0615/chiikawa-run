@@ -7,6 +7,8 @@ import { RunnerModel, RULES } from './model';
 import { Background } from './background';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
 import { createMiniGame, type MiniGame } from './mini-game';
+import { KurimanjuGame } from './kurimanju-game';
+import { renderKurimanju } from './kurimanju-panel';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
 let displayGap = RULES.initialGap;
 
@@ -399,6 +401,8 @@ const pointerRelease = () => {
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) miniActionButton.addEventListener(type, pointerRelease);
 miniActionButton.addEventListener('click', () => { if (swallowClick) { swallowClick = false; return; } miniAction(); });
 $('countdown-resume').addEventListener('click', togglePause);
+// The kurimanju portrait slot is dormant until its art is in event-atlas (then set KURI_ART and add the frame).
+const KURI_ART = false, kuriState = { key: '' };
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
@@ -416,7 +420,16 @@ function updateMini() {
     $('countdown-number').textContent = g.paused ? 'Ⅱ' : String(Math.max(1, Math.ceil(g.countdownRemaining)));
     $('countdown-resume').hidden = !g.paused; return;
   }
-  if (!(g instanceof StickerGame)) return; // other mini games render their own screen
+  $('kuri-panel').hidden = !(g instanceof KurimanjuGame);
+  if (g instanceof KurimanjuGame) {
+    for (const id of ['slot-panel', 'lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
+    $('mini-character').textContent = ''; $('kuri-portrait').hidden = !KURI_ART;
+    const view = renderKurimanju(g, kuriState);
+    miniActionButton.hidden = false; miniActionButton.disabled = view.buttonDisabled; miniActionButton.textContent = view.buttonText;
+    if (['intro', 'result'].includes(g.phase)) dropFocus();
+    miniViewKey = ''; return;
+  }
+  if (!(g instanceof StickerGame)) return;
   if (g.phase === 'selecting') {
     const t = Math.min(1, g.elapsed / MINI_RULES.selectionSeconds), steps = 12 + CHARACTERS.indexOf(g.selected);
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
