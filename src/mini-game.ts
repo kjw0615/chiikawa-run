@@ -3,6 +3,7 @@
 // applies it once when the phase becomes 'done'. Input is two events: press() and release(), so
 // tap games (lemon) and hold games (kurimanju) share one path: key down/up, pointer down/up.
 import { StickerGame } from './sticker-game';
+import { KurimanjuGame } from './kurimanju-game';
 export type MiniReward = { stamina: number; speedMultiplier: number; seconds: number; coins?: number };
 export interface MiniGame {
   readonly phase: string;
@@ -22,5 +23,9 @@ export interface MiniGame {
   press(): void;
   release(): void;
 }
-// Only the lemon game has a screen so far; choose by seed here once other games have one.
-export function createMiniGame(seed: number): MiniGame { return new StickerGame(seed); }
+// Mini games that are playable. Add 'kuri' here once its art is in; the pick is by seed, so a course is stable.
+export const ENABLED_MINI_GAMES: readonly ('lemon' | 'kuri')[] = ['lemon'];
+export function createMiniGame(seed: number, enabled: readonly ('lemon' | 'kuri')[] = ENABLED_MINI_GAMES): MiniGame {
+  const kind = enabled[(Math.imul(seed >>> 0, 2654435761) >>> 16) % enabled.length] ?? 'lemon';
+  return kind === 'kuri' ? new KurimanjuGame(seed) : new StickerGame(seed);
+}
