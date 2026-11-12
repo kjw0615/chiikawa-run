@@ -3,7 +3,7 @@ import './style.css';
 import './minigame.css';
 import { createStartIntro } from './start-intro';
 import { createRunReady } from './run-ready';
-import { RunnerModel, RULES } from './model';
+import { RunnerModel, RULES, TERRAIN } from './model';
 import { Background } from './background';
 import { FOOD_ART, FOOD_DISPLAY_SIZE } from './food-art';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
@@ -18,6 +18,7 @@ const ATLAS = 'game-art';
 const EVENT_ATLAS = 'event-art';
 const OBSTACLE_ATLAS = 'meadow-obstacles';
 const FOOD_ATLAS = 'food-art';
+const TERRAIN_ATLAS = 'terrain-art';
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
 let mini: SlottedMiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
@@ -125,6 +126,7 @@ class RunnerScene extends Phaser.Scene {
     this.load.atlas(ATLAS, '/assets/game-atlas.webp', '/assets/game-atlas.json');
     this.load.atlas(EVENT_ATLAS, '/assets/event-atlas.webp', '/assets/event-atlas.json');
     this.load.atlas(OBSTACLE_ATLAS, '/assets/meadow-obstacles.webp', '/assets/meadow-obstacles.json');
+    this.load.atlas(TERRAIN_ATLAS, '/assets/terrain-water.webp', '/assets/terrain-water.json');
     this.load.atlas(FOOD_ATLAS, '/assets/food-atlas.webp', '/assets/food-atlas.json');
     this.load.spritesheet('coin-spin', '/assets/coin-spin.webp', { frameWidth: 128, frameHeight: 128 });
     this.load.spritesheet('coin-gold-spin', '/assets/coin-gold-spin.webp', { frameWidth: 128, frameHeight: 128 });
@@ -176,6 +178,14 @@ class RunnerScene extends Phaser.Scene {
     return this.sprite(key, left, top, width, height, OBSTACLE_ATLAS).setOrigin(0, 0)
       .setCrop(0, 0, frame.width * visibleWidth / width, frame.height * visibleHeight / height);
   }
+  /** Left cap + N repeated middle tiles + right cap. The surface sits 8px below the picture top, level with the floor. */
+  private terrain(kind: 'pit' | 'puddle', centerX: number, modules: number, floor: number) {
+    const { tile, cap, surfaceOffset } = TERRAIN, height = TERRAIN[kind].height, left = centerX - (modules * tile + 2 * cap) / 2, top = floor - surfaceOffset;
+    const part = (key: string, x: number, w: number) => this.sprite(`${kind}-${key}`, x, top, w, height, TERRAIN_ATLAS).setOrigin(0, 0);
+    part('left', left, cap);
+    for (let i = 0; i < modules; i++) part('middle', left + cap + i * tile, tile);
+    part('right', left + cap + modules * tile, cap);
+  }
   private curtain(x: number, top: number, bottom: number, width: number) {
     const prefix = 'beam', bodyTop = top + 56, bodyBottom = bottom - 48;
     this.obstaclePart(`${prefix}-top`, x - width / 2, top, width, 56);
@@ -221,9 +231,10 @@ class RunnerScene extends Phaser.Scene {
       this.obstaclePart('platform-right', left + width - 64, p.y - 3, 64, 32);
     }
     for (const item of model.items) {
-      if (item.used && item.kind !== 'pit') continue;
+      if (item.used && item.kind !== 'pit' && item.kind !== 'puddle') continue;
       const ix = center + (item.x - model.distance) * RULES.scale;
-      if (ix + item.w / 2 < -20 || ix - item.w / 2 > 1140) continue;
+      const reach = item.kind === 'pit' || item.kind === 'puddle' ? item.w / 2 + TERRAIN.cap : item.w / 2;
+      if (ix + reach < -20 || ix - reach > 1140) continue;
       if (item.kind === 'coin') {
         const frame = Math.floor(model.elapsed * 10) % 12;
         this.sprite(frame, ix, item.y + item.h / 2, 38, 38, item.coinValue === 3 ? 'coin-gold-spin' : 'coin-spin');
@@ -239,10 +250,9 @@ class RunnerScene extends Phaser.Scene {
             g.lineBetween(sx - r, sy, sx + r, sy).lineBetween(sx, sy - r, sx, sy + r);
           }
         }
-      } else if (item.kind === 'pit') {
-        // The original painted banks, cliff walls and textured depth are one
-        // fixed-size object. Its 160px opening matches the actual fall zone.
-        this.obstaclePart('pit', ix - 108, floor - 8, 216, 200);
+      } else if (item.kind === 'pit' || item.kind === 'puddle') {
+        // Assembled from the terrain-water modules; the item's width is the real opening (caps include their own bank).
+        this.terrain(item.kind, ix, item.modules ?? 1, floor);
       } else {
         const overhead = item.kind === 'beam' || item.kind === 'crawl';
         const obstacleFloor = item.y + item.h + (overhead ? 44 : 0);
