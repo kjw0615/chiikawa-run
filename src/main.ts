@@ -85,7 +85,7 @@ function endOverlay() {
   $('modal-title').textContent = over ? '앗, 붙잡혔다!' : '잠깐 쉬어 가요.';
   $('modal-copy').textContent = over ? '다음에는 조금 더 멀리 갈 수 있을 거예요.' : '준비되면 다시 달려요.';
   $('result').hidden = !over; $('result').textContent = `${Math.floor(model.distance)} m · 최고 ${best} m · 동전 ${model.coins}`;
-  start.innerHTML = over ? '다시 달리기 <span>↗</span>' : '계속 달리기 <span>→</span>';
+  start.textContent = over ? '다시 달리기' : '계속 달리기';
 }
 function updateHud() {
   $('stamina-fill').style.width = `${model.stamina}%`;
@@ -338,6 +338,7 @@ window.addEventListener('keydown', e => {
   if (live && !e.ctrlKey && !e.metaKey && !e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.code)) {
     e.preventDefault(); return;
   }
+  if (devActive && !mini) { if (e.code === 'Escape') devClose(); return; } // test menu: keys must not start a run
   if (home.hidden === false && e.target instanceof HTMLInputElement) return;
   if (e.target instanceof HTMLElement && e.target.closest('[role="switch"]') && ['Space', 'Enter'].includes(e.code)) return;
   if (e.target instanceof HTMLButtonElement && e.target.classList.contains('stop-running') && ['Space', 'Enter'].includes(e.code)) return;
@@ -401,6 +402,42 @@ function layoutMiniArt() {
   stage.style.height = `${140 * lw / 192}px`; stage.style.backgroundPositionY = `${-84 * lw / 192}px`;
 }
 layoutMiniArt(); window.addEventListener('resize', layoutMiniArt);
+// Developer mini game test mode: double-click the golden food icon on the home screen.
+// It plays any roster game on its own (no run, no rewards) and always has an exit back to home.
+let devActive = false, devFrame = 0, devLast = 0;
+function devOpen() {
+  if (devActive || home.hidden || intro.active || ready.active || preparing) return;
+  devActive = true; home.inert = true; devShowMenu(); $('dev-exit').hidden = false;
+}
+function devShowMenu() {
+  mini = null; miniViewKey = ''; updateMini();
+  $('dev-mini').hidden = false; $('dev-exit').hidden = false;
+  const list = $('dev-list'); list.textContent = '';
+  for (const entry of ROSTER) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'primary'; b.textContent = entry.name;
+    b.addEventListener('click', () => devPlay(entry)); list.append(b);
+  }
+}
+function devPlay(entry: RosterEntry) {
+  $('dev-mini').hidden = true;
+  const g = new SlottedMiniGame(Date.now(), [entry]); g.step(MINI_RULES.selectionSeconds); // no slot reel: straight to the game
+  mini = g; miniViewKey = ''; updateMini(); devLast = 0; cancelAnimationFrame(devFrame); devFrame = requestAnimationFrame(devTick);
+}
+function devTick(now: number) {
+  if (!devActive || !mini) return;
+  const dt = devLast ? Math.min((now - devLast) / 1000, .05) : 0; devLast = now;
+  mini.step(dt);
+  // Finished (the real run would count down to resume): return to the test menu instead.
+  if (mini.phase === 'countdown' || mini.phase === 'done') { devShowMenu(); return; }
+  updateMini(); devFrame = requestAnimationFrame(devTick);
+}
+function devClose() {
+  if (!devActive) return;
+  devActive = false; cancelAnimationFrame(devFrame); mini?.release(); mini = null; encounterId = null; miniViewKey = '';
+  updateMini(); $('dev-mini').hidden = true; $('dev-exit').hidden = true; home.inert = false;
+}
+$('dev-exit').addEventListener('click', devClose);
+for (const el of document.querySelectorAll<HTMLElement>('.how-icon.yellow, .gold-food')) el.addEventListener('dblclick', devOpen);
 function miniAction() {
   if (!mini) return;
   if (mini.paused) mini.resume();
