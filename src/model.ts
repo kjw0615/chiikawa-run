@@ -288,7 +288,9 @@ export class RunnerModel {
     hash = Math.imul(hash ^ (hash >>> 16), 0x45d9f3b);
     const variant = ((hash ^ (hash >>> 16)) >>> 0) % 3;
     this.items.push({ id: this.id++, x, y, w, h, kind, used: false,
-      ...(['food','gold'].includes(kind) ? {variant} : {}) });
+      // Food picks one of 3 sprites; a block is a stump (0) or a rock (1). Both are the same 1-jump obstacle, so the
+      // choice only changes how it is drawn (position-seeded: no random numbers are drawn, courses do not change).
+      ...(['food','gold'].includes(kind) ? {variant} : kind === 'block' ? {variant: (hash >>> 20) & 1} : {}) });
   }
   private generate() {
     if (!this.generateCourse) return;

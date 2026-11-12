@@ -257,7 +257,11 @@ class RunnerScene extends Phaser.Scene {
         g.fillStyle(0x294b31, .1).fillEllipse(ix, obstacleFloor + 3, item.w + 15, 10);
         if (item.kind === 'beam') this.curtain(ix, -300, item.y + item.h, item.w);
         else if (item.kind === 'crawl') this.obstaclePart('crawl', ix - item.w / 2, item.y, item.w, item.h);
-        else this.sprite(item.kind === 'block' ? 'block' : item.kind === 'tower' ? 'tower' : 'obstacle-log',
+        else if (item.kind === 'block' && item.variant === 1) {
+          // Rock variant: same hitbox as the stump, drawn at its own aspect (160x91) and sitting on the ground.
+          const rw = 100, rh = rw * 91 / 160;
+          this.sprite('obstacle-rock', ix, item.y + item.h - rh / 2, rw, rh, ATLAS);
+        } else this.sprite(item.kind === 'block' ? 'block' : item.kind === 'tower' ? 'tower' : 'obstacle-log',
           ix, item.y + item.h / 2, item.w, item.h, item.kind === 'long' ? ATLAS : OBSTACLE_ATLAS);
       }
     }
