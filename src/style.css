@@ -40,6 +40,7 @@ kbd{font-family:inherit;background:#fff;border:2px solid var(--ink);border-radiu
   radial-gradient(circle at 20px 0,var(--mint-deep) 0 14px,transparent 15px) 0 0/48px 28px repeat-x,
   linear-gradient(var(--mint) 0 40%,#bfe3a8)}
 .art{position:absolute;pointer-events:none}
+.gold-food{pointer-events:auto}
 .art img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 0 #5a45491f)}
 .art-hero{left:54%;bottom:23%;width:30%;aspect-ratio:1;animation:run-bob .5s ease-in-out infinite alternate}
 .art-chaser{left:-10%;bottom:14%;width:62%;aspect-ratio:1;animation:chase-bob .9s ease-in-out infinite alternate}
