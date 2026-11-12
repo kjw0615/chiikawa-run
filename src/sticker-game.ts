@@ -5,6 +5,8 @@
 export const MINI_RULES = {
   selectionSeconds: 2, roundSeconds: 2.8, feedbackSeconds: .45, countdownSeconds: 3,
   targetMin: .36, targetMax: .64, rounds: 5,
+  // The sticker is this wide (share of the stage). A stamp succeeds only when the whole sticker lies inside the band.
+  stickerWidth: .08,
 } as const;
 // Each round sweeps clearly faster than the one before. Per-round caps run .92 .98 1.04 1.10 1.16 cycles/s; at the
 // last cap one pass through the band (width .28, cursor speed 2 x cycles/s) lasts about .12 s.
@@ -110,7 +112,8 @@ export class StickerGame {
   /** Judges the current cursor once; ignored outside 'playing' or while paused. */
   stamp(): boolean | null {
     if (this.paused || this.phase !== 'playing') return null;
-    const c = this.cursor, hit = c >= MINI_RULES.targetMin - EPS && c <= MINI_RULES.targetMax + EPS;
+    const c = this.cursor, half = MINI_RULES.stickerWidth / 2;
+    const hit = c - half >= MINI_RULES.targetMin - EPS && c + half <= MINI_RULES.targetMax + EPS;
     this.finishRound(hit, c); return hit;
   }
   continue() { if (!this.paused && this.phase === 'result') { this.phase = 'countdown'; this.elapsed = 0; } }

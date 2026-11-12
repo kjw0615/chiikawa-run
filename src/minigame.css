@@ -19,14 +19,13 @@
 .lemon-tray{padding:2px 0}.lemon-cell .lemon-mark{width:20px;height:20px;font-size:14px;top:60%}
 @media(max-height:520px) and (orientation:landscape){.sticker-stage{height:100px}.sticker-cursor{width:28px;height:28px;margin:-14px 0 0 -14px}.lemon-cell{height:36px;width:30px}.lemon-cell .event-sprite{margin-top:-8px}}
 .hud-buttons[hidden]{display:none}.mini-countdown .primary{justify-content:center;width:auto;min-width:220px;gap:10px}
-.sticker-stage::before{content:'';position:absolute;left:36%;width:28%;top:50%;aspect-ratio:3/2;transform:translateY(-50%);border:3px dashed #7aa36d;border-radius:50%;background:#e9f4dc99;z-index:0}
 
 /* v10: plain brand-sticker oval (mint fill, dark olive outline) for the moving sticker and the result marks */
-.sticker-cursor{width:46px;height:30px;margin:-15px 0 0 -23px;border-radius:50%;background:#a6e3d9;border:3px solid #6a5f2f;box-shadow:none}
+.sticker-cursor{width:8%;height:30px;margin:-15px 0 0 -4%;border-radius:50%;background:#a6e3d9;border:3px solid #6a5f2f;box-shadow:none}
 .sticker-cursor::after{inset:5px 8px;border-radius:50%;background:#d2f3ec;border:0}
 .lemon-cell .lemon-mark{width:26px;height:18px;border-radius:50%;background:#a6e3d9;border:2px solid #6a5f2f;color:#3d5a3f;font-size:12px}
 .lemon-cell.missed .lemon-mark{background:#f1d9cf;border-color:#8b5a49;color:#8b4a3d}
-@media(max-height:520px) and (orientation:landscape){.sticker-cursor{width:34px;height:22px;margin:-11px 0 0 -17px}.sticker-cursor::after{inset:4px 6px}.lemon-cell .lemon-mark{width:22px;height:15px;font-size:11px}}
+@media(max-height:520px) and (orientation:landscape){.sticker-cursor{width:8%;height:22px;margin:-11px 0 0 -4%}.sticker-cursor::after{inset:4px 6px}.lemon-cell .lemon-mark{width:22px;height:15px;font-size:11px}}
 
 .kuri-panel{display:flex;align-items:flex-end;justify-content:center;gap:18px;padding:6px 0}
 .kuri-panel[hidden]{display:none}
