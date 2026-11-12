@@ -39,3 +39,6 @@
 .kuri-line b{position:absolute;left:100%;top:-9px;margin-left:4px;font-size:11px;white-space:nowrap}
 .kuri-line.beer{border-color:#c77c0a;color:#9a5f08}.kuri-line.foam{border-color:#8a8a8a;color:#666}
 @media(max-height:520px) and (orientation:landscape){.kuri-wrap{height:110px;width:80px}}
+.kuri-portrait{flex-shrink:0;width:132px;height:154px;background:url('/assets/event-kurimanju.webp') center/contain no-repeat}
+@media(max-width:500px){.kuri-portrait{width:96px;height:112px}.kuri-wrap{margin-right:36px}}
+@media(max-height:520px) and (orientation:landscape){.kuri-portrait{width:72px;height:84px}}

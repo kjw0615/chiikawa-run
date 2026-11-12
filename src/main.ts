@@ -401,8 +401,8 @@ const pointerRelease = () => {
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) miniActionButton.addEventListener(type, pointerRelease);
 miniActionButton.addEventListener('click', () => { if (swallowClick) { swallowClick = false; return; } miniAction(); });
 $('countdown-resume').addEventListener('click', togglePause);
-// The kurimanju portrait slot is dormant until its art is in event-atlas (then set KURI_ART and add the frame).
-const KURI_ART = false, kuriState = { key: '' };
+// The kurimanju portrait is the separate image /assets/event-kurimanju.webp (192x224), shown next to the glass.
+const KURI_ART = true, kuriState = { key: '' };
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
