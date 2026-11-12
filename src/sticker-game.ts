@@ -43,8 +43,10 @@ export class StickerGame {
   readonly baseSpeed: number; // seed speed in cursor cycles per second, before the round scale
   private lastCursor = 0;
   readonly seed: number;
-  constructor(seed: number) {
-    this.seed = seed; this.selected = characterFor(seed);
+  /** `character` fixes who works with the player; `skipSelection` starts at the guide (the caller already ran the slot). */
+  constructor(seed: number, opts: { character?: Character; skipSelection?: boolean } = {}) {
+    this.seed = seed; this.selected = opts.character ?? characterFor(seed);
+    if (opts.skipSelection) this.phase = 'intro';
     this.baseSpeed = .68 + .2 * unit(seed, 1);
   }
   speedAt(round: number) {

@@ -6,7 +6,7 @@ import { createRunReady } from './run-ready';
 import { RunnerModel, RULES } from './model';
 import { Background } from './background';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
-import { createMiniGame, type MiniGame } from './mini-game';
+import { SlottedMiniGame, ROSTER, type RosterEntry } from './mini-roster';
 import { KurimanjuGame } from './kurimanju-game';
 import { renderKurimanju } from './kurimanju-panel';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
@@ -18,7 +18,7 @@ const EVENT_ATLAS = 'event-art';
 const OBSTACLE_ATLAS = 'meadow-obstacles';
 const FOOD = ['food-pudding', 'food-pancake', 'food-cream-puff'];
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
-let mini: MiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
+let mini: SlottedMiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
 const overlay = $('overlay'), start = $('start'), pause = $<HTMLButtonElement>('pause');
 const home = $('home-screen'), play = $('play-screen');
@@ -147,7 +147,7 @@ class RunnerScene extends Phaser.Scene {
       while (accumulator >= 1 / 120) { model.crouch = crouchHeld; model.step(1 / 120); accumulator -= 1 / 120; }
     }
     if (model.activeEncounter && !mini) {
-      encounterId = model.activeEncounter.id; mini = createMiniGame(model.activeEncounter.seed);
+      encounterId = model.activeEncounter.id; mini = new SlottedMiniGame(model.activeEncounter.seed);
       miniViewKey = ''; accumulator = 0; release(); releaseJump();
     }
     if (mini) {
@@ -353,9 +353,16 @@ function portrait(el: HTMLElement, key: string, width: number) {
   const scale = width / 192, x = eventKeys.indexOf(key) * 196 + 2;
   Object.assign(el.style, { width: `${width}px`, height: `${224 * scale}px`, backgroundSize: `${1024 * scale}px ${256 * scale}px`, backgroundPosition: `${-x * scale}px ${-2 * scale}px` });
 }
-for (let i = 0; i < 18; i++) {
+// The reel repeats the roster; it lands on cell REEL_BASE + winner, so enough cells follow the base.
+const REEL_BASE = ROSTER.length * Math.ceil(12 / ROSTER.length);
+function portraitEntry(el: HTMLElement, entry: RosterEntry, width: number) {
+  if ('atlas' in entry.portrait) { el.style.backgroundImage = ''; portrait(el, entry.portrait.atlas, width); return; }
+  const h = width * 224 / 192;
+  Object.assign(el.style, { width: `${width}px`, height: `${h}px`, backgroundImage: `url('${entry.portrait.url}')`, backgroundSize: `${width}px ${h}px`, backgroundPosition: '0 0' });
+}
+for (let i = 0; i < REEL_BASE + ROSTER.length; i++) {
   const cell = document.createElement('div'), image = document.createElement('span');
-  cell.className = 'slot-cell'; image.className = 'event-sprite'; portrait(image, CHARACTERS[i % 3], 104);
+  cell.className = 'slot-cell'; image.className = 'event-sprite'; portraitEntry(image, ROSTER[i % ROSTER.length], 104);
   cell.append(image); $('slot-reel').append(cell);
 }
 const lemons = Array.from({ length: 5 }, (_, n) => {
@@ -420,47 +427,64 @@ function updateMini() {
     $('countdown-number').textContent = g.paused ? 'Ⅱ' : String(Math.max(1, Math.ceil(g.countdownRemaining)));
     $('countdown-resume').hidden = !g.paused; return;
   }
-  $('kuri-panel').hidden = !(g instanceof KurimanjuGame);
-  if (g instanceof KurimanjuGame) {
-    for (const id of ['slot-panel', 'lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
+  if (g.phase === 'selecting') {
+    // Slot reel: only the roster's characters spin by, and it lands on the winner.
+    const t = Math.min(1, g.elapsed / MINI_RULES.selectionSeconds), steps = REEL_BASE + g.index;
+    $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
+    if (miniViewKey !== 'selecting') {
+      miniViewKey = 'selecting'; layoutMiniArt();
+      $('slot-panel').hidden = false; $('kuri-panel').hidden = true;
+      for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
+      $('mini-character').textContent = ''; $('mini-title').textContent = '오늘의 일손을 찾는 중…'; $('mini-copy').textContent = '이번에는 누구와 일하게 될까요?'; $('mini-reward').textContent = '';
+    }
+    $('mini-paused').hidden = !g.paused;
+    miniActionButton.hidden = !g.paused; miniActionButton.disabled = false; miniActionButton.textContent = '계속하기';
+    return;
+  }
+  const inner = g.inner;
+  $('slot-panel').hidden = true;
+  $('kuri-panel').hidden = !(inner instanceof KurimanjuGame);
+  if (inner instanceof KurimanjuGame) {
+    for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
     $('mini-character').textContent = ''; $('kuri-portrait').hidden = !KURI_ART;
-    const view = renderKurimanju(g, kuriState);
+    const view = renderKurimanju(inner, kuriState);
     miniActionButton.hidden = false; miniActionButton.disabled = view.buttonDisabled; miniActionButton.textContent = view.buttonText;
-    if (['intro', 'result'].includes(g.phase)) dropFocus();
+    if (['intro', 'result'].includes(inner.phase)) dropFocus();
     miniViewKey = ''; return;
   }
-  if (!(g instanceof StickerGame)) return;
-  if (g.phase === 'selecting') {
-    const t = Math.min(1, g.elapsed / MINI_RULES.selectionSeconds), steps = 12 + CHARACTERS.indexOf(g.selected);
+  if (!(inner instanceof StickerGame)) return;
+  const sg = inner;
+  if (sg.phase === 'selecting') {
+    const t = Math.min(1, sg.elapsed / MINI_RULES.selectionSeconds), steps = 12 + CHARACTERS.indexOf(sg.selected);
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
   }
-  $('sticker-cursor').style.left = `${g.cursor * 100}%`;
-  $('mini-time-fill').style.width = `${g.phase === 'playing' ? Math.max(0, 1 - g.elapsed / MINI_RULES.roundSeconds) * 100 : 100}%`;
-  const key = `${encounterId}:${g.phase}:${g.round}:${g.results.join()}:${g.paused}`;
+  $('sticker-cursor').style.left = `${sg.cursor * 100}%`;
+  $('mini-time-fill').style.width = `${sg.phase === 'playing' ? Math.max(0, 1 - sg.elapsed / MINI_RULES.roundSeconds) * 100 : 100}%`;
+  const key = `${encounterId}:${sg.phase}:${sg.round}:${sg.results.join()}:${sg.paused}`;
   if (key === miniViewKey) return;
   miniViewKey = key; layoutMiniArt();
-  $('slot-panel').hidden = g.phase !== 'selecting';
-  $('mini-portrait').hidden = g.phase === 'selecting'; portrait($('mini-portrait'), g.selected, 65);
-  $('mini-character').textContent = g.phase === 'selecting' ? '' : `${characterNames[g.selected]}와 함께`;
-  $('mini-paused').hidden = !g.paused;
-  $('lemon-tray').hidden = g.phase === 'selecting';
-  $('sticker-timing').hidden = !['playing', 'feedback'].includes(g.phase);
+  $('slot-panel').hidden = sg.phase !== 'selecting';
+  $('mini-portrait').hidden = sg.phase === 'selecting'; portrait($('mini-portrait'), sg.selected, 65);
+  $('mini-character').textContent = sg.phase === 'selecting' ? '' : `${characterNames[sg.selected]}와 함께`;
+  $('mini-paused').hidden = !sg.paused;
+  $('lemon-tray').hidden = sg.phase === 'selecting';
+  $('sticker-timing').hidden = !['playing', 'feedback'].includes(sg.phase);
   $('mini-reward').textContent = '';
-  const titles = { selecting: '오늘의 일손을 찾는 중…', intro: '레몬에 스티커 붙이기', playing: '스티커가 레몬에 겹칠 때!', feedback: g.lastHit ? '착! 잘 붙었어요' : '앗, 다음 레몬에 도전해요', result: `${g.successes}개 성공!`, countdown: '', done: '' };
-  $('mini-title').textContent = titles[g.phase];
-  $('mini-copy').textContent = g.phase === 'intro' ? '스티커가 레몬 위에 겹칠 때 버튼이나 Space를 한 번 눌러요. 레몬은 모두 5개!'
-    : g.phase === 'result' ? '작은 일을 마쳤어요. 달리기 화면으로 돌아가 준비한 뒤 출발해요.'
-    : g.phase === 'selecting' ? '이번에는 누구와 일하게 될까요?' : '레몬마다 한 번씩, 타이밍에 맞춰 붙여주세요.';
-  $('sticker-round').textContent = `레몬 ${g.round + 1} / 5`;
+  const titles = { selecting: '오늘의 일손을 찾는 중…', intro: '레몬에 스티커 붙이기', playing: '스티커가 레몬에 겹칠 때!', feedback: sg.lastHit ? '착! 잘 붙었어요' : '앗, 다음 레몬에 도전해요', result: `${sg.successes}개 성공!`, countdown: '', done: '' };
+  $('mini-title').textContent = titles[sg.phase];
+  $('mini-copy').textContent = sg.phase === 'intro' ? '스티커가 레몬 위에 겹칠 때 버튼이나 Space를 한 번 눌러요. 레몬은 모두 5개!'
+    : sg.phase === 'result' ? '작은 일을 마쳤어요. 달리기 화면으로 돌아가 준비한 뒤 출발해요.'
+    : sg.phase === 'selecting' ? '이번에는 누구와 일하게 될까요?' : '레몬마다 한 번씩, 타이밍에 맞춰 붙여주세요.';
+  $('sticker-round').textContent = `레몬 ${sg.round + 1} / 5`;
   for (let n = 0; n < lemons.length; n++) {
-    const {cell, mark} = lemons[n], result = g.results[n];
-    cell.className = `lemon-cell${n === g.round && g.phase === 'playing' ? ' current' : ''}${result !== undefined ? ' done' : ''}${result === false ? ' missed' : ''}`;
+    const {cell, mark} = lemons[n], result = sg.results[n];
+    cell.className = `lemon-cell${n === sg.round && sg.phase === 'playing' ? ' current' : ''}${result !== undefined ? ' done' : ''}${result === false ? ' missed' : ''}`;
     mark.hidden = result === undefined; mark.textContent = result ? '✓' : '×';
     cell.setAttribute('aria-label', `레몬 ${n + 1}${result === undefined ? '' : result ? ' 성공' : ' 실패'}`);
   }
-  miniActionButton.hidden = g.phase === 'selecting' && !g.paused;
-  miniActionButton.disabled = g.phase === 'feedback' && !g.paused;
-  miniActionButton.textContent = g.paused ? '계속하기' : g.phase === 'intro' ? '준비됐어요! 시작' : g.phase === 'result' ? '달리기로 돌아가기' : '스티커 붙이기';
-  if (g.phase === 'result' && g.reward) $('mini-reward').textContent = `동전 +${g.coinReward} · 체력 +${g.reward.stamina} · ${g.reward.speedMultiplier}배 속도 ${g.reward.seconds}초`;
-  if (['intro','result'].includes(g.phase)) dropFocus();
+  miniActionButton.hidden = sg.phase === 'selecting' && !sg.paused;
+  miniActionButton.disabled = sg.phase === 'feedback' && !sg.paused;
+  miniActionButton.textContent = sg.paused ? '계속하기' : sg.phase === 'intro' ? '준비됐어요! 시작' : sg.phase === 'result' ? '달리기로 돌아가기' : '스티커 붙이기';
+  if (sg.phase === 'result' && sg.reward) $('mini-reward').textContent = `동전 +${sg.coinReward} · 체력 +${sg.reward.stamina} · ${sg.reward.speedMultiplier}배 속도 ${sg.reward.seconds}초`;
+  if (['intro','result'].includes(sg.phase)) dropFocus();
 }
