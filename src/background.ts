@@ -21,9 +21,9 @@ export const VIEW_WIDTH = 1120;
 export const DEFAULT_THEME: BackgroundTheme = {
   id: 'meadow',
   layers: [
-    { key: 'bg-meadow-far', url: '/assets/bg/meadow-far.webp', top: -240, height: 700, factor: .08 },
-    { key: 'bg-meadow-mid', url: '/assets/bg/meadow-mid.webp', top: -60, height: 520, factor: .2 },
-    { key: 'bg-meadow-near', url: '/assets/bg/meadow-near.webp', top: 160, height: 300, factor: .38 },
+    { key: 'bg-meadow-far', url: '/assets/bg/meadow-far.webp', top: -240, height: 870, factor: .08 },
+    { key: 'bg-meadow-mid', url: '/assets/bg/meadow-mid.webp', top: 0, height: 630, factor: .2 },
+    { key: 'bg-meadow-near', url: '/assets/bg/meadow-near.webp', top: 0, height: 630, factor: 1 },
   ],
 };
 

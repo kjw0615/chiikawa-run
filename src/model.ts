@@ -17,7 +17,16 @@ export const difficultyAt = (distance: number) => {
   return { level, obstacleSpacing: 22 - 4 * level, foodSpacing: 24 + 6 * level };
 };
 // Upper bounds leave a tested timing window for the required jump(s).
-export const OBSTACLE_WIDTHS = { block: [48, 64], tower: [44, 52], long: [120, 170], pit: [120, 200], beam: [100, 220] } as const;
+export const OBSTACLE_BASE_WIDTHS = { block: 56, tower: 48, long: 145, pit: 160, beam: 160 } as const;
+export const OBSTACLE_WIDTH_SCALE = { min: .8, max: 1.2 } as const;
+// Preserve existing jump windows when already inside the scale limits; only narrow outliers.
+const widthRange = (base: number, low: number, high: number): readonly [number, number] =>
+  [Math.max(low, Math.ceil(base * OBSTACLE_WIDTH_SCALE.min)), Math.min(high, Math.floor(base * OBSTACLE_WIDTH_SCALE.max))];
+export const OBSTACLE_WIDTHS = {
+  block: widthRange(OBSTACLE_BASE_WIDTHS.block, 48, 64), tower: widthRange(OBSTACLE_BASE_WIDTHS.tower, 44, 52),
+  long: widthRange(OBSTACLE_BASE_WIDTHS.long, 120, 170), pit: widthRange(OBSTACLE_BASE_WIDTHS.pit, 120, 200),
+  beam: widthRange(OBSTACLE_BASE_WIDTHS.beam, 100, 220),
+} as const;
 export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2, foodPositionJitter: 8 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'pit' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number };
 export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .05, goldValue: 3, firstCoinX: 10 } as const;
@@ -306,7 +315,7 @@ export class RunnerModel {
       if (length >= 20 && !switching) {
         const x = start + RULES.platformFirstHazard + this.random('platform') * (length === 20 ? .5 : 4);
         const type = Math.floor(this.random('platform') * 3);
-        if (type === 0) this.add(x, 0, 120, p.y - 44, 'beam');
+        if (type === 0) this.add(x, 0, OBSTACLE_WIDTHS.beam[0], p.y - 44, 'beam');
         else if (type === 1) this.add(x, p.y - 64, 56, 64, 'block');
         else this.add(x, p.y - 46, 120, 46, 'long');
       }
