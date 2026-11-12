@@ -1,7 +1,6 @@
 // Screen for the kurimanju mini game. It only draws from the game's state; input goes through main.ts.
-import { KurimanjuGame, KURI_RULES, type Grade } from './kurimanju-game';
+import { KurimanjuGame } from './kurimanju-game';
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
-const GRADE_TEXT: Record<Grade, string> = { perfect: '퍼펙트', good: '굿', bad: '배드' };
 export interface KuriView { buttonText: string; buttonDisabled: boolean }
 
 /** Draws the cheap part (fill levels, guide lines) every frame and rewrites text only when the state key changes. */
@@ -22,7 +21,7 @@ export function renderKurimanju(g: KurimanjuGame, state: { key: string }): KuriV
   const done = g.phase === 'result';
   $('mini-title').textContent = g.phase === 'intro' ? '쿠리만쥬에게 맥주 따라주기' : done ? g.reaction : '';
   $('mini-copy').textContent = g.phase === 'intro' ? '버튼을 꾹 눌러 맥주를 따르고 맥주선에서 떼요. 이어서 꾹 눌러 거품선에서 떼면 끝!'
-    : done ? `최종 ${GRADE_TEXT[g.finalGrade]} · 맥주 ${GRADE_TEXT[g.beerGrade ?? 'bad']} · 거품 ${GRADE_TEXT[g.foamGrade ?? 'bad']} (${g.score} / ${KURI_RULES.maxScore}점)` : '';
+    : ''; // the result shows only the reaction and the reward, never a score or grade
   $('mini-paused').hidden = !g.paused;
   $('mini-reward').textContent = done && g.reward
     ? `동전 +${g.coinReward} · 체력 +${g.reward.stamina} · ${g.reward.speedMultiplier}배 속도 ${g.reward.seconds}초` : '';

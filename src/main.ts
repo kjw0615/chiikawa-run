@@ -182,8 +182,9 @@ class RunnerScene extends Phaser.Scene {
   private terrain(kind: 'pit' | 'puddle', centerX: number, modules: number, floor: number) {
     const { tile, cap, surfaceOffset } = TERRAIN, height = TERRAIN[kind].height, left = centerX - (modules * tile + 2 * cap) / 2, top = floor - surfaceOffset;
     const part = (key: string, x: number, w: number) => this.sprite(`${kind}-${key}`, x, top, w, height, TERRAIN_ATLAS).setOrigin(0, 0);
-    part('left', left, cap);
+    // Middle tiles go first so the side caps (earth cliffs) cover the edges of the hole.
     for (let i = 0; i < modules; i++) part('middle', left + cap + i * tile, tile);
+    part('left', left, cap);
     part('right', left + cap + modules * tile, cap);
   }
   private curtain(x: number, top: number, bottom: number, width: number) {
@@ -485,14 +486,15 @@ function updateMini() {
   $('lemon-tray').hidden = sg.phase === 'selecting';
   $('sticker-timing').hidden = !['playing', 'feedback'].includes(sg.phase);
   $('mini-reward').textContent = '';
-  const titles = { selecting: '오늘의 일손을 찾는 중…', intro: '레몬에 스티커 붙이기', playing: '스티커가 레몬에 겹칠 때!', feedback: sg.lastHit ? '착! 잘 붙었어요' : '앗, 다음 레몬에 도전해요', result: `${sg.successes}개 성공!`, countdown: '', done: '' };
+  const titles = { selecting: '오늘의 일손을 찾는 중…', intro: '레몬에 스티커 붙이기', playing: '스티커가 레몬에 겹칠 때!', feedback: sg.lastHit ? '착! 잘 붙었어요' : '앗, 다음 레몬에 도전해요', result: '스티커 붙이기 완료!', countdown: '', done: '' };
   $('mini-title').textContent = titles[sg.phase];
   $('mini-copy').textContent = sg.phase === 'intro' ? '스티커가 레몬 위에 겹칠 때 버튼이나 Space를 한 번 눌러요. 레몬은 모두 5개!'
     : sg.phase === 'result' ? '작은 일을 마쳤어요. 달리기 화면으로 돌아가 준비한 뒤 출발해요.'
     : sg.phase === 'selecting' ? '이번에는 누구와 일하게 될까요?' : '레몬마다 한 번씩, 타이밍에 맞춰 붙여주세요.';
   $('sticker-round').textContent = `레몬 ${sg.round + 1} / 5`;
   for (let n = 0; n < lemons.length; n++) {
-    const {cell, mark} = lemons[n], result = sg.results[n];
+    // The result screen never reveals how many stickers stuck.
+    const {cell, mark} = lemons[n], result = sg.phase === 'result' ? undefined : sg.results[n];
     cell.className = `lemon-cell${n === sg.round && sg.phase === 'playing' ? ' current' : ''}${result !== undefined ? ' done' : ''}${result === false ? ' missed' : ''}`;
     mark.hidden = result === undefined; mark.textContent = result ? '✓' : '×';
     cell.setAttribute('aria-label', `레몬 ${n + 1}${result === undefined ? '' : result ? ' 성공' : ' 실패'}`);
