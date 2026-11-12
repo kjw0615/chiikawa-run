@@ -318,7 +318,9 @@ jumpButton.addEventListener('pointerdown', e => { e.preventDefault(); jumpButton
 function releaseJump() { jumpButton.classList.remove('held'); model.releaseJump(); }
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) jumpButton.addEventListener(event, releaseJump);
 crouchButton.addEventListener('pointerdown', e => { e.preventDefault(); crouchHeld = true; model.crouch = true; crouchButton.classList.add('held'); crouchButton.setPointerCapture(e.pointerId); });
-function release() { crouchHeld = false; model.crouch = false; crouchButton.classList.remove('held'); }
+// Crouch keys: ArrowDown, Ctrl (left or right). Crouch lasts while any of them is held.
+const CROUCH_KEYS = ['ArrowDown', 'ControlLeft', 'ControlRight'], crouchKeysDown = new Set<string>();
+function release() { crouchKeysDown.clear(); crouchHeld = false; model.crouch = false; crouchButton.classList.remove('held'); }
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) crouchButton.addEventListener(event, release);
 function returnHome() {
   preparing = false; ready.cancel();
@@ -352,10 +354,10 @@ window.addEventListener('keydown', e => {
   if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); if (e.repeat) return;
   if (mini) { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); miniAction(); } if (e.code === 'KeyP' || e.code === 'Escape') togglePause(); return; }
   if (e.code === 'Space' || e.code === 'ArrowUp') { jumpButton.classList.add('held'); if (home.hidden === false || model.phase === 'ready' || model.phase === 'over') begin(); else if (model.phase === 'paused') togglePause(); else { model.crouch = crouchHeld; model.jump(); } }
-  if (e.code === 'ArrowDown' && !play.hidden) { crouchHeld = true; model.crouch = true; crouchButton.classList.add('held'); }
+  if (CROUCH_KEYS.includes(e.code) && !play.hidden) { crouchKeysDown.add(e.code); crouchHeld = true; model.crouch = true; crouchButton.classList.add('held'); }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
 });
-window.addEventListener('keyup', e => { if (mini && (e.code === 'Space' || e.code === 'Enter')) { mini.release(); updateMini(); } if (e.code === 'ArrowDown') release(); if (e.code === 'Space' || e.code === 'ArrowUp') releaseJump(); });
+window.addEventListener('keyup', e => { if (mini && (e.code === 'Space' || e.code === 'Enter')) { mini.release(); updateMini(); } if (CROUCH_KEYS.includes(e.code)) { crouchKeysDown.delete(e.code); if (crouchKeysDown.size === 0) release(); } if (e.code === 'Space' || e.code === 'ArrowUp') releaseJump(); });
 function backgroundPause() { ready.pause(); release(); releaseJump(); model.pause(); mini?.release(); mini?.pause(); updateMini(); if (!play.hidden) updateHud(); }
 document.addEventListener('visibilitychange', () => { if (document.hidden) backgroundPause(); });
 window.addEventListener('blur', backgroundPause); window.addEventListener('orientationchange', backgroundPause);
