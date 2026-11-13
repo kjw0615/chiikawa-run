@@ -2,7 +2,7 @@
 // plain shapes; it draws from the game state and never changes it. Input goes through main.ts like the other games.
 // The small monster stands in the middle under a faint horizontal line; two small round objects slide in from both
 // ends of the line and overlap above it. Rakko stands to its left. The monster HP bar and the remaining chances
-// are shapes only: no numbers, no score.
+// are a fighting-game bar; the only numbers are the floating -6 / -3 damage popups, never a score.
 import { RakkoGame, RAKKO_RULES, type RakkoGrade } from './rakko-game';
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 export interface RakkoView { buttonText: string; buttonDisabled: boolean }
@@ -22,7 +22,6 @@ function loadArt(panel: HTMLElement) {
     img.src = `/assets/${name}.webp`;
   }
 }
-let pips: HTMLElement[] | undefined;
 
 /** Positions every frame; rewrites text only when the state key changes. */
 export function renderRakko(g: RakkoGame, state: { key: string }): RakkoView {
@@ -44,11 +43,14 @@ export function renderRakko(g: RakkoGame, state: { key: string }): RakkoView {
     label.textContent = reason ? `${GRADE_TEXT.miss} · ${MISS_TEXT[reason]}` : GRADE_TEXT[g.lastGrade!];
     label.dataset.grade = g.lastGrade!;
   }
-  // Monster HP: one pip per HP point, shown as a bar (no number). Remaining chances: filled = used, empty = left.
-  const hp = $('rakko-hp');
-  if (!pips) pips = Array.from({ length: RAKKO_RULES.monsterHp }, () => { const i = document.createElement('i'); hp.append(i); return i; });
-  const alive = g.monsterHp;
-  pips.forEach((i, n) => i.classList.toggle('lost', n >= alive));
+  // Monster HP as a fighting-game bar: the fill drops at once, a yellow trail follows. A damage number floats beside
+  // the bar for the hit that just landed (-6 critical, -3 normal).
+  const hp = $('rakko-hp'), pct = `${Math.round(g.monsterHp / RAKKO_RULES.monsterHp * 100)}%`;
+  (hp.querySelector('.rakko-hp-fill') as HTMLElement).style.width = pct;
+  (hp.querySelector('.rakko-hp-trail') as HTMLElement).style.width = pct;
+  const dmg = $('rakko-dmg'), hit = feedback && g.lastGrade !== 'miss';
+  dmg.hidden = !hit;
+  if (hit) { dmg.textContent = `-${RAKKO_RULES.damage[g.lastGrade!]}`; dmg.dataset.grade = g.lastGrade!; }
   $('rakko-progress').textContent = Array.from({ length: RAKKO_RULES.chances }, (_, n) => (g.grades[n] !== undefined ? '●' : '○')).join(' ');
   const view: RakkoView = {
     buttonText: g.paused ? '계속하기' : g.phase === 'intro' ? '준비됐어요! 시작' : g.phase === 'result' ? '달리기로 돌아가기' : '지금!',

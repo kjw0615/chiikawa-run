@@ -55,40 +55,47 @@
 .dev-card{width:min(420px,calc(100vw - 32px));padding:24px;border:4px solid var(--ink);border-radius:24px;background:#fff;text-align:center;display:grid;gap:14px}
 .dev-card h2{margin:0;font-size:22px}.dev-card p{margin:0;color:#8c7764;font-size:14px}#dev-list{display:grid;gap:10px}
 .dev-exit{position:fixed;top:12px;left:12px;z-index:200;padding:8px 16px;border:3px solid var(--ink);border-radius:999px;background:#fff;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.dev-exit[hidden]{display:none}
-.rakko-panel{display:grid;gap:8px;padding:14px 0 4px}.rakko-panel[hidden]{display:none}
+.rakko-panel{display:grid;gap:8px;padding:10px 0 4px}.rakko-panel[hidden]{display:none}
 .rakko-stage{display:grid}
-.rakko-arena{position:relative;height:170px;border-bottom:4px solid #9a7e66;background:linear-gradient(#f6fbf0,#e9f3dc);overflow:hidden}
-.rakko-line{position:absolute;left:0;right:0;top:26px;height:2px;background:#9a7e6655}
-.rakko-note{position:absolute;top:27px;width:26px;height:26px;margin:-13px 0 0 -13px;border:3px solid #7a5a8f;border-radius:50%;background:#c7a6e0}
+.rakko-arena{position:relative;height:290px;border-bottom:4px solid #9a7e66;background:linear-gradient(#f6fbf0,#e9f3dc);overflow:hidden}
+.rakko-line{position:absolute;left:0;right:0;top:40px;height:2px;background:#9a7e6655}
+.rakko-note{position:absolute;top:41px;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid #7a5a8f;border-radius:50%;background:#c7a6e0}
 .rakko-stage.telegraph .rakko-note{animation:rakko-pulse .3s ease-in-out infinite alternate}.rakko-stage.paused .rakko-note{animation-play-state:paused}
 @keyframes rakko-pulse{to{transform:scale(1.25)}}
-.rakko-fighter{position:absolute;bottom:0;border:4px solid #624e49;display:grid;place-items:center;font-size:14px;font-weight:700;color:#4a382f;transition:transform .14s}
-.rakko-master{left:18%;width:68px;height:84px;margin-left:-34px;border-radius:30px 30px 14px 14px;background:#cfa780}
-.rakko-foe-wrap{position:absolute;left:50%;bottom:0;width:80px;height:140px;margin-left:-40px;transition:transform .45s ease-out,opacity .45s}
-.rakko-foe-wrap .rakko-fighter{left:7px;width:66px;height:70px;border-color:#4a2f2a;border-radius:50% 50% 34% 34%;background:repeating-linear-gradient(#a9cf7c 0 11px,#4a2f2a 11px 14px)}
-.rakko-hp{position:absolute;left:0;right:0;top:34px;height:10px;display:flex;gap:1px;padding:1px;border:2px solid #624e49;border-radius:6px;background:#fff}
+.rakko-fighter{position:absolute;bottom:0;border:4px solid #624e49;display:grid;place-items:center;font-size:18px;font-weight:700;color:#4a382f;transition:transform .14s}
+.rakko-master{left:20%;width:120px;height:148px;margin-left:-60px;border-radius:44px 44px 18px 18px;background:#cfa780}
+.rakko-foe-wrap{position:absolute;left:50%;bottom:0;width:150px;height:230px;margin-left:-75px;transition:transform .45s ease-out,opacity .45s}
+.rakko-foe-wrap .rakko-fighter{left:10px;width:130px;height:136px;border-color:#4a2f2a;border-radius:50% 50% 34% 34%;background:repeating-linear-gradient(#a9cf7c 0 14px,#4a2f2a 14px 18px)}
+.rakko-hp{position:absolute;left:-14px;right:-14px;top:56px;height:20px;border:3px solid #3d2f2a;border-radius:6px;background:#4a403b;overflow:visible}
+.rakko-hp b{position:absolute;left:0;top:0;bottom:0;border-radius:2px;pointer-events:none}
+.rakko-hp .rakko-hp-trail{background:#f3d36b;transition:width .6s ease-out .25s}
+.rakko-hp .rakko-hp-fill{background:linear-gradient(#ffd45a,#e8412d 55%,#c92a1d);transition:width .25s ease-out}
+.rakko-dmg{position:absolute;left:calc(100% + 6px);top:-4px;font-size:26px;font-weight:900;color:#e8412d;-webkit-text-stroke:3px #fff;paint-order:stroke fill;text-shadow:0 2px 0 #3d2f2a;animation:rakko-dmg .9s ease-out forwards;pointer-events:none;white-space:nowrap}
+.rakko-dmg[data-grade=critical]{font-size:34px;color:#ff9f1c}.rakko-dmg[hidden]{display:none}
+@keyframes rakko-dmg{0%{transform:translateY(8px) scale(.6);opacity:0}20%{transform:translateY(0) scale(1.25);opacity:1}100%{transform:translateY(-22px) scale(1);opacity:0}}
 .rakko-hp i{flex:1;background:#d9534f;border-radius:2px}.rakko-hp i.lost{background:#e8e0d6}
-.rakko-stage[data-attack=critical] .rakko-master,.rakko-stage[data-attack=normal] .rakko-master{transform:translateX(min(150px,18vw)) rotate(8deg)}
-.rakko-stage[data-attack=critical] .rakko-foe-wrap{transform:translateX(70px) rotate(16deg)}
-.rakko-stage[data-attack=normal] .rakko-foe-wrap{transform:translateX(22px) rotate(7deg)}
+.rakko-stage[data-attack=critical] .rakko-master,.rakko-stage[data-attack=normal] .rakko-master{transform:translateX(min(200px,22vw)) rotate(8deg)}
+.rakko-stage[data-attack=critical] .rakko-foe-wrap{transform:translateX(90px)}.rakko-stage[data-attack=critical] .rakko-foe-wrap .rakko-fighter{transform:rotate(16deg)}
+.rakko-stage[data-attack=normal] .rakko-foe-wrap{transform:translateX(28px)}.rakko-stage[data-attack=normal] .rakko-foe-wrap .rakko-fighter{transform:rotate(7deg)}
 .rakko-stage[data-attack=miss] .rakko-master{transform:translateX(-8px) rotate(-6deg)}
-.rakko-stage[data-attack=miss] .rakko-foe-wrap{transform:translateY(-8px)}
-.rakko-stage[data-result=win] .rakko-foe-wrap{transform:translateX(420px) translateY(-60px) rotate(60deg);opacity:0}
-.rakko-feedback{position:absolute;left:18%;top:60px;transform:translateX(-50%);padding:4px 14px;border:3px solid #624e49;border-radius:999px;background:#fff;font-size:18px;white-space:nowrap}
+.rakko-stage[data-attack=miss] .rakko-foe-wrap{transform:translateY(-10px)}
+.rakko-stage[data-result=win] .rakko-foe-wrap{transform:translateX(520px) translateY(-80px) rotate(60deg);opacity:0}
+.rakko-feedback{position:absolute;left:20%;top:100px;transform:translateX(-50%);padding:4px 14px;border:3px solid #624e49;border-radius:999px;background:#fff;font-size:20px;white-space:nowrap}
 .rakko-feedback[data-grade=critical]{border-color:#c77c0a;font-size:20px}.rakko-feedback[data-grade=miss]{border-style:dashed}
 .rakko-progress{margin:0;text-align:center;letter-spacing:.3em;color:#8c7764}
 .rakko-hit{display:none}
-@media(max-width:500px){.rakko-feedback{left:30%}}
-@media(max-height:520px) and (orientation:landscape){.rakko-panel{padding:6px 0 0}.rakko-arena{height:104px}.rakko-line{top:16px}.rakko-note{top:17px;width:18px;height:18px;margin:-9px 0 0 -9px}.rakko-master{width:46px;height:57px;margin-left:-23px;font-size:11px}.rakko-foe-wrap{width:56px;height:96px;margin-left:-28px}.rakko-foe-wrap .rakko-fighter{left:5px;width:46px;height:49px}.rakko-hp{top:22px;height:8px}.rakko-feedback{top:34px;font-size:14px}}
+@media(max-width:500px){.rakko-feedback{left:30%}.rakko-arena{height:250px}.rakko-master{width:92px;height:114px;margin-left:-46px;left:18%}.rakko-foe-wrap{width:118px;height:190px;margin-left:-59px}.rakko-foe-wrap .rakko-fighter{left:8px;width:102px;height:106px}.rakko-hp{top:42px;height:16px;left:-10px;right:-10px}.rakko-dmg{font-size:22px}.rakko-note{width:28px;height:28px;margin:-14px 0 0 -14px}}
+@media(max-height:520px) and (orientation:landscape){.rakko-panel{padding:4px 0 0}.rakko-arena{height:150px}.rakko-line{top:22px}.rakko-note{top:23px;width:22px;height:22px;margin:-11px 0 0 -11px}.rakko-master{width:64px;height:80px;margin-left:-32px;font-size:12px}.rakko-foe-wrap{width:84px;height:130px;margin-left:-42px}.rakko-foe-wrap .rakko-fighter{left:7px;width:70px;height:74px}.rakko-hp{top:30px;height:12px;left:-8px;right:-8px}.rakko-dmg{font-size:18px;top:-6px}.rakko-feedback{top:50px;font-size:14px}}
 
 /* Official Rakko art: used only when every image loaded (data-art on the panel); otherwise the shapes above stay. */
 .rakko-panel[data-art] .rakko-fighter{border:0;background:center bottom/contain no-repeat;font-size:0;margin-bottom:-2px}
-.rakko-panel[data-art] .rakko-master{width:68px;height:84px;background-image:url('/assets/rakko-idle.webp')}
-.rakko-panel[data-art] .rakko-foe-wrap .rakko-fighter{width:66px;height:70px;background-image:url('/assets/monster-idle.webp')}
+.rakko-panel[data-art] .rakko-master{width:120px;height:148px;background-image:url('/assets/rakko-idle.webp')}
+.rakko-panel[data-art] .rakko-foe-wrap .rakko-fighter{width:130px;height:136px;background-image:url('/assets/monster-idle.webp')}
 .rakko-panel[data-art] .rakko-stage[data-attack=critical] .rakko-master,.rakko-panel[data-art] .rakko-stage[data-attack=normal] .rakko-master{background-image:url('/assets/rakko-attack.webp')}
 .rakko-panel[data-art] .rakko-stage[data-attack=miss] .rakko-master{background-image:url('/assets/rakko-miss.webp')}
 .rakko-panel[data-art] .rakko-stage[data-attack=critical] .rakko-foe-wrap .rakko-fighter,.rakko-panel[data-art] .rakko-stage[data-attack=normal] .rakko-foe-wrap .rakko-fighter,.rakko-panel[data-art] .rakko-stage[data-result] .rakko-foe-wrap .rakko-fighter{background-image:url('/assets/monster-hit.webp')}
 .rakko-panel[data-art] .rakko-stage[data-attack=miss] .rakko-foe-wrap .rakko-fighter{background-image:url('/assets/monster-miss.webp')}
-.rakko-panel[data-art] .rakko-stage[data-attack=critical] .rakko-hit,.rakko-panel[data-art] .rakko-stage[data-attack=normal] .rakko-hit{display:block;position:absolute;left:8px;bottom:22px;width:64px;height:64px;background:url('/assets/hit-effect.webp') center/contain no-repeat;pointer-events:none}
+.rakko-panel[data-art] .rakko-stage[data-attack=critical] .rakko-hit,.rakko-panel[data-art] .rakko-stage[data-attack=normal] .rakko-hit{display:block;position:absolute;left:14px;bottom:40px;width:110px;height:110px;background:url('/assets/hit-effect.webp') center/contain no-repeat;pointer-events:none}
 .rakko-panel[data-art] .rakko-note{border:0;border-radius:0;background:url('/assets/note-red.webp') center/contain no-repeat}
-@media(max-height:520px) and (orientation:landscape){.rakko-panel[data-art] .rakko-master{width:46px;height:57px}.rakko-panel[data-art] .rakko-foe-wrap .rakko-fighter{width:44px;height:47px}.rakko-panel[data-art] .rakko-stage[data-attack] .rakko-hit{width:44px;height:44px;bottom:10px}}
+@media(max-height:520px) and (orientation:landscape){.rakko-panel[data-art] .rakko-master{width:64px;height:80px}.rakko-panel[data-art] .rakko-foe-wrap .rakko-fighter{width:70px;height:74px}.rakko-panel[data-art] .rakko-stage[data-attack] .rakko-hit{width:64px;height:64px;bottom:18px}}
+@media(max-width:500px){.rakko-panel[data-art] .rakko-master{width:92px;height:114px}.rakko-panel[data-art] .rakko-foe-wrap .rakko-fighter{width:102px;height:106px}.rakko-panel[data-art] .rakko-stage[data-attack] .rakko-hit{width:84px;height:84px;bottom:30px;left:10px}}
