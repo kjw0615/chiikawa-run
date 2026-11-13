@@ -1,0 +1,547 @@
+{
+  "frames": {
+    "study-duo-0": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "study-duo-1": {
+      "frame": {
+        "x": 326,
+        "y": 2,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "study-duo-2": {
+      "frame": {
+        "x": 650,
+        "y": 2,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "study-duo-3": {
+      "frame": {
+        "x": 974,
+        "y": 2,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "usagi-dance-0": {
+      "frame": {
+        "x": 1298,
+        "y": 2,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "usagi-dance-1": {
+      "frame": {
+        "x": 1622,
+        "y": 2,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "usagi-dance-2": {
+      "frame": {
+        "x": 2,
+        "y": 246,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "usagi-dance-3": {
+      "frame": {
+        "x": 326,
+        "y": 246,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "usagi-dance-4": {
+      "frame": {
+        "x": 650,
+        "y": 246,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "usagi-dance-5": {
+      "frame": {
+        "x": 974,
+        "y": 246,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "kurimanju-stump-0": {
+      "frame": {
+        "x": 1298,
+        "y": 246,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "kurimanju-stump-1": {
+      "frame": {
+        "x": 1622,
+        "y": 246,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "kurimanju-stump-2": {
+      "frame": {
+        "x": 2,
+        "y": 490,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "kurimanju-stump-3": {
+      "frame": {
+        "x": 326,
+        "y": 490,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "pochette-stall-0": {
+      "frame": {
+        "x": 650,
+        "y": 490,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "pochette-stall-1": {
+      "frame": {
+        "x": 974,
+        "y": 490,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "pochette-stall-2": {
+      "frame": {
+        "x": 1298,
+        "y": 490,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "pochette-stall-3": {
+      "frame": {
+        "x": 1622,
+        "y": 490,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "pajama-dance-0": {
+      "frame": {
+        "x": 2,
+        "y": 734,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "pajama-dance-1": {
+      "frame": {
+        "x": 326,
+        "y": 734,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "pajama-dance-2": {
+      "frame": {
+        "x": 650,
+        "y": 734,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    },
+    "pajama-dance-3": {
+      "frame": {
+        "x": 974,
+        "y": 734,
+        "w": 320,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 240
+      }
+    }
+  },
+  "meta": {
+    "image": "cameo-atlas.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2048,
+      "h": 1024
+    },
+    "scale": "1",
+    "cameos": {
+      "study-duo": {
+        "frames": [
+          "study-duo-0",
+          "study-duo-1",
+          "study-duo-2",
+          "study-duo-3"
+        ],
+        "fps": 4,
+        "repeat": -1,
+        "groundAnchor": {
+          "x": 160,
+          "y": 230
+        },
+        "frameSize": {
+          "w": 320,
+          "h": 240
+        }
+      },
+      "usagi-dance": {
+        "frames": [
+          "usagi-dance-0",
+          "usagi-dance-1",
+          "usagi-dance-2",
+          "usagi-dance-3",
+          "usagi-dance-4",
+          "usagi-dance-5"
+        ],
+        "fps": 7,
+        "repeat": -1,
+        "groundAnchor": {
+          "x": 160,
+          "y": 230
+        },
+        "frameSize": {
+          "w": 320,
+          "h": 240
+        }
+      },
+      "kurimanju-stump": {
+        "frames": [
+          "kurimanju-stump-0",
+          "kurimanju-stump-1",
+          "kurimanju-stump-2",
+          "kurimanju-stump-3"
+        ],
+        "fps": 3,
+        "repeat": -1,
+        "groundAnchor": {
+          "x": 160,
+          "y": 230
+        },
+        "frameSize": {
+          "w": 320,
+          "h": 240
+        }
+      },
+      "pochette-stall": {
+        "frames": [
+          "pochette-stall-0",
+          "pochette-stall-1",
+          "pochette-stall-2",
+          "pochette-stall-3"
+        ],
+        "fps": 3,
+        "repeat": -1,
+        "groundAnchor": {
+          "x": 160,
+          "y": 230
+        },
+        "frameSize": {
+          "w": 320,
+          "h": 240
+        }
+      },
+      "pajama-dance": {
+        "frames": [
+          "pajama-dance-0",
+          "pajama-dance-1",
+          "pajama-dance-2",
+          "pajama-dance-3"
+        ],
+        "fps": 5,
+        "repeat": -1,
+        "groundAnchor": {
+          "x": 160,
+          "y": 230
+        },
+        "frameSize": {
+          "w": 320,
+          "h": 240
+        }
+      }
+    }
+  }
+}
