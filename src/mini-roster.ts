@@ -12,13 +12,7 @@ export interface RosterEntry { id: string; name: string; portrait: Portrait; cre
 export const ROSTER: readonly RosterEntry[] = [
   { id: 'chiikawa', name: '치이카와', portrait: { atlas: 'chiikawa' }, create: seed => new StickerGame(seed, { character: 'chiikawa', skipSelection: true }) },
   { id: 'kurimanju', name: '쿠리만쥬', portrait: { url: '/assets/event-kurimanju.webp' }, create: seed => new KurimanjuGame(seed) },
-];
-
-/** Games that can be played from the developer test menu. The Rakko game uses temporary shapes and is not in
- * ROSTER yet, so no real encounter can pick it; move its entry into ROSTER once its art is done. */
-export const DEV_ROSTER: readonly RosterEntry[] = [
-  ...ROSTER,
-  { id: 'rakko', name: '랏코 맹수 토벌 (임시 그래픽)', portrait: { atlas: 'chiikawa' }, create: seed => new RakkoGame(seed) },
+  { id: 'rakko', name: '랏코', portrait: { url: '/assets/event-rakko.webp' }, create: seed => new RakkoGame(seed) },
 ];
 
 /** The character that wins the slot for this encounter seed (stable for a given seed). */

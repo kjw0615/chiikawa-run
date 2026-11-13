@@ -1,4 +1,4 @@
-// Screen for the Rakko subjugation mini game (converge timing). Temporary shapes only (no new art yet); it draws
+// Screen for the Rakko subjugation mini game (converge timing). Official art when every image loads, otherwise the plain shapes; it draws
 // from the game's state and never changes it. Input goes through main.ts like the other mini games.
 // Top: Rakko (left) and the small monster (right) face each other. Bottom: a horizontal rail with a green target box
 // in the middle and two red notes that slide in from both ends; press when they overlap in the box.
@@ -8,8 +8,23 @@ export interface RakkoView { buttonText: string; buttonDisabled: boolean }
 const GRADE_TEXT: Record<RakkoGrade, string> = { perfect: '퍼펙트!', good: '굿!', miss: '미스…' };
 const MISS_TEXT = { early: '너무 일러요', late: '너무 늦었어요' } as const;
 
+// The art is switched on for the whole panel only after every image has loaded; a missing file keeps the shapes.
+const ART = ['rakko-idle', 'rakko-attack', 'rakko-miss', 'monster-idle', 'monster-hit', 'monster-miss', 'rail-bar', 'target-box', 'note-red', 'hit-effect'];
+let artState: 'idle' | 'loading' | 'failed' | 'ready' = 'idle';
+function loadArt(panel: HTMLElement) {
+  if (artState !== 'idle') return;
+  artState = 'loading'; let left = ART.length;
+  for (const name of ART) {
+    const img = new Image();
+    img.onload = () => { if (--left === 0 && artState === 'loading') { artState = 'ready'; panel.dataset.art = '1'; } };
+    img.onerror = () => { artState = 'failed'; };
+    img.src = `/assets/${name}.webp`;
+  }
+}
+
 /** Positions every frame; rewrites text only when the state key changes. */
 export function renderRakko(g: RakkoGame, state: { key: string }): RakkoView {
+  loadArt($('rakko-panel'));
   const stage = $('rakko-stage'), left = $('rakko-note-l'), right = $('rakko-note-r');
   const p = g.noteProgress;
   left.hidden = right.hidden = p === null || p > 1.35;
