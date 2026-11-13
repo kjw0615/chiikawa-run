@@ -1,5 +1,5 @@
 // Third mini game: 랏코 맹수 토벌 (small-monster hunting training with Master Rakko), converge-timing battle.
-// The small monster stands in the middle with 10 HP. A faint horizontal line runs across the stage; from both of its
+// The small monster stands in the middle with 12 HP. A faint horizontal line runs across the stage; from both of its
 // ends a small round object slides toward the middle at the same speed. Press once at the moment the two overlap:
 // Rakko attacks. Timing decides the hit: critical (double damage 6), normal (damage 3) or miss (0). There are 5
 // chances; the fight ends as soon as the monster's HP reaches 0. Two criticals win in 2 chances; normal hits alone
@@ -8,12 +8,12 @@
 // Nothing is scored out loud: only the monster's HP bar, the remaining chances and a reaction are shown.
 export const RAKKO_RULES = {
   chances: 5,
-  monsterHp: 10,
+  monsterHp: 12,
   damage: { critical: 6, normal: 3, miss: 0 },
   gapSeconds: .25,        // quiet time before each chance; presses here are ignored (nothing to answer yet)
   telegraphSeconds: .3,   // the two objects sit at both ends and pulse: the warning, they have not started moving
   travelMin: .8, travelMax: 1.1, // seconds for each object to reach the middle (varies per chance)
-  critical: .08,          // |error| in seconds for a critical hit
+  critical: .03,          // |error| in seconds for a critical hit
   normal: .18,            // |error| in seconds for a normal hit; beyond it a press is too early and no press is too late
   feedbackSeconds: .5,    // the attack or the miss is shown; presses here are ignored (duplicate taps)
   fastWin: 3,             // a win in at most this many chances is a fast win
