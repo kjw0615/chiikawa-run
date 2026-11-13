@@ -5,6 +5,7 @@ import { createStartIntro } from './start-intro';
 import { createRunReady } from './run-ready';
 import { RunnerModel, RULES, TERRAIN } from './model';
 import { Background } from './background';
+import { CameoLayer, CAMEO_ATLAS } from './cameo';
 import { FOOD_ART, FOOD_DISPLAY_SIZE } from './food-art';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
 import { SlottedMiniGame, ROSTER, type RosterEntry } from './mini-roster';
@@ -121,14 +122,16 @@ class RunnerScene extends Phaser.Scene {
   private playfield!: Phaser.GameObjects.Container;
   private cameraLift = 0;
   private bg = new Background(this);
+  private cameos!: CameoLayer;
   preload() {
     this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
-    this.load.on('loaderror', (file: { key: string }) => { if (!Background.owns(file.key)) this.loadFailed = true; });
+    this.load.on('loaderror', (file: { key: string }) => { if (!Background.owns(file.key) && file.key !== CAMEO_ATLAS) this.loadFailed = true; }); // background and cameo art are optional
     Background.preload(this);
     this.load.atlas(ATLAS, '/assets/game-atlas.webp', '/assets/game-atlas.json');
     this.load.atlas(EVENT_ATLAS, '/assets/event-atlas.webp', '/assets/event-atlas.json');
     this.load.atlas(OBSTACLE_ATLAS, '/assets/meadow-obstacles.webp', '/assets/meadow-obstacles.json');
     this.load.atlas(TERRAIN_ATLAS, '/assets/terrain-water.webp', '/assets/terrain-water.json');
+    this.load.atlas(CAMEO_ATLAS, '/assets/cameo-atlas.webp', '/assets/cameo-atlas.json');
     this.load.atlas(FOOD_ATLAS, '/assets/food-atlas.webp', '/assets/food-atlas.json');
     this.load.spritesheet('coin-spin', '/assets/coin-spin.webp', { frameWidth: 128, frameHeight: 128 });
     this.load.spritesheet('coin-gold-spin', '/assets/coin-gold-spin.webp', { frameWidth: 128, frameHeight: 128 });
@@ -143,6 +146,7 @@ class RunnerScene extends Phaser.Scene {
     this.chaser = this.add.image(0, RULES.floor, ATLAS, 'dekatsuyo').setOrigin(.5, 1).setDepth(4);
     this.playfield.add([this.g, this.chaser, this.hero]);
     this.bg.build(scenery);
+    this.cameos = new CameoLayer(this, scenery);
     this.scale.refresh(); loading.remove();
     sceneReady = true;
     armStart();
@@ -218,6 +222,7 @@ class RunnerScene extends Phaser.Scene {
     const g = this.g, floor = RULES.floor, center = 560, progress = model.distance * RULES.scale;
     this.cursor = 0; for (const s of this.pool) s.setVisible(false);
     g.clear(); this.bg.update(progress);
+    if (this.bg.ready) this.cameos.update(model.distance, RULES.scale, center, floor, model.elapsed, 1120); // scenery only, no collision
     if (!this.bg.ready) this.drawFallbackBackdrop(g, floor, progress);
     if (!this.bg.ready) this.drawGround(g, floor, progress);
     // A single repeating moss-covered branch, painted at world coordinates.
