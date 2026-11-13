@@ -75,3 +75,18 @@
 @keyframes rakko-pulse{to{transform:scale(1.25)}}
 .rakko-progress{margin:0;text-align:center;letter-spacing:.3em;color:#8c7764}
 @media(max-height:520px) and (orientation:landscape){.rakko-panel{padding:6px 0 0}.rakko-arena{height:70px}.rakko-fighter{width:46px;height:54px;font-size:11px}.rakko-foe{width:44px;height:46px}.rakko-rail{height:40px}.rakko-target{width:48px;height:34px;margin:-17px 0 0 -24px}.rakko-note{width:22px;height:22px;margin:-11px 0 0 -11px}}
+
+/* Official Rakko art: used only when every image loaded (data-art on the panel); otherwise the shapes above stay. */
+.rakko-hit{display:none}
+.rakko-panel[data-art] .rakko-fighter{border:0;background:center bottom/contain no-repeat;font-size:0;margin-bottom:-2px}
+.rakko-panel[data-art] .rakko-master{width:68px;height:84px;background-image:url('/assets/rakko-idle.webp')}
+.rakko-panel[data-art] .rakko-foe{width:66px;height:70px;background-image:url('/assets/monster-idle.webp')}
+.rakko-panel[data-art] .rakko-stage[data-attack=hit] .rakko-master{background-image:url('/assets/rakko-attack.webp')}
+.rakko-panel[data-art] .rakko-stage[data-attack=miss] .rakko-master{background-image:url('/assets/rakko-miss.webp')}
+.rakko-panel[data-art] .rakko-stage[data-attack=hit] .rakko-foe{background-image:url('/assets/monster-hit.webp');filter:none}
+.rakko-panel[data-art] .rakko-stage[data-attack=miss] .rakko-foe{background-image:url('/assets/monster-miss.webp');transform:none}
+.rakko-panel[data-art] .rakko-stage[data-attack=hit] .rakko-hit{display:block;position:absolute;right:calc(12% - 4px);bottom:18px;width:64px;height:64px;background:url('/assets/hit-effect.webp') center/contain no-repeat;pointer-events:none}
+.rakko-panel[data-art] .rakko-rail::before{height:16px;margin-top:-8px;border-radius:0;background:url('/assets/rail-bar.webp') center/100% 100% no-repeat}
+.rakko-panel[data-art] .rakko-target{border:0;border-radius:0;background:url('/assets/target-box.webp') center/contain no-repeat}
+.rakko-panel[data-art] .rakko-note{border:0;border-radius:0;background:url('/assets/note-red.webp') center/contain no-repeat}
+@media(max-height:520px) and (orientation:landscape){.rakko-panel[data-art] .rakko-master{width:46px;height:57px}.rakko-panel[data-art] .rakko-foe{width:44px;height:47px}.rakko-panel[data-art] .rakko-stage[data-attack=hit] .rakko-hit{width:44px;height:44px;bottom:10px}}
