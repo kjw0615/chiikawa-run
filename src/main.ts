@@ -7,7 +7,9 @@ import { RunnerModel, RULES, TERRAIN } from './model';
 import { Background } from './background';
 import { FOOD_ART, FOOD_DISPLAY_SIZE } from './food-art';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
-import { SlottedMiniGame, ROSTER, type RosterEntry } from './mini-roster';
+import { SlottedMiniGame, ROSTER, DEV_ROSTER, type RosterEntry } from './mini-roster';
+import { RakkoGame } from './rakko-game';
+import { renderRakko } from './rakko-panel';
 import { KurimanjuGame } from './kurimanju-game';
 import { renderKurimanju } from './kurimanju-panel';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
@@ -413,7 +415,7 @@ function devShowMenu() {
   mini = null; miniViewKey = ''; updateMini();
   $('dev-mini').hidden = false; $('dev-exit').hidden = false;
   const list = $('dev-list'); list.textContent = '';
-  for (const entry of ROSTER) {
+  for (const entry of DEV_ROSTER) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'primary'; b.textContent = entry.name;
     b.addEventListener('click', () => devPlay(entry)); list.append(b);
   }
@@ -464,7 +466,7 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) miniAct
 miniActionButton.addEventListener('click', () => { if (swallowClick) { swallowClick = false; return; } miniAction(); });
 $('countdown-resume').addEventListener('click', togglePause);
 // The kurimanju portrait is the separate image /assets/event-kurimanju.webp (192x224), shown next to the glass.
-const KURI_ART = true, kuriState = { key: '' };
+const KURI_ART = true, kuriState = { key: '' }, rakkoState = { key: '' };
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
@@ -488,7 +490,7 @@ function updateMini() {
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
     if (miniViewKey !== 'selecting') {
       miniViewKey = 'selecting'; layoutMiniArt();
-      $('slot-panel').hidden = false; $('kuri-panel').hidden = true;
+      $('slot-panel').hidden = false; $('kuri-panel').hidden = true; $('rakko-panel').hidden = true;
       for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
       $('mini-character').textContent = ''; $('mini-title').textContent = '오늘의 일손을 찾는 중…'; $('mini-copy').textContent = '이번에는 누구와 일하게 될까요?'; $('mini-reward').textContent = '';
     }
@@ -498,11 +500,19 @@ function updateMini() {
   }
   const inner = g.inner;
   $('slot-panel').hidden = true;
-  $('kuri-panel').hidden = !(inner instanceof KurimanjuGame);
+  $('kuri-panel').hidden = !(inner instanceof KurimanjuGame); $('rakko-panel').hidden = !(inner instanceof RakkoGame);
   if (inner instanceof KurimanjuGame) {
     for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
     $('mini-character').textContent = ''; $('kuri-portrait').hidden = !KURI_ART;
     const view = renderKurimanju(inner, kuriState);
+    miniActionButton.hidden = false; miniActionButton.disabled = view.buttonDisabled; miniActionButton.textContent = view.buttonText;
+    if (['intro', 'result'].includes(inner.phase)) dropFocus();
+    miniViewKey = ''; return;
+  }
+  if (inner instanceof RakkoGame) {
+    for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
+    $('mini-character').textContent = '';
+    const view = renderRakko(inner, rakkoState);
     miniActionButton.hidden = false; miniActionButton.disabled = view.buttonDisabled; miniActionButton.textContent = view.buttonText;
     if (['intro', 'result'].includes(inner.phase)) dropFocus();
     miniViewKey = ''; return;
