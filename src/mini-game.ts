@@ -20,5 +20,7 @@ export interface MiniGame {
   continue(): void;
   press(): void;
   release(): void;
+  /** Optional: two-button games (usagi rhythm) take a left/right lane instead of a bare press(). */
+  pressLane?(lane: 'left' | 'right'): void;
 }
 // Encounters run the slot and then the winner's game: see SlottedMiniGame and ROSTER in mini-roster.ts.
