@@ -3,6 +3,7 @@ import { UsagiGame, type UsagiSide } from './usagi-game';
 type Frame = { x: number; y: number; w: number; h: number };
 let root: HTMLElement | null = null;
 let frames: Frame[] = [];
+let strikeFrames: { left?: Frame; right?: Frame } = {};
 let atlasSize = { w: 2048, h: 1024 };
 let current: UsagiGame | null = null;
 
@@ -36,6 +37,10 @@ export function mountUsagiPanel(host: HTMLElement, onLane: (side: UsagiSide) => 
     const loaded = Array.from({ length: 6 }, (_, i) => atlas.frames[`usagi-dance-${i}`]?.frame as Frame);
     if (loaded.some(f => !f || !(f.w > 0 && f.h > 0))) return;
     frames = loaded;
+    strikeFrames = {
+      left: atlas.frames['usagi-strike-left']?.frame as Frame,
+      right: atlas.frames['usagi-strike-right']?.frame as Frame,
+    };
     atlasSize = atlas.meta.size;
     if (current) renderUsagiPanel(current);
   }).catch(() => { /* Keep the rabbit fallback; missing scenery art must not stop the game. */ });
@@ -54,7 +59,9 @@ export function renderUsagiPanel(g: UsagiGame, state?: { key: string }): UsagiVi
   root.querySelectorAll<HTMLButtonElement>('[data-side]').forEach(b => { b.disabled = !active; });
   const dancer = root.querySelector<HTMLElement>('.usagi-dancer')!;
   if (frames.length === 6) {
-    const f = frames[Math.floor(g.time * 7) % 6];
+    let f = frames[Math.floor(g.time * 7) % 6];
+    if (g.dance === 'left' && strikeFrames.left) f = strikeFrames.left;
+    else if (g.dance === 'right' && strikeFrames.right) f = strikeFrames.right;
     const scale = .625;
     dancer.textContent = '';
     dancer.style.backgroundImage = "url('/assets/cameo-atlas.webp')";
