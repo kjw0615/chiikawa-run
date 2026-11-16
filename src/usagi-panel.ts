@@ -2,9 +2,9 @@ import { UsagiGame, type UsagiSide } from './usagi-game';
 
 type Frame = { x: number; y: number; w: number; h: number };
 let root: HTMLElement | null = null;
-let frames: Frame[] = [];
-let strikeFrames: { left?: Frame; right?: Frame } = {};
-let atlasSize = { w: 2048, h: 1024 };
+let idleFrame: Frame | null = null;
+let animFrames: { right: Frame[]; left: Frame[] } = { right: [], left: [] };
+let atlasSize = { w: 2048, h: 1536 };
 let current: UsagiGame | null = null;
 
 /** Owns only the panel contents. The shell owns start/result/pause and keyboard routing. */
@@ -34,13 +34,10 @@ export function mountUsagiPanel(host: HTMLElement, onLane: (side: UsagiSide) => 
     fetch('/assets/cameo-atlas.json').then(r => { if (!r.ok) throw Error('atlas'); return r.json(); }),
     new Promise<void>((resolve, reject) => { const img = new Image(); img.onload = () => resolve(); img.onerror = reject; img.src = '/assets/cameo-atlas.webp'; }),
   ]).then(([atlas]) => {
-    const loaded = Array.from({ length: 6 }, (_, i) => atlas.frames[`usagi-dance-${i}`]?.frame as Frame);
-    if (loaded.some(f => !f || !(f.w > 0 && f.h > 0))) return;
-    frames = loaded;
-    strikeFrames = {
-      left: atlas.frames['usagi-strike-left']?.frame as Frame,
-      right: atlas.frames['usagi-strike-right']?.frame as Frame,
-    };
+    idleFrame = (atlas.frames['usagi-idle']?.frame as Frame) ?? (atlas.frames['usagi-dance-0']?.frame as Frame);
+    const rFrames = [4, 5, 6, 7, 8].map(n => atlas.frames[`usagi-r-${n}`]?.frame as Frame).filter(Boolean);
+    const lFrames = [4, 5, 6, 7, 8].map(n => atlas.frames[`usagi-l-${n}`]?.frame as Frame).filter(Boolean);
+    animFrames = { right: rFrames, left: lFrames };
     atlasSize = atlas.meta.size;
     if (current) renderUsagiPanel(current);
   }).catch(() => { /* Keep the rabbit fallback; missing scenery art must not stop the game. */ });
@@ -58,10 +55,20 @@ export function renderUsagiPanel(g: UsagiGame, state?: { key: string }): UsagiVi
   root.dataset.dance = g.dance;
   root.querySelectorAll<HTMLButtonElement>('[data-side]').forEach(b => { b.disabled = !active; });
   const dancer = root.querySelector<HTMLElement>('.usagi-dancer')!;
-  if (frames.length === 6) {
-    let f = frames[Math.floor(g.time * 7) % 6];
-    if (g.dance === 'left' && strikeFrames.left) f = strikeFrames.left;
-    else if (g.dance === 'right' && strikeFrames.right) f = strikeFrames.right;
+  if (idleFrame) {
+    let f = idleFrame;
+    // When a note is answered successfully (Perfect/Good), animate through frames 4..8 for that side, then return to idle!
+    if ((g.dance === 'left' || g.dance === 'right') && g.lastIndex >= 0) {
+      const dtSinceHit = g.time - g.judgedAt[g.lastIndex];
+      const list = g.dance === 'left' ? animFrames.left : animFrames.right;
+      if (list.length > 0) {
+        // 5 frames across feedbackSeconds (0.45s) -> ~0.09s per frame
+        const frameIdx = Math.floor((dtSinceHit / 0.45) * list.length);
+        if (frameIdx < list.length) {
+          f = list[frameIdx];
+        }
+      }
+    }
     const scale = .625;
     dancer.textContent = '';
     dancer.style.backgroundImage = "url('/assets/cameo-atlas.webp')";
