@@ -3,6 +3,7 @@ import { UsagiGame, type UsagiSide } from './usagi-game';
 type Frame = { x: number; y: number; w: number; h: number };
 let root: HTMLElement | null = null;
 let idleFrame: Frame | null = null;
+let introFrame: Frame | null = null;
 let animFrames: { right: Frame[]; left: Frame[] } = { right: [], left: [] };
 let atlasSize = { w: 2048, h: 1536 };
 let current: UsagiGame | null = null;
@@ -14,7 +15,7 @@ export function mountUsagiPanel(host: HTMLElement, onLane: (side: UsagiSide) => 
   host.innerHTML = `<div class="usagi-stage">
     <div class="usagi-lane usagi-lane-left"><span class="usagi-target">←</span></div>
     <div class="usagi-lane usagi-lane-right"><span class="usagi-target">→</span></div>
-    <div class="usagi-dancer" role="img" aria-label="엉덩이를 흔들며 춤추는 우사기">🐰</div>
+    <div class="usagi-dancer" role="img" aria-label="양팔을 번갈아 뻗으며 춤추는 우사기">🐰</div>
     <div class="usagi-bubble" hidden></div><div class="usagi-grade" role="status" hidden></div>
     <div class="usagi-notes" aria-hidden="true">${Array.from({ length: 8 }, () => '<span class="usagi-note" hidden></span>').join('')}</div>
   </div><div class="usagi-progress" aria-label="진행 상황"></div>
@@ -35,6 +36,7 @@ export function mountUsagiPanel(host: HTMLElement, onLane: (side: UsagiSide) => 
     new Promise<void>((resolve, reject) => { const img = new Image(); img.onload = () => resolve(); img.onerror = reject; img.src = '/assets/cameo-atlas.webp'; }),
   ]).then(([atlas]) => {
     idleFrame = (atlas.frames['usagi-idle']?.frame as Frame) ?? (atlas.frames['usagi-dance-0']?.frame as Frame);
+    introFrame = (atlas.frames['usagi-intro']?.frame as Frame) ?? idleFrame;
     const rFrames = [4, 5, 6, 7, 8].map(n => atlas.frames[`usagi-r-${n}`]?.frame as Frame).filter(Boolean);
     const lFrames = [4, 5, 6, 7, 8].map(n => atlas.frames[`usagi-l-${n}`]?.frame as Frame).filter(Boolean);
     animFrames = { right: rFrames, left: lFrames };
@@ -56,18 +58,13 @@ export function renderUsagiPanel(g: UsagiGame, state?: { key: string }): UsagiVi
   root.querySelectorAll<HTMLButtonElement>('[data-side]').forEach(b => { b.disabled = !active; });
   const dancer = root.querySelector<HTMLElement>('.usagi-dancer')!;
   if (idleFrame) {
-    let f = idleFrame;
-    // When a note is answered successfully (Perfect/Good), animate through frames 4..8 for that side, then return to idle!
-    if ((g.dance === 'left' || g.dance === 'right') && g.lastIndex >= 0) {
-      const dtSinceHit = g.time - g.judgedAt[g.lastIndex];
+    let f = g.phase === 'intro' ? introFrame ?? idleFrame : idleFrame;
+    // The model owns the animation clock, including pause and the return to standing.
+    const progress = g.danceProgress;
+    if (progress !== null && (g.dance === 'left' || g.dance === 'right')) {
       const list = g.dance === 'left' ? animFrames.left : animFrames.right;
-      if (list.length > 0) {
-        // 5 frames across feedbackSeconds (0.45s) -> ~0.09s per frame
-        const frameIdx = Math.floor((dtSinceHit / 0.45) * list.length);
-        if (frameIdx < list.length) {
-          f = list[frameIdx];
-        }
-      }
+      const frameIdx = Math.floor(progress * 5);
+      if (list.length === 5 && frameIdx >= 0 && frameIdx < 5) f = list[frameIdx];
     }
     const scale = .625;
     dancer.textContent = '';
