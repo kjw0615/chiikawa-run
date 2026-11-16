@@ -12,6 +12,8 @@ import { SlottedMiniGame, ROSTER, DEV_ROSTER, type RosterEntry } from './mini-ro
 import { RakkoGame } from './rakko-game';
 import { renderRakko } from './rakko-panel';
 import { UsagiGame } from './usagi-game';
+import { WeedGame } from './weed-game';
+import { mountWeedPanel, renderWeedPanel } from './weed-panel';
 import { mountUsagiPanel, renderUsagiPanel } from './usagi-panel';
 import { KurimanjuGame } from './kurimanju-game';
 import { renderKurimanju } from './kurimanju-panel';
@@ -78,8 +80,8 @@ function beginRun() {
 }
 function togglePause() {
   if (ready.active) { ready.pause(); return; }
+  if (mini) { if (mini.paused) mini.resume(); else { mini.release(); mini.pause(); } release(); releaseJump(); accumulator = 0; updateMini(); if (!play.hidden) updateHud(); return; }
   if (play.hidden) return;
-  if (mini) { if (mini.paused) mini.resume(); else { mini.release(); mini.pause(); } release(); releaseJump(); accumulator = 0; updateMini(); updateHud(); return; }
   if (model.phase === 'running') { model.pause(); release(); releaseJump(); } else if (model.phase === 'paused') { model.start(); accumulator = 0; }
   updateHud();
 }
@@ -482,7 +484,7 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) miniAct
 miniActionButton.addEventListener('click', () => { if (swallowClick) { swallowClick = false; return; } miniAction(); });
 $('countdown-resume').addEventListener('click', togglePause);
 // The kurimanju portrait is the separate image /assets/event-kurimanju.webp (192x224), shown next to the glass.
-const KURI_ART = true, kuriState = { key: '' }, rakkoState = { key: '' }, usagiState = { key: '' }; let usagiMounted = false;
+const KURI_ART = true, kuriState = { key: '' }, rakkoState = { key: '' }, usagiState = { key: '' }, weedState = { key: '' }; let usagiMounted = false, weedMounted = false;
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
@@ -506,7 +508,7 @@ function updateMini() {
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
     if (miniViewKey !== 'selecting') {
       miniViewKey = 'selecting'; layoutMiniArt();
-      $('slot-panel').hidden = false; $('kuri-panel').hidden = true; $('rakko-panel').hidden = true; $('usagi-panel').hidden = true;
+      $('slot-panel').hidden = false; $('kuri-panel').hidden = true; $('rakko-panel').hidden = true; $('usagi-panel').hidden = true; $('weed-panel').hidden = true;
       for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
       $('mini-character').textContent = ''; $('mini-title').textContent = '오늘의 일손을 찾는 중…'; $('mini-copy').textContent = '이번에는 누구와 일하게 될까요?'; $('mini-reward').textContent = '';
     }
@@ -516,7 +518,7 @@ function updateMini() {
   }
   const inner = g.inner;
   $('slot-panel').hidden = true;
-  $('kuri-panel').hidden = !(inner instanceof KurimanjuGame); $('rakko-panel').hidden = !(inner instanceof RakkoGame); $('usagi-panel').hidden = !(inner instanceof UsagiGame);
+  $('kuri-panel').hidden = !(inner instanceof KurimanjuGame); $('rakko-panel').hidden = !(inner instanceof RakkoGame); $('usagi-panel').hidden = !(inner instanceof UsagiGame); $('weed-panel').hidden = !(inner instanceof WeedGame);
     if (inner instanceof UsagiGame) {
       for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
       $('mini-character').textContent = '';
@@ -531,6 +533,29 @@ function updateMini() {
         usagiState.key = key;
         $('mini-title').textContent = inner.phase === 'intro' ? '우사기의 신나는 댄스 타임' : done ? inner.reaction : '';
         $('mini-copy').textContent = inner.phase === 'intro' ? '양쪽에서 다가오는 음표가 가운데 목표(← / →)에 닿을 때, 방향키나 아래 버튼을 눌러주세요! (왼쪽: 우냐! / 오른쪽: 우랴!)' : '';
+        $('mini-paused').hidden = !inner.paused;
+        $('mini-reward').textContent = done && inner.reward ? `동전 +${inner.coinReward} · 체력 +${inner.reward.stamina} · ${inner.reward.speedMultiplier}배 속도 ${inner.reward.seconds}초` : '';
+      }
+      miniActionButton.hidden = inner.phase === 'playing' && !inner.paused;
+      miniActionButton.disabled = false;
+      miniActionButton.textContent = inner.paused ? '계속하기' : inner.phase === 'intro' ? '준비됐어요! 시작' : '달리기로 돌아가기';
+      if (['intro', 'result'].includes(inner.phase)) dropFocus();
+      miniViewKey = ''; return;
+    }
+    if (inner instanceof WeedGame) {
+      for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
+      $('mini-character').textContent = '';
+      if (!weedMounted) {
+        mountWeedPanel($('weed-panel'), () => { mini?.press(); updateMini(); });
+        weedMounted = true;
+      }
+      renderWeedPanel(inner);
+      const done = inner.phase === 'result';
+      const key = `${inner.seed}:${inner.phase}:${inner.paused}`;
+      if (key !== weedState.key) {
+        weedState.key = key;
+        $('mini-title').textContent = inner.phase === 'intro' ? '하치와레의 풀뽑기 노동' : done ? inner.reaction : '';
+        $('mini-copy').textContent = inner.phase === 'intro' ? '가운데 판정칸에 풀이 오면 [뽑기] 버튼이나 Space를 누르고, 꽃이 오면 가만히 지나가세요!' : '';
         $('mini-paused').hidden = !inner.paused;
         $('mini-reward').textContent = done && inner.reward ? `동전 +${inner.coinReward} · 체력 +${inner.reward.stamina} · ${inner.reward.speedMultiplier}배 속도 ${inner.reward.seconds}초` : '';
       }
