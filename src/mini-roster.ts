@@ -5,6 +5,7 @@ import { MINI_RULES, StickerGame } from './sticker-game';
 import { KurimanjuGame } from './kurimanju-game';
 import { RakkoGame } from './rakko-game';
 import { UsagiGame } from './usagi-game';
+import { WeedGame } from './weed-game';
 import type { MiniGame, MiniReward } from './mini-game';
 
 export type Portrait = { atlas: string } | { url: string }; // frame in the event atlas, or a separate 192x224 image
@@ -20,6 +21,7 @@ export const ROSTER: readonly RosterEntry[] = [
 export const DEV_ROSTER: readonly RosterEntry[] = [
   ...ROSTER,
   { id: 'usagi', name: '우사기', portrait: { atlas: 'usagi' }, create: seed => new UsagiGame(seed) },
+  { id: 'hachiware', name: '하치와레', portrait: { atlas: 'hachiware' }, create: seed => new WeedGame(seed) },
 ];
 
 /** The character that wins the slot for this encounter seed (stable for a given seed). */
