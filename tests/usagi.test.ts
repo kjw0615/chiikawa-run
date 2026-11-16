@@ -121,3 +121,19 @@ test('Perfect and Good both count as one success; a miss counts as none', () => 
   assert.equal(g.points, g.grades.filter(x => x !== 'miss').length);
   assert.equal(g.points, 6);
 });
+
+test('danceProgress runs 0 to 1 after a success only, null for idle and for a miss', () => {
+  const g = new UsagiGame(0);
+  g.start();
+  assert.equal(g.danceProgress, null);
+  advanceTo(g, usagiHitTime(0));
+  g.pressLane(g.chart[0]);
+  assert.equal(g.danceProgress, 0);
+  g.step(USAGI_RULES.feedbackSeconds / 2);
+  assert.ok(Math.abs((g.danceProgress ?? -1) - .5) < 1e-9);
+  g.step(USAGI_RULES.feedbackSeconds);
+  assert.equal(g.danceProgress, null);
+  advanceTo(g, usagiHitTime(1));
+  g.pressLane(g.chart[1] === 'left' ? 'right' : 'left'); // wrong side: miss
+  assert.equal(g.danceProgress, null);
+});
