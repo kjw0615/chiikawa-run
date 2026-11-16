@@ -92,6 +92,13 @@ export class UsagiGame {
     if (this.phase !== 'playing' || this.lastIndex < 0) return null;
     return this.time - this.judgedAt[this.lastIndex] < USAGI_RULES.feedbackSeconds ? this.grades[this.lastIndex] ?? null : null;
   }
+  /** How far the reach animation of the last note has run: 0 = just judged, 1 = over; null when no animation runs.
+   * Only a successful note (Perfect/Good) reaches out toward its side; a Miss has no reach, so the dancer simply stays. */
+  get danceProgress(): number | null {
+    if (this.phase !== 'playing' || this.lastIndex < 0 || this.grades[this.lastIndex] === 'miss') return null;
+    const p = (this.time - this.judgedAt[this.lastIndex]) / USAGI_RULES.feedbackSeconds;
+    return p < 1 ? Math.max(0, p) : null;
+  }
   get dance(): UsagiDance {
     if (this.label === null) return 'idle';
     if (this.label === 'miss') return 'miss';
