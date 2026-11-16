@@ -42,7 +42,7 @@ export function renderWeedPanel(g: WeedGame): WeedView {
     tile.dataset.outcome = g.outcomes[i] ?? '';
     tile.classList.toggle('is-current', g.centerIndex === i);
     tile.setAttribute('aria-label', `${i + 1}번째 ${g.row[i] === 'weed' ? '풀' : '꽃'}${g.outcomes[i] ? ` · ${outcomeText[g.outcomes[i]!]}` : ''}`);
-    tile.querySelector<HTMLElement>('.weed-plant')!.textContent = g.row[i] === 'flower' ? '✿' : '';
+    tile.querySelector<HTMLElement>('.weed-plant')!.textContent = '';
     tile.querySelector<HTMLElement>('.weed-outcome')!.textContent = g.outcomes[i] ? outcomeText[g.outcomes[i]!] : '';
   });
   const cue = host.querySelector<HTMLElement>('.weed-cue')!;
