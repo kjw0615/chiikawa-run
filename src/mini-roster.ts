@@ -4,6 +4,7 @@
 import { MINI_RULES, StickerGame } from './sticker-game';
 import { KurimanjuGame } from './kurimanju-game';
 import { RakkoGame } from './rakko-game';
+import { UsagiGame } from './usagi-game';
 import type { MiniGame, MiniReward } from './mini-game';
 
 export type Portrait = { atlas: string } | { url: string }; // frame in the event atlas, or a separate 192x224 image
@@ -13,6 +14,12 @@ export const ROSTER: readonly RosterEntry[] = [
   { id: 'chiikawa', name: '치이카와', portrait: { atlas: 'chiikawa' }, create: seed => new StickerGame(seed, { character: 'chiikawa', skipSelection: true }) },
   { id: 'kurimanju', name: '쿠리만쥬', portrait: { url: '/assets/event-kurimanju.webp' }, create: seed => new KurimanjuGame(seed) },
   { id: 'rakko', name: '랏코', portrait: { url: '/assets/event-rakko.webp' }, create: seed => new RakkoGame(seed) },
+];
+
+/** Includes prototypes under test (e.g. Usagi) for the developer test menu only. */
+export const DEV_ROSTER: readonly RosterEntry[] = [
+  ...ROSTER,
+  { id: 'usagi', name: '우사기', portrait: { atlas: 'usagi' }, create: seed => new UsagiGame(seed) },
 ];
 
 /** The character that wins the slot for this encounter seed (stable for a given seed). */
@@ -57,5 +64,6 @@ export class SlottedMiniGame implements MiniGame {
   start() { if (!this.spinning) this.inner.start(); }
   continue() { if (!this.spinning) this.inner.continue(); }
   press() { if (!this.spinning) this.inner.press(); }
+  pressLane(lane: 'left' | 'right') { if (!this.spinning) this.inner.pressLane?.(lane); }
   release() { this.inner.release(); }
 }
