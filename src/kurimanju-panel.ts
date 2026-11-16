@@ -7,6 +7,8 @@ export interface KuriView { buttonText: string; buttonDisabled: boolean }
 /** Draws the cheap part (fill levels, guide lines) every frame and rewrites text only when the state key changes. */
 export function renderKurimanju(g: KurimanjuGame, state: { key: string }): KuriView {
   renderBeerPour(g);
+  $('kuri-beer-line').hidden = g.phase === 'intro';
+  $('kuri-foam-line').hidden = g.phase === 'intro';
   const view: KuriView = {
     buttonText: g.paused ? '계속하기' : g.phase === 'intro' ? '준비됐어요! 시작' : g.phase === 'result' ? '달리기로 돌아가기' : '꾹 눌러서 따르기',
     buttonDisabled: false,
