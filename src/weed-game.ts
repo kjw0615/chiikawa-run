@@ -1,14 +1,18 @@
 // Fifth mini game: 하치와레 풀뽑기 (weed pulling), a one-button conveyor. Pure state machine like the other mini games:
 // advanced only by step(dt), no DOM/phaser imports, so node tests can drive it. Six tiles (4 weeds, 2 flowers, shuffled
-// by seed) sit in a row; the first one starts on the centre mark and every second the row slides one tile to the left.
-// When the 6th tile has had its second the game ends. While a tile is on the centre mark: a weed must be pulled (press),
-// a flower must be left alone. Each tile is answered at most once (a second press in the same second is ignored).
+// by seed) sit in a row; the first one starts on the centre mark and the row slides one tile to the left every 0.7 s, or at once when the tile is answered.
+// When the 6th tile is answered or has had its time the game ends. While a tile is on the centre mark: a weed must be pulled (press),
+// a flower must be left alone. A press answers the tile and the row moves on immediately (no waiting out the rest of
+// the time); a brief lock after that keeps an accidental double tap from answering the next tile.
 // Success = weed pulled or flower left alone (max 6). Nothing is scored out loud: only the tiles' own reactions.
 import type { MiniGame } from './mini-game';
 export const WEED_RULES = {
   tiles: 6,
   flowers: 2,             // the rest are weeds
-  stepSeconds: 1,         // every tile stays on the centre mark for this long, then the row slides one tile
+  stepSeconds: .7,        // a tile that is left alone stays on the centre mark this long, then the row slides one tile
+  pressLock: .1,          // after a press moves the row on, the next tile ignores presses this long (an accidental double tap)
+  readySeconds: .5,       // lead-in after start(): the tiles are shown but still; no input, the clock has not started
+  goAt: .3,               // within the lead-in, the cue reads ready until this many seconds in, then go
   countdownSeconds: 3,
 } as const;
 export type WeedTile = 'weed' | 'flower';
@@ -46,28 +50,31 @@ export function weedReactionFor(right: number): string {
 
 export class WeedGame implements MiniGame {
   phase: WeedPhase = 'intro';
-  time = 0;                  // seconds into the playing phase: the one clock everything is judged against
+  time = 0;                  // total seconds played (informational; tiles advance by index, not by this clock)
+  index = 0;                 // tile on the centre mark
+  lead = 0;                  // lead-in seconds left after start() (0 = tiles are running)
+  tileClock = 0;             // seconds the current tile has been on the centre mark
   elapsed = 0;               // seconds in the current phase (used by the result countdown)
   paused = false;
   readonly seed: number;
   readonly row: readonly WeedTile[];
   readonly outcomes: (WeedOutcome | undefined)[] = [];
-  private answered: boolean[] = [];   // a press was already used on this tile
   constructor(seed: number) {
     this.seed = seed;
     this.row = weedRowFor(seed);
   }
   get tileCount() { return this.row.length; }
   /** Tile currently on the centre mark, or -1 outside the playing phase / once the 6th tile has had its second. */
-  get centerIndex() {
-    if (this.phase !== 'playing') return -1;
-    const i = Math.floor(this.time / WEED_RULES.stepSeconds + 1e-9);
-    return i < this.row.length ? i : -1;
+  get centerIndex() { return this.phase === 'playing' && this.lead <= 0 && this.index < this.row.length ? this.index : -1; }
+  /** Start cue text during the lead-in (ready, then go) and for a moment after, else ''. */
+  get startCue(): '' | 'ready' | 'go' {
+    if (this.phase !== 'playing' || this.lead <= 0) return '';
+    return WEED_RULES.readySeconds - this.lead < WEED_RULES.goAt ? 'ready' : 'go';
   }
   /** Seconds the current tile has been on the centre mark (0..stepSeconds), for a progress cue. */
-  get tileTime() { const i = this.centerIndex; return i < 0 ? 0 : this.time - i * WEED_RULES.stepSeconds; }
+  get tileTime() { return this.centerIndex < 0 ? 0 : this.tileClock; }
   /** Row position in tiles: 0 = first tile on the centre mark; the row has slid this many tiles to the left (stepped). */
-  get offset() { return this.phase === 'intro' ? 0 : Math.min(this.row.length - 1, Math.floor(this.time / WEED_RULES.stepSeconds + 1e-9)); } // stays on the last tile once play is over
+  get offset() { return this.phase === 'intro' ? 0 : Math.min(this.row.length - 1, this.index); } // stays on the last tile once play is over
   get judgedCount() { return this.outcomes.filter(o => o !== undefined).length; }
   /** Right answers so far: weeds pulled + flowers left alone (max 6). */
   get right() { return this.outcomes.filter(o => o === 'pulled' || o === 'passed').length; }
@@ -81,17 +88,23 @@ export class WeedGame implements MiniGame {
   get interactive() { return this.phase === 'playing'; }
   pause() { this.paused = true; }
   resume() { this.paused = false; }
-  start() { if (this.phase === 'intro') { this.phase = 'playing'; this.time = 0; this.elapsed = 0; } }
+  start() { if (this.phase === 'intro') { this.phase = 'playing'; this.time = 0; this.lead = WEED_RULES.readySeconds; this.index = 0; this.tileClock = 0; this.elapsed = 0; } }
   /** Result screen -> countdown, then 'done'. */
   continue() { if (this.phase === 'result') { this.phase = 'countdown'; this.elapsed = 0; } }
 
-  /** The single button. Pulls the tile on the centre mark once; a flower pulled is a wrong answer. */
+  /** The single button. Answers the tile on the centre mark and moves the row on at once; a flower pulled is a wrong answer. */
   press() {
     if (this.paused || this.phase !== 'playing') return;
     const i = this.centerIndex;
-    if (i < 0 || this.answered[i]) return;
-    this.answered[i] = true;
+    if (i < 0 || (this.reachedByPress && this.tileClock < WEED_RULES.pressLock)) return; // accidental double tap
     this.outcomes[i] = this.row[i] === 'weed' ? 'pulled' : 'wrong';
+    this.advance(true);
+  }
+  private reachedByPress = false;   // the current tile was reached by a press (so the double-tap lock applies)
+  /** Moves to the next tile; the caller has already answered or settled the current one. */
+  private advance(byPress: boolean) {
+    this.index++; this.tileClock = 0; this.reachedByPress = byPress;
+    if (this.index >= this.row.length) { this.phase = 'result'; this.elapsed = 0; }
   }
   release() { /* tap game: nothing to do */ }
 
@@ -100,10 +113,17 @@ export class WeedGame implements MiniGame {
     this.elapsed += dt;
     if (this.phase === 'countdown') { if (this.elapsed >= WEED_RULES.countdownSeconds) this.phase = 'done'; return; }
     if (this.phase !== 'playing') return;
-    this.time += dt;
-    // Tiles whose second is over without an answer are settled (a long frame may settle several at once).
-    const over = Math.min(this.row.length, Math.floor(this.time / WEED_RULES.stepSeconds + 1e-9));
-    for (let i = 0; i < over; i++) if (this.outcomes[i] === undefined) this.outcomes[i] = this.row[i] === 'weed' ? 'missed' : 'passed';
-    if (this.time >= this.row.length * WEED_RULES.stepSeconds - 1e-9) { this.phase = 'result'; this.elapsed = 0; }
+    if (this.lead > 0) { // lead-in: the tiles wait; whatever is left of this frame starts the first tile
+      if (dt < this.lead) { this.lead -= dt; return; }
+      dt -= this.lead; this.lead = 0;
+      if (!(dt > 0)) return;
+    }
+    this.time += dt; this.tileClock += dt;
+    // A long frame may pass several tiles: tiles left alone are settled (weed missed, flower passed) and the row moves on.
+    while (this.phase === 'playing' && this.tileClock >= WEED_RULES.stepSeconds - 1e-9) {
+      const i = this.index, rest = this.tileClock - WEED_RULES.stepSeconds;
+      if (this.outcomes[i] === undefined) this.outcomes[i] = this.row[i] === 'weed' ? 'missed' : 'passed';
+      this.advance(false); if (this.phase === 'playing') this.tileClock = Math.max(0, rest);
+    }
   }
 }
