@@ -7,6 +7,23 @@ let introFrame: Frame | null = null;
 let animFrames: { right: Frame[]; left: Frame[] } = { right: [], left: [] };
 let atlasSize = { w: 2048, h: 1536 };
 let current: UsagiGame | null = null;
+let atlasFailed = false;
+
+/** Fetched once, as soon as this module loads (the shell imports it at startup), so the atlas is normally ready before
+ * the player ever opens the game. The dancer stays invisible until its frame exists: no placeholder is ever shown. */
+function applyAtlas(atlas: any) {
+  idleFrame = (atlas.frames['usagi-idle']?.frame as Frame) ?? (atlas.frames['usagi-dance-0']?.frame as Frame);
+  introFrame = (atlas.frames['usagi-intro']?.frame as Frame) ?? idleFrame;
+  animFrames = {
+    right: [4, 5, 6, 7, 8].map(n => atlas.frames[`usagi-r-${n}`]?.frame as Frame).filter(Boolean),
+    left: [4, 5, 6, 7, 8].map(n => atlas.frames[`usagi-l-${n}`]?.frame as Frame).filter(Boolean),
+  };
+  atlasSize = atlas.meta.size;
+}
+const atlasLoad: Promise<void> | null = typeof window === 'undefined' ? null : Promise.all([
+  fetch('/assets/cameo-atlas.json').then(r => { if (!r.ok) throw Error('atlas'); return r.json(); }),
+  new Promise<void>((resolve, reject) => { const img = new Image(); img.onload = () => resolve(); img.onerror = reject; img.src = '/assets/cameo-atlas.webp'; }),
+]).then(([atlas]) => { applyAtlas(atlas); }).catch(() => { atlasFailed = true; /* missing art must not stop the game */ });
 
 /** Owns only the panel contents. The shell owns start/result/pause and keyboard routing. */
 export function mountUsagiPanel(host: HTMLElement, onLane: (side: UsagiSide) => void) {
@@ -15,7 +32,7 @@ export function mountUsagiPanel(host: HTMLElement, onLane: (side: UsagiSide) => 
   host.innerHTML = `<div class="usagi-stage">
     <div class="usagi-lane usagi-lane-left"><span class="usagi-target">←</span></div>
     <div class="usagi-lane usagi-lane-right"><span class="usagi-target">→</span></div>
-    <div class="usagi-dancer" role="img" aria-label="양팔을 번갈아 뻗으며 춤추는 우사기">🐰</div>
+    <div class="usagi-dancer" role="img" aria-label="양팔을 번갈아 뻗으며 춤추는 우사기"></div>
     <div class="usagi-bubble" hidden></div><div class="usagi-grade" role="status" hidden></div>
     <div class="usagi-notes" aria-hidden="true">${Array.from({ length: 8 }, () => '<span class="usagi-note" hidden></span>').join('')}</div>
   </div><div class="usagi-progress" aria-label="진행 상황"></div>
@@ -31,18 +48,7 @@ export function mountUsagiPanel(host: HTMLElement, onLane: (side: UsagiSide) => 
     // Keyboard / assistive clicks have detail 0; physical clicks were handled at pointerdown.
     button.addEventListener('click', e => { if (e.detail === 0) activate(); });
   }
-  void Promise.all([
-    fetch('/assets/cameo-atlas.json').then(r => { if (!r.ok) throw Error('atlas'); return r.json(); }),
-    new Promise<void>((resolve, reject) => { const img = new Image(); img.onload = () => resolve(); img.onerror = reject; img.src = '/assets/cameo-atlas.webp'; }),
-  ]).then(([atlas]) => {
-    idleFrame = (atlas.frames['usagi-idle']?.frame as Frame) ?? (atlas.frames['usagi-dance-0']?.frame as Frame);
-    introFrame = (atlas.frames['usagi-intro']?.frame as Frame) ?? idleFrame;
-    const rFrames = [4, 5, 6, 7, 8].map(n => atlas.frames[`usagi-r-${n}`]?.frame as Frame).filter(Boolean);
-    const lFrames = [4, 5, 6, 7, 8].map(n => atlas.frames[`usagi-l-${n}`]?.frame as Frame).filter(Boolean);
-    animFrames = { right: rFrames, left: lFrames };
-    atlasSize = atlas.meta.size;
-    if (current) renderUsagiPanel(current);
-  }).catch(() => { /* Keep the rabbit fallback; missing scenery art must not stop the game. */ });
+  void atlasLoad?.then(() => { if (current) renderUsagiPanel(current); });
 }
 
 export interface UsagiView { buttonText: string; buttonDisabled: boolean }
@@ -57,6 +63,8 @@ export function renderUsagiPanel(g: UsagiGame, state?: { key: string }): UsagiVi
   root.dataset.dance = g.dance;
   root.querySelectorAll<HTMLButtonElement>('[data-side]').forEach(b => { b.disabled = !active; });
   const dancer = root.querySelector<HTMLElement>('.usagi-dancer')!;
+  dancer.style.visibility = idleFrame || atlasFailed ? 'visible' : 'hidden'; // never a placeholder while the atlas loads
+  if (!idleFrame && atlasFailed) dancer.textContent = '🐰'; // only when the art could not be loaded at all
   if (idleFrame) {
     let f = g.phase === 'intro' ? introFrame ?? idleFrame : idleFrame;
     // The model owns the animation clock, including pause and the return to standing.
