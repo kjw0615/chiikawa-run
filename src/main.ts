@@ -8,7 +8,7 @@ import { Background } from './background';
 import { CameoLayer, CAMEO_ATLAS } from './cameo';
 import { FOOD_ART, FOOD_DISPLAY_SIZE } from './food-art';
 import { StickerGame, MINI_RULES, CHARACTERS, type Character } from './sticker-game';
-import { SlottedMiniGame, ROSTER, type RosterEntry } from './mini-roster';
+import { SlottedMiniGame, ROSTER, DEV_ROSTER, type RosterEntry } from './mini-roster';
 import { RakkoGame } from './rakko-game';
 import { renderRakko } from './rakko-panel';
 import { UsagiGame } from './usagi-game';
@@ -431,7 +431,7 @@ function devShowMenu() {
   mini = null; miniViewKey = ''; updateMini();
   $('dev-mini').hidden = false; $('dev-exit').hidden = false;
   const list = $('dev-list'); list.textContent = '';
-  for (const entry of ROSTER) {
+  for (const entry of DEV_ROSTER) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'primary'; b.textContent = entry.name;
     b.addEventListener('click', () => devPlay(entry)); list.append(b);
   }

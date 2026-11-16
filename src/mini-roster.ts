@@ -14,6 +14,11 @@ export const ROSTER: readonly RosterEntry[] = [
   { id: 'chiikawa', name: '치이카와', portrait: { atlas: 'chiikawa' }, create: seed => new StickerGame(seed, { character: 'chiikawa', skipSelection: true }) },
   { id: 'kurimanju', name: '쿠리만쥬', portrait: { url: '/assets/event-kurimanju.webp' }, create: seed => new KurimanjuGame(seed) },
   { id: 'rakko', name: '랏코', portrait: { url: '/assets/event-rakko.webp' }, create: seed => new RakkoGame(seed) },
+];
+
+/** Includes prototypes under test (e.g. Usagi) for the developer test menu only. */
+export const DEV_ROSTER: readonly RosterEntry[] = [
+  ...ROSTER,
   { id: 'usagi', name: '우사기', portrait: { atlas: 'usagi' }, create: seed => new UsagiGame(seed) },
 ];
 
