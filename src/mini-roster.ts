@@ -20,7 +20,7 @@ export const ROSTER: readonly RosterEntry[] = [
 /** Includes prototypes under test (e.g. Usagi) for the developer test menu only. */
 export const DEV_ROSTER: readonly RosterEntry[] = [
   ...ROSTER,
-  { id: 'usagi', name: '우사기', portrait: { atlas: 'usagi' }, create: seed => new UsagiGame(seed) },
+  { id: 'usagi', name: '우사기', portrait: { url: '/assets/event-usagi.webp' }, create: seed => new UsagiGame(seed) },
   { id: 'hachiware', name: '하치와레', portrait: { atlas: 'hachiware' }, create: seed => new WeedGame(seed) },
 ];
 
