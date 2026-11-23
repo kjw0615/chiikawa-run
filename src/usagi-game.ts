@@ -4,6 +4,7 @@
 // with the matching side (left/right arrow, A/D or the two touch buttons). There is no failing: all 8 notes always play
 // out and the reward depends on the final performance. Nothing is scored out loud: only Perfect/Good/Miss per note,
 // the speech bubble and the dance. Judging uses time: error = |press time - note hit time|.
+import { rewardForTier, type MiniTier } from './mini-tier.ts';
 export type UsagiSide = 'left' | 'right';
 export const USAGI_RULES = {
   noteCount: 8,
@@ -49,6 +50,8 @@ export const usagiRewardFor = (points: number): UsagiReward => {
   const n = usagiSuccessesFor(points);
   return { stamina: n * 6, speedMultiplier: tenth(1 + n / 10), seconds: tenth(n * .4), coins: n };
 };
+/** Result tier by notes hit (Perfect or Good) out of 8: 8 perfect, 5-7 great, 2-4 good, 0-1 bad (a slow-down). */
+export const usagiTierFor = (hits: number): MiniTier => hits >= USAGI_RULES.noteCount ? 'perfect' : hits >= 5 ? 'great' : hits >= 2 ? 'good' : 'bad';
 export function usagiReactionFor(points: number): string {
   const n = usagiSuccessesFor(points);
   return n >= 5 ? '완벽해! 우사기가 신나게 춤췄어!' : n >= 3 ? '좋아! 같이 춤추니까 즐겁다' : n >= 1 ? '조금씩 박자가 맞아 가고 있어' : '괜찮아, 다시 한번 춤춰 보자';
@@ -105,8 +108,11 @@ export class UsagiGame {
     return this.chart[this.lastIndex];
   }
   get reward(): UsagiReward | null {
-    return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done' ? usagiRewardFor(this.points) : null;
+    return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done' ? { ...rewardForTier('usagi', this.tier), coins: 0 } : null;
   }
+  get tier(): MiniTier { return usagiTierFor(this.hits); }
+  /** Notes hit: points count one per Perfect or Good note. */
+  get hits() { return this.points; }
   get reaction() { return this.reward ? usagiReactionFor(this.points) : ''; }
   get coinReward() { return this.reward?.coins ?? 0; }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, USAGI_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : USAGI_RULES.countdownSeconds; }

@@ -6,6 +6,7 @@
 // played, and the reward follows the number sorted correctly. Prototype art: symbols, text and basic shapes only.
 // Nothing is scored out loud.
 import type { MiniGame } from './mini-game';
+import { rewardForTier, type MiniTier } from './mini-tier.ts';
 
 export type KaniShelf = 'story' | 'cook' | 'plant';
 export const KANI_SHELVES: readonly KaniShelf[] = ['story', 'cook', 'plant'];
@@ -65,6 +66,8 @@ export const kaniRewardFor = (right: number): KaniReward => {
   const n = kaniSuccessesFor(right);
   return { stamina: n * 6, speedMultiplier: tenth(1 + n / 10), seconds: tenth(n * .4), coins: n };
 };
+/** Result tier by books sorted right out of 6: 6 perfect, 4-5 great, 1-3 good, 0 bad (a slow-down). */
+export const kaniTierFor = (right: number): MiniTier => right >= KANI_RULES.books ? 'perfect' : right >= 4 ? 'great' : right >= 1 ? 'good' : 'bad';
 export function kaniReactionFor(right: number): string {
   const n = kaniSuccessesFor(right);
   return n >= 5 ? '깔끔해! 책장이 반짝반짝해졌어' : n >= 3 ? '좋아! 책들이 제자리를 찾았어' : n >= 1 ? '조금씩 정리가 되고 있어' : '괜찮아, 다시 한번 정리해 보자';
@@ -106,8 +109,9 @@ export class KaniGame implements MiniGame {
   /** Books sorted onto the right shelf so far (max 6). */
   get right() { return this.outcomes.filter(o => o === 'sorted').length; }
   get reward(): KaniReward | null {
-    return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done' ? kaniRewardFor(this.right) : null;
+    return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done' ? { ...rewardForTier('kani', this.tier), coins: 0 } : null;
   }
+  get tier(): MiniTier { return kaniTierFor(this.right); }
   get reaction() { return this.reward ? kaniReactionFor(this.right) : ''; }
   get coinReward() { return this.reward?.coins ?? 0; }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, KANI_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : KANI_RULES.countdownSeconds; }

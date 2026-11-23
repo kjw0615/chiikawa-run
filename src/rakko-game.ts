@@ -6,6 +6,7 @@
 // need 4, so one miss still wins within 5. A pure state machine advanced by step(dt); press()/release() are the
 // only inputs, like the other mini games. Judging uses time: error = |press time - moment the two objects overlap|.
 // Nothing is scored out loud: only the monster's HP bar, the remaining chances and a reaction are shown.
+import { rewardForTier, type MiniTier } from './mini-tier.ts';
 export const RAKKO_RULES = {
   chances: 5,
   monsterHp: 12,
@@ -43,6 +44,8 @@ export const rakkoRewardFor = (won: boolean, chancesUsed: number, damage: number
 };
 export const rakkoGradeFor = (error: number): RakkoGrade =>
   error <= RAKKO_RULES.critical + 1e-9 ? 'critical' : error <= RAKKO_RULES.normal + 1e-9 ? 'normal' : 'miss';
+/** Result tier: beaten in 1-2 chances perfect, 3 great, 4-5 good; not beaten bad (coin and stamina penalty). */
+export const rakkoTierFor = (won: boolean, chancesUsed: number): MiniTier => !won ? 'bad' : chancesUsed <= 2 ? 'perfect' : chancesUsed === 3 ? 'great' : 'good';
 export function rakkoReactionFor(won: boolean, chancesUsed: number, damage: number): string {
   if (won) return chancesUsed <= RAKKO_RULES.fastWin ? '대단해! 일격필살이었어!' : '잘했어! 토벌 성공이야';
   return damage >= RAKKO_RULES.monsterHp / 2 ? '아쉽다! 조금만 더 하면 쓰러뜨렸을 텐데' : '괜찮아, 다시 한번 해 보자';
@@ -84,8 +87,9 @@ export class RakkoGame {
   get criticals() { return this.grades.filter(g => g === 'critical').length; }
   get reward(): RakkoReward | null {
     return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done'
-      ? rakkoRewardFor(this.won, this.chancesUsed, this.damage, this.criticals) : null;
+      ? { ...rewardForTier('rakko', this.tier), coins: rewardForTier('rakko', this.tier).coins ?? 0 } : null;
   }
+  get tier(): MiniTier { return rakkoTierFor(this.won, this.chancesUsed); }
   get reaction() { return this.reward ? rakkoReactionFor(this.won, this.chancesUsed, this.damage) : ''; }
   get coinReward() { return this.reward?.coins ?? 0; }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, RAKKO_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : RAKKO_RULES.countdownSeconds; }
