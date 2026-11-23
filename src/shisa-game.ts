@@ -1,3 +1,4 @@
+import { rewardForTier, type MiniTier } from './mini-tier.ts';
 import type { MiniGame, MiniReward } from './mini-game';
 
 export const SHISA_ROUND_COUNTS = [[1, 1], [2, 2], [1, 2]] as const;
@@ -35,10 +36,13 @@ export function shisaOrdersFor(seed: number): readonly ShisaOrder[] {
   return Object.freeze(recipes);
 }
 
+export function shisaTierFor(successes: number): MiniTier {
+  const n = Number.isFinite(successes) ? Math.max(0, Math.min(SHISA_RULES.orders, Math.floor(successes))) : 0;
+  return n === 3 ? 'perfect' : n === 2 ? 'great' : n === 1 ? 'good' : 'bad';
+}
 export function shisaRewardFor(successes: number): MiniReward & { coins: number } {
-  const right = Number.isFinite(successes) ? Math.max(0, Math.min(SHISA_RULES.orders, Math.floor(successes))) : 0;
-  const n = Math.round(right * 5 / SHISA_RULES.orders);
-  return { stamina: n * 6, speedMultiplier: Math.round((1 + n / 10) * 10) / 10, seconds: Math.round(n * 4) / 10, coins: n };
+  const reward = rewardForTier('shisa', shisaTierFor(successes));
+  return { ...reward, coins: reward.coins ?? 0 };
 }
 
 /** Manual selection: arrows move the cursor, press() takes it; clicking/tapping chooses and takes directly. */
@@ -68,6 +72,7 @@ export class ShisaGame implements MiniGame {
   get highlightedTopping(): ShisaTopping | null { return this.highlightedIndex < 0 ? null : SHISA_TOPPINGS[this.highlightedIndex]; }
   get canPress() { return this.interactive && !this.paused; }
   get inPlay() { return this.phase === 'playing' || this.phase === 'countdown'; }
+  get tier(): MiniTier { return shisaTierFor(this.successes); }
   get reward() { return ['result', 'countdown', 'done'].includes(this.phase) ? shisaRewardFor(this.successes) : null; }
   get coinReward() { return this.reward?.coins ?? 0; }
   get reaction() {

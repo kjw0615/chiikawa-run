@@ -1,3 +1,5 @@
+import { rewardForTier, type MiniTier } from './mini-tier.ts';
+
 // Lemon-sticker mini game: a self-contained state machine.
 // It owns its own clock (advanced only by step(dt)) and never touches the runner model. Whoever
 // embeds it freezes it simply by not calling step(), or with pause()/resume(). Rewards are only
@@ -16,13 +18,12 @@ export type Character = 'chiikawa' | 'hachiware' | 'usagi';
 export const CHARACTERS: readonly Character[] = ['chiikawa', 'hachiware', 'usagi'];
 export type Reward = { stamina: number; speedMultiplier: number; seconds: number; coins?: number };
 
-// Reward grows in proportion to the successful rounds (0..5): stamina +6, boost +0.4 s (max 2 s) and
-// +0.1 speed multiplier each. Rounding keeps float dust (0.2 * 3) out of the values.
-const tenth = (n: number) => Math.round(n * 10) / 10;
-export const rewardFor = (successes: number): Reward => {
+/** Four coin tiers; the runner applies negative coins safely when this game is completed. */
+export function stickerTierFor(successes: number): MiniTier {
   const n = Math.max(0, Math.min(MINI_RULES.rounds, Math.floor(Number.isFinite(successes) ? successes : 0)));
-  return { stamina: n * 6, speedMultiplier: tenth(1 + n / 10), seconds: tenth(n * .4) };
-};
+  return n === MINI_RULES.rounds ? 'perfect' : n >= 3 ? 'great' : n >= 1 ? 'good' : 'bad';
+}
+export const rewardFor = (successes: number): Reward => rewardForTier('chiikawa', stickerTierFor(successes));
 
 const EPS = 1e-9;
 // Deterministic mixing so each (seed, salt) pair gives an independent value in [0, 1).
@@ -64,8 +65,9 @@ export class StickerGame {
     if (this.phase === 'playing') return triangle(unit(this.seed, 10 + this.round) + this.speed * this.elapsed);
     return this.lastCursor;
   }
-  /** One coin per successful round; the caller adds it to the reward it hands to the runner. */
-  get coinReward() { return this.successes; }
+  get tier(): MiniTier { return stickerTierFor(this.successes); }
+  /** Same signed coin value as reward; the shell forwards it once. */
+  get coinReward() { return this.reward?.coins ?? 0; }
   get reward(): Reward | null { return this.results.length >= MINI_RULES.rounds ? rewardFor(this.successes) : null; }
   get inPlay() { return this.phase === 'selecting' || this.phase === 'playing' || this.phase === 'feedback' || this.phase === 'countdown'; }
   get interactive() { return this.phase === 'playing'; }

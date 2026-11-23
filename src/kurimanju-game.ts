@@ -1,3 +1,5 @@
+import { rewardForTier, type MiniTier } from './mini-tier.ts';
+
 // Kurimanju mini game ("pour the beer"): a self-contained state machine, like sticker-game.ts.
 // It owns its own clock (advanced only by step(dt)) and never touches the runner model. The caller
 // forwards one hold button: press() / release(). Rewards are computed here and applied by the caller once.
@@ -20,12 +22,16 @@ export type KuriPhase = 'intro' | 'beer-ready' | 'beer-pour' | 'foam-ready' | 'f
 export type Grade = 'perfect' | 'good' | 'bad';
 export type KuriReward = { stamina: number; speedMultiplier: number; seconds: number; coins: number };
 
-const tenth = (n: number) => Math.round(n * 10) / 10;
-// Same reward curve as the lemon mini game, using "successes" = score scaled from 0..8 to 0..5.
+// Kept for callers that use the old 0..5 progress measure; rewards use tiers directly.
 export const successesFor = (score: number) => Math.round(Math.max(0, Math.min(KURI_RULES.maxScore, Math.floor(Number.isFinite(score) ? score : 0))) * 5 / KURI_RULES.maxScore);
+/** Internal 0..8 points map to the 100-point thresholds 95 / 70 / 40, without exposing a score in the UI. */
+export function kuriTierFor(score: number): MiniTier {
+  const n = Math.max(0, Math.min(KURI_RULES.maxScore, Math.floor(Number.isFinite(score) ? score : 0)));
+  return n >= 8 ? 'perfect' : n >= 6 ? 'great' : n >= 4 ? 'good' : 'bad';
+}
 export const kuriRewardFor = (score: number): KuriReward => {
-  const n = successesFor(score);
-  return { stamina: n * 6, speedMultiplier: tenth(1 + n / 10), seconds: tenth(n * .4), coins: n };
+  const reward = rewardForTier('kurimanju', kuriTierFor(score));
+  return { ...reward, coins: reward.coins ?? 0 };
 };
 export const gradeFor = (error: number): Grade => error <= KURI_RULES.perfect + 1e-9 ? 'perfect' : error <= KURI_RULES.good + 1e-9 ? 'good' : 'bad';
 
@@ -71,7 +77,8 @@ export class KurimanjuGame {
   }
   get reward(): KuriReward | null { return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done' ? kuriRewardFor(this.score) : null; }
   get reaction() { return this.reward ? reactionFor(this.score) : ''; }
-  get coinReward() { return successesFor(this.score); }
+  get tier(): MiniTier { return kuriTierFor(this.score); }
+  get coinReward() { return this.reward?.coins ?? 0; }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, KURI_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : KURI_RULES.countdownSeconds; }
   get inPlay() { return this.phase !== 'intro' && this.phase !== 'result' && this.phase !== 'done'; }
   get interactive() { return this.phase === 'beer-ready' || this.phase === 'beer-pour' || this.phase === 'foam-ready' || this.phase === 'foam-pour'; }
