@@ -4,8 +4,6 @@ export const SHISA_RULES = {
   orders: 3,
   toppingsPerOrder: 2,
   orderSeconds: 6,
-  cycleSeconds: .6,
-  pressLockSeconds: .12,
   feedbackSeconds: .55,
   countdownSeconds: 3,
 } as const;
@@ -37,7 +35,7 @@ export function shisaRewardFor(successes: number): MiniReward & { coins: number 
   return { stamina: n * 6, speedMultiplier: Math.round((1 + n / 10) * 10) / 10, seconds: Math.round(n * 4) / 10, coins: n };
 }
 
-/** Pure one-button model. press() takes the highlighted topping; two picks automatically serve the bowl. */
+/** Manual selection: arrows move the cursor, press() takes it; clicking/tapping chooses and takes directly. */
 export class ShisaGame implements MiniGame {
   phase: ShisaPhase = 'intro';
   stage: ShisaStage = 'topping';
@@ -49,7 +47,7 @@ export class ShisaGame implements MiniGame {
   private phaseTime = 0;
   private bowl: ShisaTopping[] = [];
   private results: ShisaOutcome[] = [];
-  private unlockAt = 0;
+  private cursor = 0;
 
   constructor(seed: number) { this.seed = seed; this.orders = shisaOrdersFor(seed); }
   get round() { return this.orderIndex; }
@@ -60,9 +58,9 @@ export class ShisaGame implements MiniGame {
   get remaining() { return this.stage === 'topping' ? Math.max(0, SHISA_RULES.orderSeconds - this.clock) : 0; }
   get lastOutcome(): ShisaOutcome | null { return this.phase === 'playing' && this.stage === 'feedback' ? this.results[this.orderIndex] ?? null : null; }
   get interactive() { return this.phase === 'playing' && this.stage === 'topping'; }
-  get highlightedIndex() { return this.interactive ? Math.floor(this.clock / SHISA_RULES.cycleSeconds + 1e-9) % SHISA_TOPPINGS.length : -1; }
+  get highlightedIndex() { return this.interactive ? this.cursor : -1; }
   get highlightedTopping(): ShisaTopping | null { return this.highlightedIndex < 0 ? null : SHISA_TOPPINGS[this.highlightedIndex]; }
-  get canPress() { return this.interactive && !this.paused && this.clock + 1e-9 >= this.unlockAt; }
+  get canPress() { return this.interactive && !this.paused; }
   get inPlay() { return this.phase === 'playing' || this.phase === 'countdown'; }
   get reward() { return ['result', 'countdown', 'done'].includes(this.phase) ? shisaRewardFor(this.successes) : null; }
   get coinReward() { return this.reward?.coins ?? 0; }
@@ -76,14 +74,21 @@ export class ShisaGame implements MiniGame {
   pause() { this.paused = true; }
   resume() { this.paused = false; }
   continue() { if (this.phase === 'result' && !this.paused) { this.phase = 'countdown'; this.phaseTime = 0; } }
-  /** Temporary no-op compatibility for the previous shell. Numeric selection is no longer an input. */
-  chooseTopping(_topping: ShisaTopping) { /* one button only */ }
+  moveCursor(direction: -1 | 1) {
+    if (!this.canPress || direction !== -1 && direction !== 1) return;
+    this.cursor = (this.cursor + direction + SHISA_TOPPINGS.length) % SHISA_TOPPINGS.length;
+  }
+  /** Direct pointer selection takes the topping atomically, without a second confirm step. */
+  chooseTopping(topping: ShisaTopping) {
+    const index = SHISA_TOPPINGS.indexOf(topping);
+    if (!this.canPress || index < 0) return;
+    this.cursor = index; this.press();
+  }
   /** Temporary no-op compatibility for the previous shell. */
-  undoTopping() { /* one button only */ }
+  undoTopping() { /* no undo control */ }
   press() {
     if (!this.canPress || this.highlightedTopping === null) return;
     this.bowl.push(this.highlightedTopping);
-    this.unlockAt = this.clock + SHISA_RULES.pressLockSeconds;
     if (this.bowl.length === SHISA_RULES.toppingsPerOrder) {
       this.resolve(this.bowl.every((topping, i) => topping === this.order[i]) ? 'success' : 'wrong');
     }
@@ -108,7 +113,7 @@ export class ShisaGame implements MiniGame {
       left = Math.max(0, left - room); this.clock = 0;
       if (this.stage === 'topping') this.resolve('timeout');
       else if (this.orderIndex + 1 === SHISA_RULES.orders) { this.phase = 'result'; this.phaseTime = 0; }
-      else { this.orderIndex++; this.bowl = []; this.unlockAt = 0; this.stage = 'topping'; }
+      else { this.orderIndex++; this.bowl = []; this.cursor = 0; this.stage = 'topping'; }
     }
   }
 }
