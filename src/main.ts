@@ -374,12 +374,6 @@ window.addEventListener('keydown', e => {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); mini.pressLane?.('left'); updateMini(); return; }
         if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); mini.pressLane?.('right'); updateMini(); return; }
       }
-      if (mini.inner instanceof ShisaGame && mini.inner.interactive && !mini.paused) {
-        if (e.code === 'Digit1' || e.code === 'Numpad1') { e.preventDefault(); mini.chooseTopping?.('chashu'); updateMini(); return; }
-        if (e.code === 'Digit2' || e.code === 'Numpad2') { e.preventDefault(); mini.chooseTopping?.('egg'); updateMini(); return; }
-        if (e.code === 'Digit3' || e.code === 'Numpad3') { e.preventDefault(); mini.chooseTopping?.('nori'); updateMini(); return; }
-        if (e.code === 'Backspace') { e.preventDefault(); mini.undoTopping?.(); updateMini(); return; }
-      }
       if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); miniAction(); }
       if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
       return;
@@ -557,9 +551,7 @@ function updateMini() {
       $('mini-character').textContent = '';
       if (!shisaMounted) {
         mountShisaPanel($('shisa-panel'), {
-          choose: topping => { mini?.chooseTopping?.(topping); updateMini(); },
           serve: () => { mini?.press?.(); updateMini(); },
-          undo: () => { mini?.undoTopping?.(); updateMini(); },
         });
         shisaMounted = true;
       }
@@ -569,7 +561,7 @@ function updateMini() {
       if (key !== shisaState.key) {
         shisaState.key = key;
         $('mini-title').textContent = inner.phase === 'intro' ? '시사의 라멘 낭랑 알바' : done ? inner.reaction : '';
-        $('mini-copy').textContent = inner.phase === 'intro' ? '주문서의 토핑 2개를 순서대로 담고 서빙(Space)하세요! (1: 차슈, 2: 달걀, 3: 김, Backspace: 되돌리기)' : '';
+        $('mini-copy').textContent = inner.phase === 'intro' ? '주문서의 토핑이 하이라이트될 때 Space 또는 담기 버튼을 누르세요! 2개를 담으면 자동 서빙됩니다.' : '';
         $('mini-paused').hidden = !inner.paused;
         $('mini-reward').textContent = done && inner.reward ? `동전 +${inner.coinReward} · 체력 +${inner.reward.stamina} · ${inner.reward.speedMultiplier}배 속도 ${inner.reward.seconds}초` : '';
       }
