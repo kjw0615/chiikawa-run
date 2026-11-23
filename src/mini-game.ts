@@ -22,6 +22,9 @@ export interface MiniGame {
   release(): void;
   /** Optional: two-button games (usagi rhythm) take a left/right lane instead of a bare press(). */
   pressLane?(lane: 'left' | 'right'): void;
+  /** Optional: shelf games (kani) move a selection with the arrow keys or take a shelf directly (click / tap). */
+  moveCursor?(dir: -1 | 1): void;
+  pressShelf?(index: number): void;
   /** Optional: topping games (shisa) take topping selection and undo actions. */
   chooseTopping?(topping: string): void;
   undoTopping?(): void;

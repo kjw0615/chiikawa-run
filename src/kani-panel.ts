@@ -5,9 +5,9 @@ let current: KaniGame | null = null;
 const FEEDBACK_SECONDS = .35;
 const feedbackText = { sorted: '꽂았다!', wrong: '앗, 다른 책장이야', missed: '놓쳤어' } as const;
 
-/** Prototype screen (symbols, text and basic shapes only). One button: Space (the shell routes it) or the on-screen button.
+/** Prototype screen (symbols, text and basic shapes only). ←/→ pick a shelf and Space (the shell routes both) or the put button puts the book there; clicking / tapping a shelf puts it there directly.
  * The shell owns start/result/pause controls. */
-export function mountKaniPanel(root: HTMLElement, onPress: () => void) {
+export function mountKaniPanel(root: HTMLElement, onPress: (shelf?: number) => void) {
   if (host === root) return;
   host = root;
   root.innerHTML = `<div class="kani-helper"><span class="kani-badge" aria-hidden="true">📚</span><span>제목을 보고 알맞은 책장에 꽂아요!</span></div>
@@ -17,9 +17,14 @@ export function mountKaniPanel(root: HTMLElement, onPress: () => void) {
       <div class="kani-start" role="status" hidden></div></div>
     <div class="kani-cue" role="status"></div><div class="kani-timer" aria-hidden="true"><span></span></div>
     <div class="kani-progress" aria-label="진행 상황"></div>
-    <div class="kani-shelves" aria-hidden="true">${KANI_SHELVES.map(shelf => `<div class="kani-shelf"><b>${KANI_SHELF_INFO[shelf].symbol}</b><span>${KANI_SHELF_INFO[shelf].name}</span></div>`).join('')}<div class="kani-cursor"></div></div>
-    <button type="button" class="kani-put">책장에 꽂기 · Space</button>`;
+    <div class="kani-shelves">${KANI_SHELVES.map(shelf => `<button type="button" class="kani-shelf" data-shelf="${KANI_SHELVES.indexOf(shelf)}"><b>${KANI_SHELF_INFO[shelf].symbol}</b><span>${KANI_SHELF_INFO[shelf].name}</span></button>`).join('')}</div>
+    <button type="button" class="kani-put">선택한 책장에 꽂기 · Space</button>`;
   const button = root.querySelector<HTMLButtonElement>('.kani-put')!;
+  root.querySelectorAll<HTMLButtonElement>('.kani-shelf').forEach(shelf => {
+    const i = Number(shelf.dataset.shelf), choose = () => { if (current?.interactive && !current.paused && !current.startCue) onPress(i); };
+    shelf.addEventListener('pointerdown', e => { if (!e.isPrimary || e.button !== 0) return; e.preventDefault(); choose(); });
+    shelf.addEventListener('click', e => { if (e.detail === 0) choose(); });
+  });
   const put = () => { if (current?.interactive && !current.paused && !current.startCue) onPress(); };
   button.addEventListener('pointerdown', e => {
     if (!e.isPrimary || e.button !== 0) return;
@@ -61,16 +66,14 @@ export function renderKaniPanel(g: KaniGame): KaniView {
     shelf.dataset.flash = flash ? (g.outcomes[last] === 'sorted' ? 'sorted' : 'wrong') : '';
     shelf.dataset.active = live && g.cursorShelf === i ? 'true' : '';
   });
-  const cursor = host.querySelector<HTMLElement>('.kani-cursor')!;
-  cursor.hidden = !live;
-  if (live) cursor.style.left = `${g.cursor / KANI_SHELVES.length * 100}%`;
+  host.querySelectorAll<HTMLButtonElement>('.kani-shelf').forEach(b => { b.disabled = !live; });
   host.querySelector<HTMLButtonElement>('.kani-put')!.disabled = !g.interactive || g.paused || !!g.startCue;
   const start = host.querySelector<HTMLElement>('.kani-start')!;
   start.hidden = !g.startCue;
   const startText = g.startCue === 'ready' ? '준비…' : g.startCue === 'go' ? '시작!' : '';
   if (start.textContent !== startText) start.textContent = startText;
   const cue = host.querySelector<HTMLElement>('.kani-cue')!;
-  const cueText = g.paused ? '잠깐 쉬어요' : g.startCue ? '카운터를 보세요' : g.current ? '커서가 알맞은 책장 위에 올 때 눌러요!' : g.phase === 'intro' ? '카운터를 보세요' : '정리 끝!';
+  const cueText = g.paused ? '잠깐 쉬어요' : g.startCue ? '카운터를 보세요' : g.current ? '←/→로 책장을 고르고 Space, 또는 책장을 눌러요!' : g.phase === 'intro' ? '카운터를 보세요' : '정리 끝!';
   if (cue.textContent !== cueText) cue.textContent = cueText;
   host.querySelector<HTMLElement>('.kani-timer')!.hidden = g.phase === 'intro' || !!g.startCue;
   host.querySelector<HTMLElement>('.kani-timer span')!.style.width = `${g.interactive && g.current ? Math.max(0, 1 - g.bookTime / KANI_RULES.bookSeconds) * 100 : 0}%`;
