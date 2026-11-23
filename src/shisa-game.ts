@@ -1,7 +1,8 @@
 import type { MiniGame, MiniReward } from './mini-game';
 
+export const SHISA_ROUND_COUNTS = [[1, 1], [2, 2], [1, 2]] as const;
 export const SHISA_RULES = {
-  orders: 3,
+  orders: SHISA_ROUND_COUNTS.length,
   maxKinds: 2,
   maxPerTopping: 2,
   maxToppings: 4,
@@ -16,27 +17,22 @@ export type ShisaOutcome = 'success' | 'wrong' | 'timeout';
 export type ShisaPhase = 'intro' | 'playing' | 'result' | 'countdown' | 'done';
 export type ShisaStage = 'topping' | 'feedback';
 
-/** Three distinct recipes, reproducible from the encounter seed. Recipes are unordered counts, with one doubled kind or two kinds (1–2 pieces each). */
+/** Each round uses two distinct kinds: 1+1, then 2+2, then 1+2. Seed chooses which kinds fill those quantities. */
 export function shisaOrdersFor(seed: number): readonly ShisaOrder[] {
-  const recipes: ShisaOrder[] = [];
-  for (let i = 0; i < SHISA_TOPPINGS.length; i++) {
-    const first = SHISA_TOPPINGS[i];
-    recipes.push([first, first]);
-    for (let j = i + 1; j < SHISA_TOPPINGS.length; j++) {
-      for (let a = 1; a <= SHISA_RULES.maxPerTopping; a++) {
-        for (let b = 1; b <= SHISA_RULES.maxPerTopping; b++) {
-          recipes.push([...Array<ShisaTopping>(a).fill(first), ...Array<ShisaTopping>(b).fill(SHISA_TOPPINGS[j])]);
-        }
-      }
-    }
-  }
   let state = (seed >>> 0) ^ 0x6a09e667;
-  for (let i = recipes.length - 1; i > 0; i--) {
+  const random = () => {
     state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    const j = (state >>> 16) % (i + 1);
-    [recipes[i], recipes[j]] = [recipes[j], recipes[i]];
-  }
-  return Object.freeze(recipes.slice(0, SHISA_RULES.orders).map(order => Object.freeze(order)));
+    return state >>> 16;
+  };
+  const recipes = SHISA_ROUND_COUNTS.map(([a, b]) => {
+    const kinds: ShisaTopping[] = [...SHISA_TOPPINGS];
+    for (let i = kinds.length - 1; i > 0; i--) {
+      const j = random() % (i + 1);
+      [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
+    }
+    return Object.freeze([...Array<ShisaTopping>(a).fill(kinds[0]), ...Array<ShisaTopping>(b).fill(kinds[1])]);
+  });
+  return Object.freeze(recipes);
 }
 
 export function shisaRewardFor(successes: number): MiniReward & { coins: number } {
