@@ -12,7 +12,7 @@ const feedbackText = { sorted: '꽂았다!', wrong: '앗, 안 꽂혀! 다른 책
 export function mountKaniPanel(root: HTMLElement, onPress: (shelf?: number) => void) {
   if (host === root) return;
   host = root;
-  root.innerHTML = `<div class="kani-helper"><span class="kani-badge" aria-hidden="true">📚</span><span>제목을 보고 알맞은 책장에 꽂아요!</span></div>
+  root.innerHTML = `<div class="kani-helper"><span class="kani-badge" aria-hidden="true"></span><span>제목을 보고 알맞은 책장에 꽂아요!</span></div>
     <div class="kani-stage"><div class="kani-counter" aria-hidden="true"></div>
       <div class="kani-book" hidden><span class="kani-spine" aria-hidden="true"></span><span class="kani-title"></span></div>
       <div class="kani-result" role="status" hidden></div>

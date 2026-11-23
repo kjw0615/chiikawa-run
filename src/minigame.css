@@ -124,7 +124,7 @@
 .weed-start{position:absolute;inset:0;z-index:3;display:grid;place-items:center;background:#fffdf57d;color:#5d7f46;font-size:36px;font-weight:bold;text-shadow:0 2px #fff;pointer-events:none}
 
 /* Kani (used bookshop sorting) prototype panel: symbols, text and basic shapes only. */
-.kani-helper{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:bold;color:#7a5d3d}.kani-badge{font-size:34px}
+.kani-helper{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:bold;color:#7a5d3d}.kani-badge{width:64px;height:75px;background:url('/assets/event-kani.webp') center/contain no-repeat}
 .kani-stage{position:relative;isolation:isolate;max-width:600px;height:162px;margin:4px auto 8px;overflow:hidden;border-radius:20px;background:linear-gradient(#f9f0dc 70%,#d9bd8f 70%);border:2px solid #c9ad80}
 .kani-stage::before{content:'';position:absolute;inset:0 0 30% 0;z-index:-1;opacity:.55;background:
  repeating-linear-gradient(90deg,#e7a6bd 0 9px,#f3d28a 9px 17px,#b5d99a 17px 27px,#9ec7e6 27px 34px,#e9c9a0 34px 44px) 0 8px/100% 34px no-repeat,
