@@ -197,7 +197,7 @@ export class RunnerModel {
     this.boost = Math.max(0, this.boost - dt);
     this.eventBoost = Math.max(0, this.eventBoost - dt);
     if (this.gap <= 0) { this.gap = 0; this.phase = 'over'; }
-    if (this.phase === 'running' && this.grounded && this.hitFlash === 0 && !this.crouch) {
+    if (this.phase === 'running' && this.grounded && this.hitFlash === 0) {
       const encounter = this.encounters.find(e => !e.used && Math.abs(this.distance - e.x) < 1.6 && Math.abs(this.y - e.y) < .01);
       if (encounter) {
         encounter.used = true; this.activeEncounter = encounter; this.phase = 'minigame';
