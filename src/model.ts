@@ -1,5 +1,6 @@
 import type { Reward } from './sticker-game';
 import { FOOD_ART } from './food-art.ts';
+import { archOver, landingLine, platformEdge, jumpApexMetres, type CoinPhysics } from './coin-path.ts';
 export const RULES = {
   speed: 6, chaserSpeed: 6.1, exhaustedSpeed: 4.2, boostSpeed: 9,
   staminaDrain: 4, food: 20, goldFood: 25, recover: 12, goldChance: .1,
@@ -220,7 +221,7 @@ export class RunnerModel {
     while (this.nextCoinX < horizon) {
       const start = this.nextCoinX, count = R.minGroup + Math.floor(this.coinRandom() * (R.maxGroup - R.minGroup + 1));
       const lanePick = this.coinRandom();
-      type Spot = { x: number; top: number };
+      type Spot = { x: number; top: number; gold?: boolean };
       let spots: Spot[] | undefined;
       const airTime = (v / RULES.gravity), airHalf = airTime * RULES.speed; // apex is airHalf metres after take-off
       const targets = hazards().filter(i => (i.kind === 'block' && i.y === floor - 64 || i.kind === 'beam' && i.y === 84) && i.x >= start && i.x <= start + 30).sort((a, b) => a.x - b.x);
@@ -236,6 +237,17 @@ export class RunnerModel {
             spots = xs.map(x => { const tm = (x - t.x + airHalf) / RULES.speed, h = Math.max(0, v * tm - g * tm * tm); return { x, top: floor - h - 41 - C / 2 }; });
             break;
           }
+        }
+      }
+      if (this.separateSpawns && lanePick >= GLIDE_TRAIL.pick) {
+        // Guideline arch (separate course): jump arc over a low rock/stump with a gold apex coin, then a landing line.
+        const phys: CoinPhysics = { speed: RULES.speed, gravity: RULES.gravity, jumpVelocity: RULES.jumpVelocity, floor, coin: C };
+        const half = jumpApexMetres(phys);
+        const t = this.items.filter(i => !i.used && i.kind === 'block' && i.y === floor - 64 && i.x - half >= start && i.x <= start + 30).sort((a, b) => a.x - b.x)[0];
+        if (t) {
+          const arch = archOver(phys, t.x), landing = landingLine(phys, t.x + half + 1);
+          const a = arch[0].x - 1, b = landing[landing.length - 1].x + 1;
+          if (clearOfPlatforms(a, b) && clearOfHazards(a, b, t)) spots = [...arch, ...landing];
         }
       }
       if (this.separateSpawns && lanePick < GLIDE_TRAIL.pick) {
@@ -263,7 +275,7 @@ export class RunnerModel {
       }
       const group = this.coinGroupIndex++;
       for (const s of spots) {
-        const value = this.coinRandom() < COIN_RULES.goldChance ? COIN_RULES.goldValue : 1;
+        const value = s.gold || this.coinRandom() < COIN_RULES.goldChance ? COIN_RULES.goldValue : 1;
         this.items.push({ id: this.coinId++, x: s.x, y: s.top, w: C, h: C, kind: 'coin', used: false, coinValue: value, coinGroup: group });
       }
       this.nextCoinX = spots[spots.length - 1].x + R.gapMin + this.coinRandom() * R.gapExtra;
