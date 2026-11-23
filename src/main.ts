@@ -15,6 +15,10 @@ import { UsagiGame } from './usagi-game';
 import { WeedGame } from './weed-game';
 import { mountWeedPanel, renderWeedPanel } from './weed-panel';
 import { mountUsagiPanel, renderUsagiPanel } from './usagi-panel';
+import { KaniGame } from './kani-game';
+import { mountKaniPanel, renderKaniPanel } from './kani-panel';
+import { ShisaGame, type ShisaTopping } from './shisa-game';
+import { mountShisaPanel, renderShisaPanel } from './shisa-panel';
 import { KurimanjuGame } from './kurimanju-game';
 import { renderKurimanju } from './kurimanju-panel';
 import { MONSTER_HEIGHT, MONSTER_WIDTH, monsterX, smoothGap, chaseMarkerPercent } from './presentation';
@@ -367,8 +371,19 @@ window.addEventListener('keydown', e => {
   if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); if (e.repeat) return;
   if (mini) {
       if (mini.inner instanceof UsagiGame && mini.inner.interactive && !mini.paused) {
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); mini.pressLane('left'); updateMini(); return; }
-        if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); mini.pressLane('right'); updateMini(); return; }
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); mini.pressLane?.('left'); updateMini(); return; }
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); mini.pressLane?.('right'); updateMini(); return; }
+      }
+      if (mini.inner instanceof KaniGame && mini.inner.interactive && !mini.paused) {
+        if (e.code === 'Digit1' || e.code === 'Numpad1') { e.preventDefault(); mini.pressShelf?.(0); updateMini(); return; }
+        if (e.code === 'Digit2' || e.code === 'Numpad2') { e.preventDefault(); mini.pressShelf?.(1); updateMini(); return; }
+        if (e.code === 'Digit3' || e.code === 'Numpad3') { e.preventDefault(); mini.pressShelf?.(2); updateMini(); return; }
+      }
+      if (mini.inner instanceof ShisaGame && mini.inner.interactive && !mini.paused) {
+        if (e.code === 'Digit1' || e.code === 'Numpad1') { e.preventDefault(); mini.chooseTopping?.('chashu'); updateMini(); return; }
+        if (e.code === 'Digit2' || e.code === 'Numpad2') { e.preventDefault(); mini.chooseTopping?.('egg'); updateMini(); return; }
+        if (e.code === 'Digit3' || e.code === 'Numpad3') { e.preventDefault(); mini.chooseTopping?.('nori'); updateMini(); return; }
+        if (e.code === 'Backspace') { e.preventDefault(); mini.undoTopping?.(); updateMini(); return; }
       }
       if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); miniAction(); }
       if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
@@ -484,7 +499,7 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) miniAct
 miniActionButton.addEventListener('click', () => { if (swallowClick) { swallowClick = false; return; } miniAction(); });
 $('countdown-resume').addEventListener('click', togglePause);
 // The kurimanju portrait is the separate image /assets/event-kurimanju.webp (192x224), shown next to the glass.
-const KURI_ART = true, kuriState = { key: '' }, rakkoState = { key: '' }, usagiState = { key: '' }, weedState = { key: '' }; let usagiMounted = false, weedMounted = false;
+const KURI_ART = true, kuriState = { key: '' }, rakkoState = { key: '' }, usagiState = { key: '' }, weedState = { key: '' }, kaniState = { key: '' }, shisaState = { key: '' }; let usagiMounted = false, weedMounted = false, kaniMounted = false, shisaMounted = false;
 function updateMini() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
@@ -508,7 +523,7 @@ function updateMini() {
     $('slot-reel').style.transform = `translateY(${-132 * steps * (1 - (1 - t) ** 3)}px)`;
     if (miniViewKey !== 'selecting') {
       miniViewKey = 'selecting'; layoutMiniArt();
-      $('slot-panel').hidden = false; $('kuri-panel').hidden = true; $('rakko-panel').hidden = true; $('usagi-panel').hidden = true; $('weed-panel').hidden = true;
+      $('slot-panel').hidden = false; $('kuri-panel').hidden = true; $('rakko-panel').hidden = true; $('usagi-panel').hidden = true; $('weed-panel').hidden = true; $('kani-panel').hidden = true; $('shisa-panel').hidden = true;
       for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
       $('mini-character').textContent = ''; $('mini-title').textContent = '오늘의 일손을 찾는 중…'; $('mini-copy').textContent = '이번에는 누구와 일하게 될까요?'; $('mini-reward').textContent = '';
     }
@@ -518,7 +533,57 @@ function updateMini() {
   }
   const inner = g.inner;
   $('slot-panel').hidden = true;
-  $('kuri-panel').hidden = !(inner instanceof KurimanjuGame); $('rakko-panel').hidden = !(inner instanceof RakkoGame); $('usagi-panel').hidden = !(inner instanceof UsagiGame); $('weed-panel').hidden = !(inner instanceof WeedGame);
+  $('kuri-panel').hidden = !(inner instanceof KurimanjuGame); $('rakko-panel').hidden = !(inner instanceof RakkoGame); $('usagi-panel').hidden = !(inner instanceof UsagiGame); $('weed-panel').hidden = !(inner instanceof WeedGame); $('kani-panel').hidden = !(inner instanceof KaniGame); $('shisa-panel').hidden = !(inner instanceof ShisaGame);
+    if (inner instanceof KaniGame) {
+      for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
+      $('mini-character').textContent = '';
+      if (!kaniMounted) {
+        mountKaniPanel($('kani-panel'), index => { mini?.pressShelf?.(index); updateMini(); });
+        kaniMounted = true;
+      }
+      renderKaniPanel(inner);
+      const done = inner.phase === 'result';
+      const key = `${inner.seed}:${inner.phase}:${inner.paused}`;
+      if (key !== kaniState.key) {
+        kaniState.key = key;
+        $('mini-title').textContent = inner.phase === 'intro' ? '카니의 헌책방 정리' : done ? inner.reaction : '';
+        $('mini-copy').textContent = inner.phase === 'intro' ? '책의 제목을 보고 알맞은 책장(동화★ / 요리● / 식물▲)을 누르거나 키보드 1, 2, 3을 눌러 꽂아주세요!' : '';
+        $('mini-paused').hidden = !inner.paused;
+        $('mini-reward').textContent = done && inner.reward ? `동전 +${inner.coinReward} · 체력 +${inner.reward.stamina} · ${inner.reward.speedMultiplier}배 속도 ${inner.reward.seconds}초` : '';
+      }
+      miniActionButton.hidden = inner.phase === 'playing' && !inner.paused;
+      miniActionButton.disabled = false;
+      miniActionButton.textContent = inner.paused ? '계속하기' : inner.phase === 'intro' ? '준비됐어요! 시작' : '달리기로 돌아가기';
+      if (['intro', 'result'].includes(inner.phase)) dropFocus();
+      miniViewKey = ''; return;
+    }
+    if (inner instanceof ShisaGame) {
+      for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
+      $('mini-character').textContent = '';
+      if (!shisaMounted) {
+        mountShisaPanel($('shisa-panel'), {
+          choose: topping => { mini?.chooseTopping?.(topping); updateMini(); },
+          serve: () => { mini?.press?.(); updateMini(); },
+          undo: () => { mini?.undoTopping?.(); updateMini(); },
+        });
+        shisaMounted = true;
+      }
+      renderShisaPanel(inner);
+      const done = inner.phase === 'result';
+      const key = `${inner.seed}:${inner.phase}:${inner.paused}`;
+      if (key !== shisaState.key) {
+        shisaState.key = key;
+        $('mini-title').textContent = inner.phase === 'intro' ? '시사의 라멘 낭랑 알바' : done ? inner.reaction : '';
+        $('mini-copy').textContent = inner.phase === 'intro' ? '주문서의 토핑 2개를 순서대로 담고 서빙(Space)하세요! (1: 차슈, 2: 달걀, 3: 김, Backspace: 되돌리기)' : '';
+        $('mini-paused').hidden = !inner.paused;
+        $('mini-reward').textContent = done && inner.reward ? `동전 +${inner.coinReward} · 체력 +${inner.reward.stamina} · ${inner.reward.speedMultiplier}배 속도 ${inner.reward.seconds}초` : '';
+      }
+      miniActionButton.hidden = inner.phase === 'playing' && !inner.paused;
+      miniActionButton.disabled = false;
+      miniActionButton.textContent = inner.paused ? '계속하기' : inner.phase === 'intro' ? '준비됐어요! 시작' : '달리기로 돌아가기';
+      if (['intro', 'result'].includes(inner.phase)) dropFocus();
+      miniViewKey = ''; return;
+    }
     if (inner instanceof UsagiGame) {
       for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
       $('mini-character').textContent = '';

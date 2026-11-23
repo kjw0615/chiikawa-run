@@ -6,6 +6,8 @@ import { KurimanjuGame } from './kurimanju-game';
 import { RakkoGame } from './rakko-game';
 import { UsagiGame } from './usagi-game';
 import { WeedGame } from './weed-game';
+import { KaniGame } from './kani-game';
+import { ShisaGame, type ShisaTopping } from './shisa-game';
 import type { MiniGame, MiniReward } from './mini-game';
 
 export type Portrait = { atlas: string } | { url: string }; // frame in the event atlas, or a separate 192x224 image
@@ -17,11 +19,13 @@ export const ROSTER: readonly RosterEntry[] = [
   { id: 'rakko', name: '랏코', portrait: { url: '/assets/event-rakko.webp' }, create: seed => new RakkoGame(seed) },
 ];
 
-/** Includes prototypes under test (e.g. Usagi) for the developer test menu only. */
+/** Includes prototypes under test (e.g. Usagi, Hachiware, Kani, Shisa) for the developer test menu only. */
 export const DEV_ROSTER: readonly RosterEntry[] = [
   ...ROSTER,
   { id: 'usagi', name: '우사기', portrait: { url: '/assets/event-usagi.webp' }, create: seed => new UsagiGame(seed) },
   { id: 'hachiware', name: '하치와레', portrait: { atlas: 'hachiware' }, create: seed => new WeedGame(seed) },
+  { id: 'kani', name: '카니(헌책방)', portrait: { atlas: 'mob' }, create: seed => new KaniGame(seed) },
+  { id: 'shisa', name: '시사(라멘낭랑)', portrait: { atlas: 'mob' }, create: seed => new ShisaGame(seed) },
 ];
 
 /** The character that wins the slot for this encounter seed (stable for a given seed). */
@@ -67,5 +71,8 @@ export class SlottedMiniGame implements MiniGame {
   continue() { if (!this.spinning) this.inner.continue(); }
   press() { if (!this.spinning) this.inner.press(); }
   pressLane(lane: 'left' | 'right') { if (!this.spinning) this.inner.pressLane?.(lane); }
+  pressShelf(shelf: number) { if (!this.spinning) this.inner.pressShelf?.(shelf); }
+  chooseTopping(topping: string) { if (!this.spinning) (this.inner as ShisaGame).chooseTopping?.(topping as ShisaTopping); }
+  undoTopping() { if (!this.spinning) (this.inner as ShisaGame).undoTopping?.(); }
   release() { this.inner.release(); }
 }
