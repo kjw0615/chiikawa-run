@@ -32,6 +32,8 @@ const OBSTACLE_ATLAS = 'meadow-obstacles';
 const FOOD_ATLAS = 'food-art';
 const TERRAIN_ATLAS = 'terrain-art';
 const HULA_RUN = 'momonga-hula-run';
+const HULA_BASE = 'momonga-hula-base', HULA_CROUCH = 'momonga-hula-crouch', HULA_GLIDE = 'momonga-hula-glide';
+const HULA_TEXTURES = [HULA_RUN, HULA_BASE, HULA_CROUCH, HULA_GLIDE];
 let hulaTestSkin = false;
 let hulaArtFailed = false;
 const hulaToggle = $<HTMLButtonElement>('hula-skin-toggle'), hulaStatus = $('hula-skin-status');
@@ -153,7 +155,7 @@ class RunnerScene extends Phaser.Scene {
   preload() {
     this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
     this.load.on('loaderror', (file: { key: string }) => {
-      if (file.key === HULA_RUN) { hulaArtFailed = true; setHulaTestSkin(false, '훌라 이미지를 불러오지 못해 기본 달리기를 사용해요'); return; }
+      if (HULA_TEXTURES.includes(file.key)) { hulaArtFailed = true; setHulaTestSkin(false, '훌라 이미지를 불러오지 못해 기본 달리기를 사용해요'); return; }
       if (!Background.owns(file.key) && file.key !== CAMEO_ATLAS) this.loadFailed = true;
     }); // background, cameo and test-skin art are optional
     Background.preload(this);
@@ -166,6 +168,9 @@ class RunnerScene extends Phaser.Scene {
     this.load.spritesheet('coin-spin', '/assets/coin-spin.webp', { frameWidth: 128, frameHeight: 128 });
     this.load.spritesheet('coin-gold-spin', '/assets/coin-gold-spin.webp', { frameWidth: 128, frameHeight: 128 });
     this.load.spritesheet(HULA_RUN, '/assets/momonga-hula-run.webp', { frameWidth: 256, frameHeight: 224 });
+    this.load.image(HULA_BASE, '/assets/momonga-hula-base.webp');
+    this.load.image(HULA_GLIDE, '/assets/momonga-hula-glide.webp');
+    this.load.spritesheet(HULA_CROUCH, '/assets/momonga-hula-crouch.webp', { frameWidth: 192, frameHeight: 72 });
   }
   create() {
     if (this.loadFailed) { preparing = false; model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
@@ -333,8 +338,10 @@ class RunnerScene extends Phaser.Scene {
     const heroFrame = gliding ? 'momonga-glide' : duck ? moving ? `momonga-crouch-${crawlFrame}` : 'momonga-crouch'
       : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
     // Preserve the glide artwork's aspect ratio while matching the running head/body scale.
-    const hulaRun = hulaTestSkin && model.grounded && !duck && this.textures.exists(HULA_RUN);
-    this.hero.setTexture(hulaRun ? HULA_RUN : ATLAS, hulaRun ? runFrame : heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
+    const hulaActive = hulaTestSkin && !hulaArtFailed && HULA_TEXTURES.every(key => this.textures.exists(key));
+    const hulaTexture = gliding ? HULA_GLIDE : duck ? HULA_CROUCH : model.grounded ? HULA_RUN : HULA_BASE;
+    const hulaFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
+    this.hero.setTexture(hulaActive ? hulaTexture : ATLAS, hulaActive ? hulaFrame : heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
     if (gliding) {
       for (let j = 0; j < 3; j++) {
         const y = model.y - 56 + j * 18 - bob;
