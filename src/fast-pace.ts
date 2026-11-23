@@ -2,7 +2,8 @@
 export const FAST_PACE = {
   speed: 7.6, chaserSpeed: 7.7, exhaustedSpeed: 5.2, boostSpeed: 11.4,
   staminaDrain: 4.5, food: 18, goldFood: 22,
-  chaseRampStart: 750, chaseRampDistance: 500, chaseRampExtra: 1.5,
+  chaseRampStart: 750, chaseRampDistance: 500, chaseRampExtra: .6,
+  staminaRampStart: 500, staminaRampDistance: 750, staminaRampExtra: 3.5,
   firstHazardMin: 18, firstHazardMax: 22, hazardExtra: 1,
   foodJitter: 1.5, foodLiftMin: 48, foodLiftMax: 100,
 } as const;
@@ -11,7 +12,9 @@ export function paceAt(distance: number) {
   const level = Math.min(1, Math.max(0, distance) / 1200);
   // Keep the opening familiar; late pressure closes even a clean run without an artificial distance limit.
   const chaseLevel = Math.min(1, Math.max(0, (distance - FAST_PACE.chaseRampStart) / FAST_PACE.chaseRampDistance));
+  const staminaLevel = Math.min(1, Math.max(0, (distance - FAST_PACE.staminaRampStart) / FAST_PACE.staminaRampDistance));
   return { level, obstacleSpacing: 13.5 - 3 * level, foodSpacing: 32 + 10 * level,
+    staminaDrain: FAST_PACE.staminaDrain + FAST_PACE.staminaRampExtra * staminaLevel,
     chaserSpeed: FAST_PACE.chaserSpeed + FAST_PACE.chaseRampExtra * chaseLevel };
 }
 
