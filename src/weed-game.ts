@@ -44,8 +44,10 @@ export const weedRewardFor = (right: number): WeedReward => {
   const n = weedSuccessesFor(right);
   return { stamina: n * 6, speedMultiplier: tenth(1 + n / 10), seconds: tenth(n * .4), coins: n };
 };
-/** Result tier by right answers out of 6: 6 perfect, 4-5 great, 1-3 good, 0 bad (coin penalty). */
-export const weedTierFor = (right: number): MiniTier => right >= WEED_RULES.tiles ? 'perfect' : right >= 4 ? 'great' : right >= 1 ? 'good' : 'bad';
+/** Result tier by right answers out of 6: 6 perfect, 4-5 great, 1-3 good, 0 bad (coin penalty). Pulling no weed at all
+ * (no input, flowers merely left alone) is bad whatever the count, like skipping any other game. */
+export const weedTierFor = (right: number, pulled = right): MiniTier =>
+  pulled < 1 ? 'bad' : right >= WEED_RULES.tiles ? 'perfect' : right >= 4 ? 'great' : right >= 1 ? 'good' : 'bad';
 export function weedReactionFor(right: number): string {
   const n = weedSuccessesFor(right);
   return n >= 5 ? '깔끔해! 풀이 하나도 안 남았어' : n >= 3 ? '좋아! 꽃은 지키고 풀만 쏙쏙 뽑았어' : n >= 1 ? '조금씩 감이 잡히고 있어' : '괜찮아, 다시 한번 해 보자';
@@ -84,7 +86,7 @@ export class WeedGame implements MiniGame {
   get reward(): WeedReward | null {
     return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done' ? { ...rewardForTier('hachiware', this.tier), coins: rewardForTier('hachiware', this.tier).coins ?? 0 } : null;
   }
-  get tier(): MiniTier { return weedTierFor(this.right); }
+  get tier(): MiniTier { return weedTierFor(this.right, this.outcomes.filter(o => o === 'pulled').length); }
   get reaction() { return this.reward ? weedReactionFor(this.right) : ''; }
   get coinReward() { return this.reward?.coins ?? 0; }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, WEED_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : WEED_RULES.countdownSeconds; }
