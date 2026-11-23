@@ -13,14 +13,14 @@ export function mountKaniPanel(root: HTMLElement, onPress: (shelf?: number) => v
   if (host === root) return;
   host = root;
   root.innerHTML = `<div class="kani-helper"><span class="kani-badge" aria-hidden="true"></span><span>제목을 보고 알맞은 책장에 꽂아요!</span></div>
-    <div class="kani-stage"><div class="kani-counter" aria-hidden="true"></div>
+    <div class="kani-split"><div class="kani-left"><div class="kani-stage">
       <div class="kani-book" hidden><span class="kani-spine" aria-hidden="true"></span><span class="kani-title"></span></div>
       <div class="kani-result" role="status" hidden></div>
       <div class="kani-start" role="status" hidden></div></div>
-    <div class="kani-cue" role="status"></div><div class="kani-timer" aria-hidden="true"><span></span></div>
-    <div class="kani-progress" aria-label="진행 상황"></div>
-    <div class="kani-shelves">${KANI_SHELVES.map(shelf => `<button type="button" class="kani-shelf" data-shelf="${KANI_SHELVES.indexOf(shelf)}"><b>${KANI_SHELF_INFO[shelf].symbol}</b><span>${KANI_SHELF_INFO[shelf].name}</span><i class="kani-row" aria-hidden="true">${'<s></s>'.repeat(3)}<em>${'<u></u>'.repeat(KANI_RULES.perKind)}</em>${'<s></s>'.repeat(4)}</i></button>`).join('')}</div>
-    <button type="button" class="kani-put">선택한 책장에 꽂기 · Space</button>`;
+      <div class="kani-cue" role="status"></div><div class="kani-timer" aria-hidden="true"><span></span></div>
+      <div class="kani-progress" aria-label="진행 상황"></div>
+      <button type="button" class="kani-put">선택한 책장에 꽂기 · Space</button></div>
+    <div class="kani-case" role="group" aria-label="책장">${KANI_SHELVES.map(shelf => `<button type="button" class="kani-shelf" data-shelf="${KANI_SHELVES.indexOf(shelf)}"><b>${KANI_SHELF_INFO[shelf].symbol}</b><span>${KANI_SHELF_INFO[shelf].name}</span><i class="kani-row" aria-hidden="true">${'<s></s>'.repeat(3)}<em>${'<u></u>'.repeat(KANI_RULES.perKind)}</em>${'<s></s>'.repeat(4)}</i></button>`).join('')}</div></div>`;
   const button = root.querySelector<HTMLButtonElement>('.kani-put')!;
   root.querySelectorAll<HTMLButtonElement>('.kani-shelf').forEach(shelf => {
     const i = Number(shelf.dataset.shelf), choose = () => { if (current?.interactive && !current.paused && !current.startCue) onPress(i); };
@@ -67,10 +67,10 @@ export function renderKaniPanel(g: KaniGame): KaniView {
   // The book that just left flies to the shelf it was put on: it slots in when right and bounces off when wrong.
   if (showFeedback && outcome && shelvingShown !== g.seed * 100 + last) {
     shelvingShown = g.seed * 100 + last;
-    const stage = host.querySelector<HTMLElement>('.kani-stage')!, from = g.books[last], at = g.chosen[last];
+    const stage = host.querySelector<HTMLElement>('.kani-split')!, from = g.books[last], at = g.chosen[last];
     const ghost = document.createElement('span');
     ghost.className = 'kani-ghost'; ghost.dataset.outcome = outcome;
-    ghost.style.setProperty('--dx', `${((at ? KANI_SHELVES.indexOf(at) : 1) - 1) * 34}%`);
+    ghost.style.setProperty('--ty', ['21%', '50%', '79%'][at ? KANI_SHELVES.indexOf(at) : 1]);
     ghost.innerHTML = kaniCoverSvg(from.shelf, from.title);
     stage.appendChild(ghost);
     setTimeout(() => ghost.remove(), 700);
