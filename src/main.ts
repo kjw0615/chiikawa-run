@@ -572,7 +572,7 @@ function updateMini() {
       if (key !== shisaState.key) {
         shisaState.key = key;
         $('mini-title').textContent = inner.phase === 'intro' ? '시사의 라멘 낭랑 알바' : done ? inner.reaction : '';
-        $('mini-copy').textContent = inner.phase === 'intro' ? '← / →로 토핑을 골라 Space로 담으세요. 원하는 토핑을 클릭하거나 터치하면 바로 담깁니다. 두 개를 담으면 자동 서빙!' : '';
+        $('mini-copy').textContent = inner.phase === 'intro' ? '← / →로 토핑을 골라 Space로 담으세요. 클릭·터치도 가능해요. 순서와 상관없이 주문의 재료와 개수를 맞추면 자동 서빙!' : '';
         $('mini-paused').hidden = !inner.paused;
         $('mini-reward').textContent = done && inner.reward ? `동전 +${inner.coinReward} · 체력 +${inner.reward.stamina} · ${inner.reward.speedMultiplier}배 속도 ${inner.reward.seconds}초` : '';
       }
