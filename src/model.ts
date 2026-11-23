@@ -20,16 +20,16 @@ export const difficultyAt = paceAt;
 // Pits and puddles are assembled from a left cap, N repeated middle tiles and a right cap (terrain-water atlas, display px).
 // `inset` is how much of each cap is already open water/hole, so the real opening is N * tile + 2 * inset.
 export const TERRAIN = { tile: 128, cap: 64, surfaceOffset: 8, slow: .25, refugeApproach: 8, refugeExit: 8, longChance: .4,
-  pit: { inset: 8, height: 200, short: 1, long: 4 }, puddle: { inset: 39, height: 40, short: 1, long: 3 } } as const;
+  pit: { inset: 8, height: 200, short: 1, medium: 2, long: 4 }, puddle: { inset: 39, height: 40, short: 1, medium: 2, long: 3 } } as const;
 export const waterWidth = (kind: 'pit' | 'puddle', modules: number) => modules * TERRAIN.tile + 2 * TERRAIN[kind].inset;
 export const OBSTACLE_WIDTHS = { block: 56, tower: 48, long: 145, pit: waterWidth('pit', 1), beam: 160, crawl: 320, puddle: waterWidth('puddle', 1) } as const;
 export const COURSE_RANDOM = { firstHazardMin: FAST_PACE.firstHazardMin, firstHazardMax: FAST_PACE.firstHazardMax, hazardExtra: FAST_PACE.hazardExtra, foodJitter: FAST_PACE.foodJitter, foodPositionJitter: 8 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'crawl' | 'pit' | 'puddle' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number; modules?: number; long?: boolean };
 export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .05, goldValue: 3, firstCoinX: 10 } as const;
 // The runner's real course (separateSpawns): 3-5 coin groups, about 50 coins (about 2.5 of them gold) per 1000 m.
-export const SEPARATE_COINS = { minGroup: 3, maxGroup: 5, gapMin: 20, gapExtra: 14, hazardMargin: .8 } as const;
+export const SEPARATE_COINS = { minGroup: 4, maxGroup: 7, gapMin: 1.5, gapExtra: 3.5, hazardMargin: .8 } as const;
 export const GLIDE_TRAIL = { pick: .5, minHeight: 150, maxHeight: 195, lowest: 60, landingClear: 5 } as const;
-export const SPAWN_CLEARANCE = { encounter: 8, encounterHazard: 6, foodCoin: 3, coinHazard: 2 } as const;
+export const SPAWN_CLEARANCE = { encounter: 8, encounterHazard: 6, foodCoin: 1.2, coinHazard: 1.5 } as const;
 // Low obstacles (top at most 64px) lie far below an air trail (150px and up), so air coins may sit above them.
 const LOW_HAZARD = new Set<Item['kind']>(['block', 'long', 'pit', 'puddle']);
 const collectible = (kind: Item['kind']) => kind === 'food' || kind === 'gold' || kind === 'coin';
@@ -240,10 +240,10 @@ export class RunnerModel {
         }
       }
       if (this.separateSpawns && lanePick >= GLIDE_TRAIL.pick) {
-        // Guideline arch (separate course): jump arc over a low rock/stump with a gold apex coin, then a landing line.
+        // Guideline arch (separate course): jump arc over a low hazard (block, puddle, or short pit) with a gold apex coin, then a landing line.
         const phys: CoinPhysics = { speed: RULES.speed, gravity: RULES.gravity, jumpVelocity: RULES.jumpVelocity, floor, coin: C };
         const half = jumpApexMetres(phys);
-        const t = this.items.filter(i => !i.used && i.kind === 'block' && i.y === floor - 64 && i.x - half >= start && i.x <= start + 30).sort((a, b) => a.x - b.x)[0];
+        const t = this.items.filter(i => !i.used && LOW_HAZARD.has(i.kind) && i.w <= 160 && i.x - half >= start && i.x <= start + 30).sort((a, b) => a.x - b.x)[0];
         if (t) {
           const arch = archOver(phys, t.x), landing = landingLine(phys, t.x + half + 1);
           const a = arch[0].x - 1, b = landing[landing.length - 1].x + 1;
@@ -315,7 +315,7 @@ export class RunnerModel {
       const n = this.platformIndex++, start = this.nextPlatformX;
       const length = n % 6 === 1 ? 36 : [12, 20, 36][Math.floor(lengthRoll * 3)];
       const p: Platform = { id: n, start, end: start + length, y: RULES.floor - RULES.platformHeight };
-      this.platforms.push(p); this.nextPlatformX += 180;
+      this.platforms.push(p); this.nextPlatformX += 90;
       const foodX = start + 3 + this.random('platform') * .5, lift = 48 + this.random('platform') * 52;
       this.add(foodX, p.y - lift, 32, 32, this.random('platform') < RULES.goldChance ? 'gold' : 'food');
       // Short branches are bonus paths; long ones have one well-spaced upper hazard.
@@ -351,8 +351,10 @@ export class RunnerModel {
       const kind = paceHazardAt(this.artSeed, this.groundPatternIndex);
       // Water is variable: a short one stands alone, a long one always gets a refuge platform above it.
       const water = kind === 'pit' || kind === 'puddle';
-      const longRoll = water ? this.random('hazard') : 1, long = water && this.platformCourse && longRoll < TERRAIN.longChance; // no branches, no long water
-      const modules = water ? TERRAIN[kind][long ? 'long' : 'short'] : 0;
+      const roll = water ? this.random('hazard') : 1;
+      const long = water && this.platformCourse && roll < TERRAIN.longChance;
+      const medium = water && !long && roll < .7;
+      const modules = water ? TERRAIN[kind][long ? 'long' : (medium ? 'medium' : 'short')] : 0;
       const width = water ? waterWidth(kind, modules) : OBSTACLE_WIDTHS[kind];
       // The long crawl object gets enough approach/exit space without changing
       // its width. Persist the last placement so pruning cannot change a seed.
