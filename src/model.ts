@@ -26,8 +26,9 @@ export const OBSTACLE_WIDTHS = { block: 56, tower: 48, long: 145, pit: waterWidt
 export const COURSE_RANDOM = { firstHazardMin: FAST_PACE.firstHazardMin, firstHazardMax: FAST_PACE.firstHazardMax, hazardExtra: FAST_PACE.hazardExtra, foodJitter: FAST_PACE.foodJitter, foodPositionJitter: 8 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'crawl' | 'pit' | 'puddle' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number; modules?: number; long?: boolean };
 export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .05, goldValue: 3, firstCoinX: 10 } as const;
-// The runner's real course (separateSpawns): 3-5 coin groups, about 50 coins (about 2.5 of them gold) per 1000 m.
-export const SEPARATE_COINS = { minGroup: 4, maxGroup: 7, gapMin: 1.5, gapExtra: 3.5, hazardMargin: .8 } as const;
+// The runner's real course (separateSpawns): one lone coin about every 10 m (8.5-11.5), about 100 per 1000 m,
+// the usual 5 % of them gold. Each coin keeps the food / hazard / NPC clearances below; a blocked slot slides on.
+export const SEPARATE_COINS = { minGroup: 1, maxGroup: 1, gapMin: 7, gapExtra: 2, hazardMargin: .8, airChance: .5, airLift: 70, slide: .5 } as const;
 export const GLIDE_TRAIL = { pick: .5, minHeight: 150, maxHeight: 195, lowest: 60, landingClear: 5 } as const;
 export const SPAWN_CLEARANCE = { encounter: 8, encounterHazard: 6, foodCoin: 1.2, coinHazard: 1.5 } as const;
 // Low obstacles (top at most 64px) lie far below an air trail (150px and up), so air coins may sit above them.
@@ -243,39 +244,22 @@ export class RunnerModel {
           }
         }
       }
-      if (this.separateSpawns && lanePick >= GLIDE_TRAIL.pick) {
-        // Guideline arch (separate course): jump arc over a low hazard (block, puddle, or short pit) with a gold apex coin, then a landing line.
-        const phys: CoinPhysics = { speed: RULES.speed, gravity: RULES.gravity, jumpVelocity: RULES.jumpVelocity, floor, coin: C };
-        const half = jumpApexMetres(phys);
-        const t = this.items.filter(i => !i.used && LOW_HAZARD.has(i.kind) && i.w <= 160 && i.x - half >= start && i.x <= start + 30).sort((a, b) => a.x - b.x)[0];
-        if (t) {
-          const arch = archOver(phys, t.x), landing = landingLine(phys, t.x + half + 1);
-          const a = arch[0].x - 1, b = landing[landing.length - 1].x + 1;
-          if (clearOfPlatforms(a, b) && clearOfHazards(a, b, t)) spots = [...arch, ...landing];
-        }
-      }
-      if (this.separateSpawns && lanePick < GLIDE_TRAIL.pick) {
-        // Air trail on the glide descent line: 4-5 coins sloping down at glideVelocity / speed, 150-195 px above the floor.
-        const dx = COIN_RULES.arcSpacing, drop = RULES.glideVelocity / (RULES.speed * S) * dx * S;
-        const high = GLIDE_TRAIL.minHeight + this.coinRandom() * (GLIDE_TRAIL.maxHeight - GLIDE_TRAIL.minHeight);
-        const n = this.coinRandom() < .5 ? 4 : 5, m = high - drop * (n - 1) >= GLIDE_TRAIL.lowest ? n : 4;
-        const last = start + (m - 1) * dx;
-        if (clearOfPlatforms(start - 1, last + GLIDE_TRAIL.landingClear) && clearOfHazards(start - 1, last + GLIDE_TRAIL.landingClear, undefined, true))
-          spots = Array.from({ length: m }, (_, k) => ({ x: start + k * dx, top: floor - (high - drop * k) - C / 2 }));
-        if (!spots) { this.nextCoinX += 2; continue; }
-      }
       if (!spots) {
         const xs = Array.from({ length: count }, (_, k) => start + k * COIN_RULES.spacing);
-        if (clearOfPlatforms(xs[0], xs[count - 1]) && clearOfHazards(xs[0], xs[count - 1])) spots = xs.map(x => ({ x, top: floor - 41 - C / 2 }));
+        const lift = this.separateSpawns && this.coinRandom() < SEPARATE_COINS.airChance ? SEPARATE_COINS.airLift : 0;
+        // Real course: a lone coin may sit on a platform's top (well inside it), or above a low hazard (the jump itself is the reward).
+        const top = this.separateSpawns ? this.platforms.find(p => xs[0] >= p.start + 2 && xs[0] <= p.end - 2) : undefined;
+        const surface = top ? top.y : floor;
+        if ((top || clearOfPlatforms(xs[0], xs[count - 1])) && clearOfHazards(xs[0], xs[count - 1], undefined, lift > 0)) spots = xs.map(x => ({ x, top: surface - 41 - C / 2 - lift }));
       }
-      if (!spots) { this.nextCoinX += 2; continue; }
+      if (!spots) { this.nextCoinX += this.separateSpawns ? SEPARATE_COINS.slide : 2; continue; }
       if (this.separateSpawns && spots[spots.length - 1].x >= horizon) break;
       if (this.separateSpawns && spots.some(s =>
         this.encounters.some(e => Math.abs(s.x - e.x) < SPAWN_CLEARANCE.encounter + C / 2 / S)
         || this.items.some(i => (i.kind === 'food' || i.kind === 'gold')
           ? Math.abs(s.x - i.x) < SPAWN_CLEARANCE.foodCoin + (i.w + C) / 2 / S
           : !collectible(i.kind) && !(s.top < floor - 100 && LOW_HAZARD.has(i.kind)) && Math.abs(s.x - i.x) < SPAWN_CLEARANCE.coinHazard + (i.w + C) / 2 / S))) {
-        this.nextCoinX += 2; continue;
+        this.nextCoinX += this.separateSpawns ? SEPARATE_COINS.slide : 2; continue;
       }
       const group = this.coinGroupIndex++;
       for (const s of spots) {
