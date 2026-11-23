@@ -5,6 +5,7 @@
 // a flower must be left alone. A press answers the tile and the row moves on immediately (no waiting out the rest of
 // the time); a brief lock after that keeps an accidental double tap from answering the next tile.
 // Success = weed pulled or flower left alone (max 6). Nothing is scored out loud: only the tiles' own reactions.
+import { rewardForTier, type MiniTier } from './mini-tier.ts';
 import type { MiniGame } from './mini-game';
 export const WEED_RULES = {
   tiles: 6,
@@ -43,6 +44,8 @@ export const weedRewardFor = (right: number): WeedReward => {
   const n = weedSuccessesFor(right);
   return { stamina: n * 6, speedMultiplier: tenth(1 + n / 10), seconds: tenth(n * .4), coins: n };
 };
+/** Result tier by right answers out of 6: 6 perfect, 4-5 great, 1-3 good, 0 bad (coin penalty). */
+export const weedTierFor = (right: number): MiniTier => right >= WEED_RULES.tiles ? 'perfect' : right >= 4 ? 'great' : right >= 1 ? 'good' : 'bad';
 export function weedReactionFor(right: number): string {
   const n = weedSuccessesFor(right);
   return n >= 5 ? '깔끔해! 풀이 하나도 안 남았어' : n >= 3 ? '좋아! 꽃은 지키고 풀만 쏙쏙 뽑았어' : n >= 1 ? '조금씩 감이 잡히고 있어' : '괜찮아, 다시 한번 해 보자';
@@ -79,8 +82,9 @@ export class WeedGame implements MiniGame {
   /** Right answers so far: weeds pulled + flowers left alone (max 6). */
   get right() { return this.outcomes.filter(o => o === 'pulled' || o === 'passed').length; }
   get reward(): WeedReward | null {
-    return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done' ? weedRewardFor(this.right) : null;
+    return this.phase === 'result' || this.phase === 'countdown' || this.phase === 'done' ? { ...rewardForTier('hachiware', this.tier), coins: rewardForTier('hachiware', this.tier).coins ?? 0 } : null;
   }
+  get tier(): MiniTier { return weedTierFor(this.right); }
   get reaction() { return this.reward ? weedReactionFor(this.right) : ''; }
   get coinReward() { return this.reward?.coins ?? 0; }
   get countdownRemaining() { return this.phase === 'countdown' ? Math.max(0, WEED_RULES.countdownSeconds - this.elapsed) : this.phase === 'done' ? 0 : WEED_RULES.countdownSeconds; }
