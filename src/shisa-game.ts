@@ -6,7 +6,7 @@ export const SHISA_RULES = {
   maxKinds: 2,
   maxPerTopping: 2,
   maxToppings: 4,
-  orderSeconds: 6,
+  orderSeconds: 3,
   feedbackSeconds: .55,
   countdownSeconds: 3,
 } as const;
