@@ -2,6 +2,7 @@ import type { Reward } from './sticker-game';
 import { FOOD_ART } from './food-art.ts';
 import { archOver, landingLine, platformEdge, jumpApexMetres, type CoinPhysics } from './coin-path.ts';
 import { FAST_PACE, paceAt, paceHazardAt, paceClearance, type PaceHazard } from './fast-pace.ts';
+// chaserSpeed is the opening baseline; the live chase speed comes from difficultyAt(distance).
 export const RULES = {
   speed: FAST_PACE.speed, chaserSpeed: FAST_PACE.chaserSpeed, exhaustedSpeed: FAST_PACE.exhaustedSpeed, boostSpeed: FAST_PACE.boostSpeed,
   staminaDrain: FAST_PACE.staminaDrain, food: FAST_PACE.food, goldFood: FAST_PACE.goldFood, recover: 12, goldChance: .1,
