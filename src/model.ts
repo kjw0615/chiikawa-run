@@ -70,7 +70,9 @@ export class RunnerModel {
   }
   get speed() {
     const base = this.exhausted ? RULES.exhaustedSpeed : RULES.speed;
-    return Math.max(base, this.boost > 0 ? RULES.boostSpeed : 0, this.eventBoost > 0 ? RULES.speed * this.eventMultiplier : 0) * this.puddleFactor;
+    // A mini-game slow-down (multiplier < 1) lowers the base pace for its seconds; a boost (>= 1) lifts it as before.
+    const slow = this.eventBoost > 0 && this.eventMultiplier < 1 ? this.eventMultiplier : 1;
+    return Math.max(base * slow, this.boost > 0 ? RULES.boostSpeed : 0, this.eventBoost > 0 && this.eventMultiplier >= 1 ? RULES.speed * this.eventMultiplier : 0) * this.puddleFactor;
   }
   /** Wading through a puddle slows the runner by 25%, but only while standing on the floor: jumps, glides, platforms and golden boost are unaffected. */
   get puddleFactor() {
@@ -92,11 +94,13 @@ export class RunnerModel {
   start() { if (this.phase === 'ready' || this.phase === 'paused') this.phase = 'running'; }
   completeEncounter(id: number, reward: Reward): boolean {
     if (this.phase !== 'minigame' || this.activeEncounter?.id !== id) return false;
-    this.stamina = Math.min(100, this.stamina + reward.stamina);
+    // A penalty (negative stamina) never takes the last point: stamina stays >= 1 so a mini game cannot end the run.
+    const hp = Number.isFinite(reward.stamina) ? reward.stamina : 0;
+    this.stamina = hp < 0 ? Math.max(Math.min(1, this.stamina), this.stamina + hp) : Math.min(100, this.stamina + hp);
     if (this.stamina >= RULES.recover) this.exhausted = false;
-    this.eventBoost = reward.seconds; this.eventMultiplier = reward.speedMultiplier;
+    this.eventBoost = Math.max(0, reward.seconds); this.eventMultiplier = reward.speedMultiplier > 0 ? reward.speedMultiplier : 1;
     // Settled here, once: the phase check above rejects a second call for the same encounter.
-    const coins = Number.isFinite(reward.coins) ? Math.max(0, Math.floor(reward.coins!)) : 0; this.coins += coins;
+    const coins = Number.isFinite(reward.coins) ? Math.trunc(reward.coins!) : 0; this.coins = Math.max(0, this.coins + coins); // a penalty never goes below 0
     this.activeEncounter = null; this.crouch = false; this.jumpBuffer = 0; this.jumpHeld = false; this.phase = 'running';
     return true;
   }
