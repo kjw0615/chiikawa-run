@@ -30,7 +30,7 @@ export function mountShisaPanel(root: HTMLElement, actions: ShisaPanelActions): 
   host = root; current = null;
   root.innerHTML = `<style>${CSS}</style><div class="shisa-prototype">
     <div class="shisa-helper"><img src="/assets/event-shisa.webp" alt="라멘을 든 시사"><span>주문과 같은 라멘을 만들어요!</span></div>
-    <p class="shisa-instructions">주문서의 재료와 개수를 확인해요.<br>← / → 선택 후 Space, 또는 원하는 재료를 클릭·터치!<br>최대 두 종류, 한 재료는 두 개까지. 담는 순서는 자유예요.</p>
+    <p class="shisa-instructions">주문서의 재료와 개수를 보고 담아요.<br>← / → 선택 후 Space 또는 재료 터치, 순서는 자유예요.</p>
     <div class="shisa-work" hidden><div class="shisa-comparison">
       <div class="shisa-ticket"><strong class="shisa-heading">완성 목표</strong><div class="shisa-ramen shisa-target" role="img"></div><div class="shisa-recipe"></div></div>
       <div class="shisa-kitchen"><strong class="shisa-heading">내 라멘</strong><div class="shisa-ramen shisa-bowl" role="img"></div><div class="shisa-filled"></div></div>
@@ -121,7 +121,7 @@ export function renderShisaPanel(g: ShisaGame): ShisaView {
   const currentLabel = host.querySelector<HTMLElement>('.shisa-current')!;
   if (currentLabel.textContent !== text) currentLabel.textContent = text;
   const feedback = host.querySelector<HTMLElement>('.shisa-feedback')!;
-  const feedbackText = g.paused ? '잠깐 쉬어요' : g.lastOutcome ? FEEDBACK[g.lastOutcome] : g.phase === 'result' ? g.reaction : g.interactive ? `${g.round + 1}번째 주문 · 재료와 개수만 맞으면 돼요!` : '';
+  const feedbackText = g.paused ? '잠깐 쉬어요' : g.lastOutcome ? FEEDBACK[g.lastOutcome] : g.interactive ? `${g.round + 1}번째 주문 · 재료와 개수만 맞으면 돼요!` : '';
   if (feedback.textContent !== feedbackText) feedback.textContent = feedbackText;
   feedback.dataset.outcome = g.lastOutcome ?? '';
   const progress = host.querySelector<HTMLElement>('.shisa-progress')!;
