@@ -151,7 +151,7 @@ export class RunnerModel {
     const previousX = this.distance, previousY = this.y;
     let nextX = this.distance + speed * dt;
     this.distance = nextX;
-    this.gap = Math.min(RULES.maxGap, this.gap + (speed - RULES.chaserSpeed) * dt);
+    this.gap = Math.min(RULES.maxGap, this.gap + (speed - difficultyAt(this.distance).chaserSpeed) * dt);
     this.stamina = Math.max(0, this.stamina - RULES.staminaDrain * dt);
     if (this.stamina <= 0) this.exhausted = true;
     this.generate();
