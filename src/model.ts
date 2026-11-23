@@ -1,23 +1,21 @@
 import type { Reward } from './sticker-game';
 import { FOOD_ART } from './food-art.ts';
 import { archOver, landingLine, platformEdge, jumpApexMetres, type CoinPhysics } from './coin-path.ts';
+import { FAST_PACE, paceAt, paceHazardAt, paceClearance, type PaceHazard } from './fast-pace.ts';
 export const RULES = {
-  speed: 6, chaserSpeed: 6.1, exhaustedSpeed: 4.2, boostSpeed: 9,
-  staminaDrain: 4, food: 20, goldFood: 25, recover: 12, goldChance: .1,
+  speed: FAST_PACE.speed, chaserSpeed: FAST_PACE.chaserSpeed, exhaustedSpeed: FAST_PACE.exhaustedSpeed, boostSpeed: FAST_PACE.boostSpeed,
+  staminaDrain: FAST_PACE.staminaDrain, food: FAST_PACE.food, goldFood: FAST_PACE.goldFood, recover: 12, goldChance: .1,
   boostSeconds: 1, initialGap: 15, maxGap: 60, hitCost: 3, hitInvulnerability: .5,
   gravity: 1900, jumpVelocity: -760, floor: 460, scale: 44,
   playerHeight: 82, playerWidth: 64, halfHitWidth: 24, crouchHeight: 36,
   rescueSeconds: .9, fallDepth: 100,
-  foodHazardMargin: 4, minFoodSpacing: 8, foodLiftMin: 48, foodLiftMax: 205,
+  foodHazardMargin: 4, minFoodSpacing: 8, foodLiftMin: FAST_PACE.foodLiftMin, foodLiftMax: FAST_PACE.foodLiftMax,
   jumpReleaseVelocity: -500, platformHeight: 110, platformApproach: 8,
   platformExit: 8, platformFirstHazard: 10,
   glideSeconds: 1, glideVelocity: 125, dropVelocity: 100,
 };
 // Bounded progression keeps the course readable while increasing pressure.
-export const difficultyAt = (distance: number) => {
-  const level = Math.min(1, Math.max(0, distance) / 1200);
-  return { level, obstacleSpacing: 22 - 4 * level, foodSpacing: 24 + 6 * level };
-};
+export const difficultyAt = paceAt;
 // Each object has one readable silhouette; difficulty changes spacing, never its width.
 // Pits and puddles are assembled from a left cap, N repeated middle tiles and a right cap (terrain-water atlas, display px).
 // `inset` is how much of each cap is already open water/hole, so the real opening is N * tile + 2 * inset.
@@ -25,7 +23,7 @@ export const TERRAIN = { tile: 128, cap: 64, surfaceOffset: 8, slow: .25, refuge
   pit: { inset: 8, height: 200, short: 1, long: 4 }, puddle: { inset: 39, height: 40, short: 1, long: 3 } } as const;
 export const waterWidth = (kind: 'pit' | 'puddle', modules: number) => modules * TERRAIN.tile + 2 * TERRAIN[kind].inset;
 export const OBSTACLE_WIDTHS = { block: 56, tower: 48, long: 145, pit: waterWidth('pit', 1), beam: 160, crawl: 320, puddle: waterWidth('puddle', 1) } as const;
-export const COURSE_RANDOM = { firstHazardMin: 19, firstHazardMax: 25, hazardExtra: 5, foodJitter: 2, foodPositionJitter: 8 } as const;
+export const COURSE_RANDOM = { firstHazardMin: FAST_PACE.firstHazardMin, firstHazardMax: FAST_PACE.firstHazardMax, hazardExtra: FAST_PACE.hazardExtra, foodJitter: FAST_PACE.foodJitter, foodPositionJitter: 8 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'crawl' | 'pit' | 'puddle' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number; modules?: number; long?: boolean };
 export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .05, goldValue: 3, firstCoinX: 10 } as const;
 // The runner's real course (separateSpawns): 3-5 coin groups, about 50 coins (about 2.5 of them gold) per 1000 m.
@@ -53,7 +51,9 @@ export class RunnerModel {
   private jumpHeld = false; private nextPlatformX = 80; private platformIndex = 0;
   private platformRandomState: number; private platformCourse: boolean;
   private refugeIndex = 500000; private nextHazardX = 19; private nextFoodX = 7; private id = 0; private jumpBuffer = 0;
-  private lastGroundHazard: { x: number; w: number; refuge: boolean } | null = null;
+  private lastGroundHazard: { x: number; w: number; refuge: boolean; kind: PaceHazard } | null = null;
+  private groundPatternIndex = 0;
+  private plannedEncounter: number | null = null;
   private hazardState: number; private foodState: number; private artSeed: number;
   private generateCourse: boolean; private lastFoodX = -Infinity;
   private coinCourse: boolean; private coinState: number; private nextCoinX: number = COIN_RULES.firstCoinX; private coinId = 1000000; private coinGroupIndex = 0; private foodFreeDistance: number;
@@ -329,6 +329,17 @@ export class RunnerModel {
         else this.add(x, p.y - 46, OBSTACLE_WIDTHS.long, 46, 'long');
       }
     }
+    // Dense phrases need an intentional breathing space for the next NPC.
+    // Plan before hazards/food enter the visible horizon; never delete objects already on screen.
+    if (this.separateSpawns && this.encounterCourse && this.plannedEncounter === null && this.lastEncounterX + 200 <= this.distance + 180) {
+      const nextState = (Math.imul(1664525, this.encounterState) + 1013904223) >>> 0;
+      const desired = this.lastEncounterX + 200 + nextState / 4294967296 * 100;
+      const candidates = Array.from({ length: 201 }, (_, n) => this.lastEncounterX + 200 + n * .5)
+        .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
+      const plan = candidates.find(x => this.platforms.every(p => x <= p.start - 8 || x >= p.end + 8 || x >= p.start + 4 && x <= p.end - 4)
+        && this.items.every(i => i.kind === 'coin' || Math.abs(i.x-x) >= (collectible(i.kind) ? SPAWN_CLEARANCE.encounter : SPAWN_CLEARANCE.encounterHazard) + (i.w/2+RULES.halfHitWidth)/RULES.scale));
+      if (plan !== undefined && plan <= this.distance + 180) this.plannedEncounter = plan;
+    }
     // Generate hazards beyond the food horizon first, so future obstacles cannot
     // invalidate an already placed food's approach/landing clearance.
     while (this.nextHazardX < this.distance + 140) {
@@ -337,8 +348,7 @@ export class RunnerModel {
       this.nextHazardX = x + spacing;
       // Clear both the lower lane and the approach/descent of every branch.
       if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
-      const type = Math.floor(this.random('hazard') * 7);
-      const kind = (['block', 'beam', 'tower', 'long', 'pit', 'crawl', 'puddle'] as const)[type];
+      const kind = paceHazardAt(this.artSeed, this.groundPatternIndex);
       // Water is variable: a short one stands alone, a long one always gets a refuge platform above it.
       const water = kind === 'pit' || kind === 'puddle';
       const longRoll = water ? this.random('hazard') : 1, long = water && this.platformCourse && longRoll < TERRAIN.longChance; // no branches, no long water
@@ -349,27 +359,32 @@ export class RunnerModel {
       if (this.lastGroundHazard) x = Math.max(x, this.lastGroundHazard.x
         + (this.lastGroundHazard.w + width) / 2 / RULES.scale
         // A refuge platform needs its approach/exit zone (plus 3 m) kept clear of the neighbouring hazard.
-        + (long || this.lastGroundHazard.refuge ? TERRAIN.refugeApproach + RULES.platformExit + 3 : 13));
+        + (long || this.lastGroundHazard.refuge ? TERRAIN.refugeApproach + RULES.platformExit + 3 : paceClearance(this.lastGroundHazard.kind, kind)));
       this.nextHazardX = x + spacing;
+      if (this.plannedEncounter !== null && Math.abs(x-this.plannedEncounter) < SPAWN_CLEARANCE.encounterHazard + (width/2+RULES.halfHitWidth)/RULES.scale + .5) continue;
       if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
       const half = width / 2 / RULES.scale;
       const refuge = long ? { start: x - half - TERRAIN.refugeApproach, end: x + half + TERRAIN.refugeExit } : null;
+      // A later refuge must not turn a reserved clearing into a platform edge.
+      if (refuge && this.plannedEncounter !== null && this.plannedEncounter > refuge.start - 8 && this.plannedEncounter < refuge.end + 8) continue;
       // Water spans metres, so its whole span (and refuge) must clear every branch's approach/exit zone.
       if (water && this.platforms.some(p => (refuge?.end ?? x + half) + RULES.platformExit + 3 > p.start && (refuge?.start ?? x - half) - RULES.platformApproach - 3 < p.end)) continue;
-      this.lastGroundHazard = { x, w: width, refuge: long };
+      this.lastGroundHazard = { x, w: width, refuge: long, kind };
+      this.groundPatternIndex++;
       if (refuge) this.platforms.push({ id: this.refugeIndex++, start: refuge.start, end: refuge.end, y: RULES.floor - RULES.platformHeight });
-      if (type === 1) this.add(x, 84, OBSTACLE_WIDTHS.beam, RULES.floor - 44 - 84, 'beam');
-      else if (type === 2) this.add(x, RULES.floor - 190, OBSTACLE_WIDTHS.tower, 190, 'tower');
-      else if (type === 3) this.add(x, RULES.floor - 46, OBSTACLE_WIDTHS.long, 46, 'long');
+      if (kind === 'beam') this.add(x, 84, OBSTACLE_WIDTHS.beam, RULES.floor - 44 - 84, 'beam');
+      else if (kind === 'tower') this.add(x, RULES.floor - 190, OBSTACLE_WIDTHS.tower, 190, 'tower');
+      else if (kind === 'long') this.add(x, RULES.floor - 46, OBSTACLE_WIDTHS.long, 46, 'long');
       else if (kind === 'pit') this.add(x, RULES.floor, width, 170, 'pit', { modules, long });
       else if (kind === 'puddle') this.add(x, RULES.floor, width, TERRAIN.puddle.height, 'puddle', { modules, long });
-      else if (type === 5) this.add(x, RULES.floor - 156, OBSTACLE_WIDTHS.crawl, 112, 'crawl');
+      else if (kind === 'crawl') this.add(x, RULES.floor - 156, OBSTACLE_WIDTHS.crawl, 112, 'crawl');
       else this.add(x, RULES.floor - 64, OBSTACLE_WIDTHS.block, 64, 'block');
     }
     while (this.nextFoodX < this.distance + 96) {
       const desired = this.nextFoodX;
       this.nextFoodX += difficultyAt(desired).foodSpacing + (this.random('food') * 2 - 1) * COURSE_RANDOM.foodJitter;
       const safe = (x: number) => x >= this.foodFreeDistance && x - this.lastFoodX >= RULES.minFoodSpacing
+        && (this.plannedEncounter === null || Math.abs(x-this.plannedEncounter) >= SPAWN_CLEARANCE.encounter + 16 / RULES.scale + .5)
         && (!this.separateSpawns || this.encounters.every(e => Math.abs(x - e.x) >= SPAWN_CLEARANCE.encounter + 16 / RULES.scale))
         && this.items.every(i => i.kind !== 'food' && i.kind !== 'gold' || Math.abs(x - i.x) >= RULES.minFoodSpacing)
         && this.platforms.every(p => x < p.start - 4 || x > p.end + 4 || x >= p.start + 3 && x <= p.end - 3)
@@ -393,6 +408,7 @@ export class RunnerModel {
       if (this.separateSpawns && this.lastEncounterX + 300 < this.distance + 16) {
         // Recover a missed planning band without spawning an NPC behind the runner.
         this.lastEncounterX = this.distance - 184;
+        this.plannedEncounter = null;
       }
       const nextState = (Math.imul(1664525, this.encounterState) + 1013904223) >>> 0;
       const desired = this.lastEncounterX + 200 + nextState / 4294967296 * 100;
@@ -415,6 +431,7 @@ export class RunnerModel {
       const surface = this.platforms.find(p => x >= p.start && x <= p.end);
       this.encounters.push({ id: this.encounterIndex++, x, y: surface?.y ?? RULES.floor, seed: this.encounterState, used: false });
       this.lastEncounterX = x;
+      this.plannedEncounter = null;
     }
     if (this.separateSpawns) this.generateCoins();
   }
