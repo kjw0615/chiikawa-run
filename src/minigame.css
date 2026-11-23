@@ -126,8 +126,13 @@
 /* Kani (used bookshop sorting) prototype panel: symbols, text and basic shapes only. */
 .kani-helper{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:bold;color:#7a5d3d}.kani-badge{font-size:34px}
 .kani-stage{position:relative;isolation:isolate;max-width:600px;height:162px;margin:4px auto 8px;overflow:hidden;border-radius:20px;background:linear-gradient(#f9f0dc 70%,#d9bd8f 70%);border:2px solid #c9ad80}
+.kani-stage::before{content:'';position:absolute;inset:0 0 30% 0;z-index:-1;opacity:.55;background:
+ repeating-linear-gradient(90deg,#e7a6bd 0 9px,#f3d28a 9px 17px,#b5d99a 17px 27px,#9ec7e6 27px 34px,#e9c9a0 34px 44px) 0 8px/100% 34px no-repeat,
+ repeating-linear-gradient(90deg,#b5d99a 0 11px,#e7a6bd 11px 18px,#f3d28a 18px 29px,#e9c9a0 29px 36px,#9ec7e6 36px 45px) 0 54px/100% 34px no-repeat;
+ border-bottom:0}
+.kani-stage::after{content:'';position:absolute;left:0;right:0;top:42px;height:5px;background:#b48a55;opacity:.7;z-index:-1;box-shadow:0 46px 0 #b48a55}
 .kani-counter{position:absolute;left:8%;right:8%;bottom:14px;height:12px;border-radius:6px;background:#b48a55}
-.kani-book{position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;min-width:190px;max-width:86%;padding:12px 16px 12px 10px;border:3px solid #6e4f2c;border-radius:6px 12px 12px 6px;background:#fff7e3;box-shadow:0 5px 0 #b48a55}
+.kani-book{z-index:1;position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;min-width:190px;max-width:86%;padding:12px 16px 12px 10px;border:3px solid #6e4f2c;border-radius:6px 12px 12px 6px;background:#fff7e3;box-shadow:0 5px 0 #b48a55}
 .kani-spine{display:block;flex:none;width:44px;height:62px}.kani-cover-art{display:block;width:100%;height:100%}
 .kani-title{font-size:19px;font-weight:bold;color:#5a3f22;text-align:left;line-height:1.25}
 .kani-result{position:absolute;left:10px;top:8px;max-width:26%;text-align:left;line-height:1.25;font-size:15px;font-weight:bold;pointer-events:none;color:#4d7b3a}.kani-result[data-outcome=wrong],.kani-result[data-outcome=missed]{color:#a4553b}
