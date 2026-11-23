@@ -24,5 +24,8 @@ export interface MiniGame {
   pressLane?(lane: 'left' | 'right'): void;
   /** Optional: the sorting game (kani) takes a shelf index (0..2) instead of a bare press(). */
   pressShelf?(shelf: number): void;
+  /** Optional: topping games (shisa) take topping selection and undo actions. */
+  chooseTopping?(topping: string): void;
+  undoTopping?(): void;
 }
 // Encounters run the slot and then the winner's game: see SlottedMiniGame and ROSTER in mini-roster.ts.
