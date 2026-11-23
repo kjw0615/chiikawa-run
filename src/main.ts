@@ -351,7 +351,8 @@ window.addEventListener('keydown', e => {
     || !play.hidden && model.phase === 'running' && !mini
     || !!mini && !mini.paused && mini.inPlay;
   const usagiPlaying = !!mini && mini.inner instanceof UsagiGame && mini.inner.interactive && !mini.paused;
-  if (!usagiPlaying && live && !e.ctrlKey && !e.metaKey && !e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.code)) {
+  const kaniPlaying = !!mini && mini.inner instanceof KaniGame && mini.inner.interactive && !mini.paused;
+  if (!usagiPlaying && !kaniPlaying && live && !e.ctrlKey && !e.metaKey && !e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.code)) {
     e.preventDefault(); return;
   }
   if (devActive && !mini) { if (e.code === 'Escape') devClose(); return; } // test menu: keys must not start a run
@@ -373,6 +374,10 @@ window.addEventListener('keydown', e => {
       if (mini.inner instanceof UsagiGame && mini.inner.interactive && !mini.paused) {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); mini.pressLane?.('left'); updateMini(); return; }
         if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); mini.pressLane?.('right'); updateMini(); return; }
+      }
+      if (kaniPlaying) {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); mini.moveCursor?.(-1); updateMini(); return; }
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); mini.moveCursor?.(1); updateMini(); return; }
       }
       if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); miniAction(); }
       if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
@@ -527,7 +532,7 @@ function updateMini() {
       for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
       $('mini-character').textContent = '';
       if (!kaniMounted) {
-        mountKaniPanel($('kani-panel'), () => { mini?.press(); updateMini(); });
+        mountKaniPanel($('kani-panel'), i => { if (i === undefined) mini?.press(); else mini?.pressShelf?.(i); updateMini(); });
         kaniMounted = true;
       }
       renderKaniPanel(inner);
@@ -536,7 +541,7 @@ function updateMini() {
       if (key !== kaniState.key) {
         kaniState.key = key;
         $('mini-title').textContent = inner.phase === 'intro' ? '카니의 헌책방 정리' : done ? inner.reaction : '';
-        $('mini-copy').textContent = inner.phase === 'intro' ? '책의 제목을 보고, 움직이는 커서가 알맞은 책장(동화★ / 요리● / 식물▲) 위에 올 때 Space나 꽂기 버튼을 눌러주세요!' : '';
+        $('mini-copy').textContent = inner.phase === 'intro' ? '책의 제목을 보고 알맞은 책장(동화★ / 요리● / 식물▲)을 ←/→로 고른 뒤 Space로 꽂거나, 책장을 직접 클릭·터치해 주세요!' : '';
         $('mini-paused').hidden = !inner.paused;
         $('mini-reward').textContent = done && inner.reward ? `동전 +${inner.coinReward} · 체력 +${inner.reward.stamina} · ${inner.reward.speedMultiplier}배 속도 ${inner.reward.seconds}초` : '';
       }
