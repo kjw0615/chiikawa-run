@@ -1,3 +1,4 @@
+import { describeReward } from './mini-tier';
 import Phaser from 'phaser';
 import './style.css';
 import './minigame.css';
@@ -499,7 +500,34 @@ miniActionButton.addEventListener('click', () => { if (swallowClick) { swallowCl
 $('countdown-resume').addEventListener('click', togglePause);
 // The kurimanju portrait is the separate image /assets/event-kurimanju.webp (192x224), shown next to the glass.
 const KURI_ART = true, kuriState = { key: '' }, rakkoState = { key: '' }, usagiState = { key: '' }, weedState = { key: '' }, kaniState = { key: '' }, shisaState = { key: '' }; let usagiMounted = false, weedMounted = false, kaniMounted = false, shisaMounted = false;
-function updateMini() {
+// Common start / result frame for every mini game (runs after each game's own render and overrides it on the
+// intro and result screens): character image + game name + 1-2 line guide + start button, and on the result only
+// the character image and the plain reward (no scores, no reaction text), then the back button.
+const MINI_INFO: Record<string, { name: string; intro: string }> = {
+  chiikawa: { name: '치이카와의 레몬 스티커 붙이기', intro: '파란 스티커가 레몬 안에 들어오면 Space나 버튼을 눌러 붙여요.' },
+  kurimanju: { name: '쿠리만쥬에게 맥주 따라주기', intro: 'Space나 버튼을 누르고 있다가 맥주선에서 놓아요. 한 번 더 눌러 거품선까지 채워요.' },
+  rakko: { name: '랏코 스승의 맹수 토벌 훈련', intro: '두 동그라미가 딱 겹칠 때 버튼이나 Space로 공격해요.' },
+  hachiware: { name: '하치와레의 풀뽑기 노동', intro: '가운데 칸에 풀이 오면 뽑기 버튼이나 Space! 꽃이 오면 가만히 지나가요.' },
+  usagi: { name: '우사기의 신나는 댄스 타임', intro: '양쪽에서 오는 음표가 가운데에 닿을 때 ←/→ 또는 아래 버튼을 눌러요.' },
+  kani: { name: '카니의 헌책방 정리', intro: '제목을 보고 ←/→로 책장을 고른 뒤 Space, 또는 아래 버튼을 눌러 꽂아요.' },
+  shisa: { name: '시사의 라멘 낭랑 알바', intro: '주문서의 재료와 개수를 보고 담아요. 좌우+Space 또는 재료 터치, 순서는 자유예요.' },
+};
+const setText = (id: string, text: string) => { const el = $(id); if (el.textContent !== text) el.textContent = text; };
+function applyCommonFrame() {
+  if (!mini || mini.phase === 'selecting' || mini.phase === 'countdown') return;
+  const inner = mini.inner, phase = inner.phase, info = MINI_INFO[mini.entry.id];
+  if (!info || (phase !== 'intro' && phase !== 'result')) return;
+  const image = $('mini-portrait'), frameKey = `${mini.entry.id}:${phase}`;
+  image.hidden = false;
+  if (image.dataset.frame !== frameKey) { image.dataset.frame = frameKey; portraitEntry(image, mini.entry, 88); }
+  $('kuri-portrait').hidden = true; // the common frame already shows the character
+  setText('mini-character', '');
+  if (phase === 'intro') { setText('mini-title', info.name); setText('mini-copy', info.intro); setText('mini-reward', ''); return; }
+  setText('mini-title', ''); setText('mini-copy', '');
+  setText('mini-reward', inner.reward ? describeReward({ ...inner.reward, coins: mini.coinReward }) : '');
+}
+function updateMini() { updateMiniCore(); applyCommonFrame(); }
+function updateMiniCore() {
   // Called by begin/background handlers only after the module's DOM setup has finished.
   if (!mini) {
     $('mini-screen').hidden = true; $('mini-countdown').hidden = true; document.querySelector<HTMLElement>('.hud-buttons')!.hidden = false;

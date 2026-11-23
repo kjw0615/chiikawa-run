@@ -17,16 +17,14 @@ export const ROSTER: readonly RosterEntry[] = [
   { id: 'chiikawa', name: '치이카와', portrait: { atlas: 'chiikawa' }, create: seed => new StickerGame(seed, { character: 'chiikawa', skipSelection: true }) },
   { id: 'kurimanju', name: '쿠리만쥬', portrait: { url: '/assets/event-kurimanju.webp' }, create: seed => new KurimanjuGame(seed) },
   { id: 'rakko', name: '랏코', portrait: { url: '/assets/event-rakko.webp' }, create: seed => new RakkoGame(seed) },
+  { id: 'hachiware', name: '하치와레', portrait: { atlas: 'hachiware' }, create: seed => new WeedGame(seed) },
+  { id: 'usagi', name: '우사기', portrait: { url: '/assets/event-usagi.webp' }, create: seed => new UsagiGame(seed) },
+  { id: 'kani', name: '카니(헌책방)', portrait: { url: '/assets/event-kani.webp' }, create: seed => new KaniGame(seed) },
+  { id: 'shisa', name: '시사(라멘낭랑)', portrait: { atlas: 'mob' }, create: seed => new ShisaGame(seed) }, // TODO: swap in event-shisa.webp when it lands
 ];
 
-/** Includes prototypes under test (e.g. Usagi, Hachiware, Kani, Shisa) for the developer test menu only. */
-export const DEV_ROSTER: readonly RosterEntry[] = [
-  ...ROSTER,
-  { id: 'usagi', name: '우사기', portrait: { url: '/assets/event-usagi.webp' }, create: seed => new UsagiGame(seed) },
-  { id: 'hachiware', name: '하치와레', portrait: { atlas: 'hachiware' }, create: seed => new WeedGame(seed) },
-  { id: 'kani', name: '카니(헌책방)', portrait: { url: '/assets/event-kani.webp' }, create: seed => new KaniGame(seed) },
-  { id: 'shisa', name: '시사(라멘낭랑)', portrait: { url: '/assets/event-shisa.webp' }, create: seed => new ShisaGame(seed) },
-];
+/** The developer test menu lists the same seven characters. */
+export const DEV_ROSTER: readonly RosterEntry[] = [...ROSTER];
 
 /** The character that wins the slot for this encounter seed (stable for a given seed). */
 export function rosterIndexFor(seed: number, size: number): number {
