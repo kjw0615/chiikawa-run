@@ -25,6 +25,7 @@ export const TERRAIN = { tile: 128, cap: 64, surfaceOffset: 8, slow: .25, refuge
 export const waterWidth = (kind: 'pit' | 'puddle', modules: number) => modules * TERRAIN.tile + 2 * TERRAIN[kind].inset;
 export const OBSTACLE_WIDTHS = { block: 56, tower: 48, long: 145, pit: waterWidth('pit', 1), beam: 160, crawl: 320, puddle: waterWidth('puddle', 1) } as const;
 export const COURSE_RANDOM = { firstHazardMin: FAST_PACE.firstHazardMin, firstHazardMax: FAST_PACE.firstHazardMax, hazardExtra: FAST_PACE.hazardExtra, foodJitter: FAST_PACE.foodJitter, foodPositionJitter: 8 } as const;
+export const FOOD_GAPS = { max: 60, searchStep: .5, regularMargin: 14 } as const;
 export type Item = { id: number; x: number; y: number; w: number; h: number; kind: 'block' | 'beam' | 'tower' | 'long' | 'crawl' | 'pit' | 'puddle' | 'food' | 'gold' | 'coin'; used: boolean; variant?: number; coinValue?: 1 | 3; coinGroup?: number; modules?: number; long?: boolean };
 export const COIN_RULES = { size: 28, spacing: 1.8, arcSpacing: 1.2, minGroup: 1, maxGroup: 5, gapMin: 14, gapExtra: 12, goldChance: .05, goldValue: 3, firstCoinX: 10 } as const;
 // The runner's real course (separateSpawns): one lone coin about every 10 m (8.5-11.5), about 100 per 1000 m,
@@ -58,6 +59,7 @@ export class RunnerModel {
   private plannedEncounter: number | null = null;
   private hazardState: number; private foodState: number; private artSeed: number;
   private generateCourse: boolean; private lastFoodX = -Infinity;
+  private foodGapAnchor: number | null = null;
   private coinCourse: boolean; private coinState: number; private nextCoinX: number = COIN_RULES.firstCoinX; private coinId = 1000000; private coinGroupIndex = 0; private foodFreeDistance: number;
   private separateSpawns: boolean;
   constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean; encounters?: boolean; coins?: boolean; foodFreeDistance?: number; separateSpawns?: boolean } = {}) {
@@ -296,6 +298,61 @@ export class RunnerModel {
       // choice only changes how it is drawn (position-seeded: no random numbers are drawn, courses do not change).
       ...(['food','gold'].includes(kind) ? {variant} : kind === 'block' ? {variant: (hash >>> 20) & 1} : {}) });
   }
+  /** Shared food clearance: ordinary picks and drought prevention obey identical rules. */
+  private safeFoodX(x: number) {
+    return x >= this.foodFreeDistance
+      && (this.plannedEncounter === null || Math.abs(x-this.plannedEncounter) >= SPAWN_CLEARANCE.encounter + 16/RULES.scale + .5)
+      && (!this.separateSpawns || this.encounters.every(e => Math.abs(x-e.x) >= SPAWN_CLEARANCE.encounter + 16/RULES.scale))
+      && this.platforms.every(p => x < p.start-4 || x > p.end+4 || x >= p.start+3 && x <= p.end-3)
+      && this.items.every(i => {
+        const gap = Math.abs(x-i.x);
+        if (i.kind === 'food' || i.kind === 'gold') return gap >= RULES.minFoodSpacing;
+        if (i.kind === 'coin') return !this.separateSpawns || gap >= SPAWN_CLEARANCE.foodCoin + (32+i.w)/2/RULES.scale;
+        return gap > i.w/2/RULES.scale + (RULES.halfHitWidth+16)/RULES.scale + RULES.foodHazardMargin;
+      });
+  }
+  /** An NPC clearing must not consume the recovery slot for an unresolved food deadline. */
+  private clearFoodDeadline(x: number) {
+    let anchor = this.foodGapAnchor ?? this.foodFreeDistance;
+    const foods = this.items.filter(i => (i.kind === 'food' || i.kind === 'gold') && i.x > anchor).sort((a,b) => a.x-b.x);
+    for (const next of [...foods, { x: Infinity }]) {
+      const deadline = anchor + FOOD_GAPS.max;
+      if (next.x-anchor > FOOD_GAPS.max && Math.abs(x-deadline) < SPAWN_CLEARANCE.encounter + 16/RULES.scale + RULES.minFoodSpacing + .5) return false;
+      if (next.x > x+FOOD_GAPS.max) break;
+      anchor = next.x;
+    }
+    return true;
+  }
+  /** Reserve only an otherwise missed 60m deadline before a future hazard could close its last safe slot. */
+  private limitFoodGaps(horizon: number, pendingHazard?: { x: number; w: number }) {
+    if (!this.separateSpawns) return;
+    this.foodGapAnchor ??= this.foodFreeDistance;
+    for (let guard = 0; guard < 16; guard++) {
+      const anchor: number = this.foodGapAnchor;
+      const next: Item | undefined = this.items.filter(i => (i.kind === 'food' || i.kind === 'gold') && i.x > anchor+1e-8)
+        .sort((a,b) => a.x-b.x)[0];
+      if (next && next.x-anchor <= FOOD_GAPS.max) {
+        if (next.x > horizon) return;
+        this.foodGapAnchor = next.x; continue;
+      }
+      const deadline = anchor + FOOD_GAPS.max;
+      if (deadline > horizon) return;
+      const first = Math.max(anchor+RULES.minFoodSpacing, this.distance+16, this.foodFreeDistance);
+      let x: number | undefined;
+      for (let pass = 0; pass < (pendingHazard ? 2 : 1) && x === undefined; pass++) {
+        for (let candidate = deadline; candidate >= first; candidate -= FOOD_GAPS.searchStep) {
+          if (pass === 0 && pendingHazard && Math.abs(candidate-pendingHazard.x) <= pendingHazard.w/2/RULES.scale
+            + (RULES.halfHitWidth+16)/RULES.scale + RULES.foodHazardMargin) continue;
+          if (this.safeFoodX(candidate)) { x = candidate; break; }
+        }
+      }
+      if (x === undefined) return; // never weaken safety or remove already visible objects
+      const surface = this.platforms.find(p => x! >= p.start && x! <= p.end)?.y ?? RULES.floor;
+      const lift = RULES.foodLiftMin + this.random('food')*(RULES.foodLiftMax-RULES.foodLiftMin);
+      this.add(x,surface-lift,32,32,this.random('food') < RULES.goldChance ? 'gold' : 'food');
+      this.foodGapAnchor = x;
+    }
+  }
   private generate() {
     if (!this.generateCourse) return;
     // Terrain is planned beyond both item horizons before either can be placed.
@@ -315,7 +372,7 @@ export class RunnerModel {
         // earliest upper slot; keep every other upper obstacle's timing intact.
         if (type === 0) this.add(Math.max(x, start + RULES.platformFirstHazard + .5), 0, OBSTACLE_WIDTHS.beam, p.y - 44, 'beam');
         else if (type === 1) this.add(x, p.y - 64, OBSTACLE_WIDTHS.block, 64, 'block');
-        else this.add(x, p.y - 46, OBSTACLE_WIDTHS.long, 46, 'long');
+        else this.add(Math.max(x, foodX + OBSTACLE_WIDTHS.long/2/RULES.scale + (RULES.halfHitWidth+16)/RULES.scale + RULES.foodHazardMargin + .01), p.y - 46, OBSTACLE_WIDTHS.long, 46, 'long');
       }
     }
     // Dense phrases need an intentional breathing space for the next NPC.
@@ -325,10 +382,12 @@ export class RunnerModel {
       const desired = this.lastEncounterX + 200 + nextState / 4294967296 * 100;
       const candidates = Array.from({ length: 201 }, (_, n) => this.lastEncounterX + 200 + n * .5)
         .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
-      const plan = candidates.find(x => this.platforms.every(p => x <= p.start - 8 || x >= p.end + 8 || x >= p.start + 4 && x <= p.end - 4)
+      const plan = candidates.find(x => this.clearFoodDeadline(x) && this.platforms.every(p => x <= p.start - 8 || x >= p.end + 8 || x >= p.start + 4 && x <= p.end - 4)
         && this.items.every(i => i.kind === 'coin' || Math.abs(i.x-x) >= (collectible(i.kind) ? SPAWN_CLEARANCE.encounter : SPAWN_CLEARANCE.encounterHazard) + (i.w/2+RULES.halfHitWidth)/RULES.scale));
       if (plan !== undefined && plan <= this.distance + 180) this.plannedEncounter = plan;
     }
+    // Resolve recovery slots around a pending NPC before its approach hazards can occupy them.
+    if (this.plannedEncounter !== null) this.limitFoodGaps(this.plannedEncounter + SPAWN_CLEARANCE.encounter + RULES.minFoodSpacing + 1);
     // Generate hazards beyond the food horizon first, so future obstacles cannot
     // invalidate an already placed food's approach/landing clearance.
     while (this.nextHazardX < this.distance + 140) {
@@ -354,8 +413,13 @@ export class RunnerModel {
       this.nextHazardX = x + spacing;
       if (this.plannedEncounter !== null && Math.abs(x-this.plannedEncounter) < SPAWN_CLEARANCE.encounterHazard + (width/2+RULES.halfHitWidth)/RULES.scale + .5) continue;
       if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
+      this.limitFoodGaps(x + width/2/RULES.scale + (RULES.halfHitWidth+16)/RULES.scale + RULES.foodHazardMargin, { x, w: width });
+      if (this.separateSpawns && this.items.some(i => (i.kind === 'food' || i.kind === 'gold')
+        && Math.abs(i.x-x) <= width/2/RULES.scale + (RULES.halfHitWidth+16)/RULES.scale + RULES.foodHazardMargin)) continue;
       const half = width / 2 / RULES.scale;
       const refuge = long ? { start: x - half - TERRAIN.refugeApproach, end: x + half + TERRAIN.refugeExit } : null;
+      if (refuge && this.separateSpawns && this.items.some(i => (i.kind === 'food' || i.kind === 'gold')
+        && i.x > refuge.start-4 && i.x < refuge.end+4 && !(i.x >= refuge.start+3 && i.x <= refuge.end-3))) continue;
       // A later refuge must not turn a reserved clearing into a platform edge.
       if (refuge && this.plannedEncounter !== null && this.plannedEncounter > refuge.start - 8 && this.plannedEncounter < refuge.end + 8) continue;
       // Water spans metres, so its whole span (and refuge) must clear every branch's approach/exit zone.
@@ -374,12 +438,8 @@ export class RunnerModel {
     while (this.nextFoodX < this.distance + 96) {
       const desired = this.nextFoodX;
       this.nextFoodX += difficultyAt(desired).foodSpacing + (this.random('food') * 2 - 1) * COURSE_RANDOM.foodJitter;
-      const safe = (x: number) => x >= this.foodFreeDistance && x - this.lastFoodX >= RULES.minFoodSpacing
-        && (this.plannedEncounter === null || Math.abs(x-this.plannedEncounter) >= SPAWN_CLEARANCE.encounter + 16 / RULES.scale + .5)
-        && (!this.separateSpawns || this.encounters.every(e => Math.abs(x - e.x) >= SPAWN_CLEARANCE.encounter + 16 / RULES.scale))
-        && this.items.every(i => i.kind !== 'food' && i.kind !== 'gold' || Math.abs(x - i.x) >= RULES.minFoodSpacing)
-        && this.platforms.every(p => x < p.start - 4 || x > p.end + 4 || x >= p.start + 3 && x <= p.end - 3)
-        && this.items.every(i => collectible(i.kind) || Math.abs(x - i.x) > i.w / 2 / RULES.scale + (RULES.halfHitWidth + 16) / RULES.scale + RULES.foodHazardMargin);
+      const safe = (x: number) => x - this.lastFoodX >= RULES.minFoodSpacing && this.safeFoodX(x)
+        && (!this.separateSpawns || this.items.every(i => i.kind !== 'food' && i.kind !== 'gold' || Math.abs(i.x-x) >= FOOD_GAPS.regularMargin));
       // Bounded search near each scheduled food, never relaxing hazard clearance.
       // Unsafe slots are skipped rather than placing food against an obstacle.
       let foodX: number | undefined;
@@ -393,6 +453,7 @@ export class RunnerModel {
       const platform = this.platforms.find(p => foodX! >= p.start && foodX! <= p.end);
       this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.random('food') < RULES.goldChance ? 'gold' : 'food');
     }
+    this.limitFoodGaps(this.distance+96);
     if (!this.separateSpawns) this.generateCoins();
     // A separate seeded schedule never changes the obstacle/food random stream.
     while (this.encounterCourse && this.lastEncounterX + 300 <= this.distance + 120) {
@@ -406,6 +467,7 @@ export class RunnerModel {
       const candidates = Array.from({ length: 201 }, (_, n) => this.lastEncounterX + 200 + n * .5)
         .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
       const safeEncounter = (x: number) => {
+        if (this.separateSpawns && !this.clearFoodDeadline(x)) return false;
         if (this.separateSpawns && x < this.distance + 16) return false;
         // Do not select beyond the known hazard horizon.
         // In spaced mode food is known through +96m; leave its future 8m
