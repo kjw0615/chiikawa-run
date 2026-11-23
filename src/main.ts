@@ -374,11 +374,6 @@ window.addEventListener('keydown', e => {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); mini.pressLane?.('left'); updateMini(); return; }
         if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); mini.pressLane?.('right'); updateMini(); return; }
       }
-      if (mini.inner instanceof KaniGame && mini.inner.interactive && !mini.paused) {
-        if (e.code === 'Digit1' || e.code === 'Numpad1') { e.preventDefault(); mini.pressShelf?.(0); updateMini(); return; }
-        if (e.code === 'Digit2' || e.code === 'Numpad2') { e.preventDefault(); mini.pressShelf?.(1); updateMini(); return; }
-        if (e.code === 'Digit3' || e.code === 'Numpad3') { e.preventDefault(); mini.pressShelf?.(2); updateMini(); return; }
-      }
       if (mini.inner instanceof ShisaGame && mini.inner.interactive && !mini.paused) {
         if (e.code === 'Digit1' || e.code === 'Numpad1') { e.preventDefault(); mini.chooseTopping?.('chashu'); updateMini(); return; }
         if (e.code === 'Digit2' || e.code === 'Numpad2') { e.preventDefault(); mini.chooseTopping?.('egg'); updateMini(); return; }
@@ -538,7 +533,7 @@ function updateMini() {
       for (const id of ['lemon-tray', 'sticker-timing', 'mini-portrait']) $(id).hidden = true;
       $('mini-character').textContent = '';
       if (!kaniMounted) {
-        mountKaniPanel($('kani-panel'), index => { mini?.pressShelf?.(index); updateMini(); });
+        mountKaniPanel($('kani-panel'), () => { mini?.press(); updateMini(); });
         kaniMounted = true;
       }
       renderKaniPanel(inner);
@@ -547,7 +542,7 @@ function updateMini() {
       if (key !== kaniState.key) {
         kaniState.key = key;
         $('mini-title').textContent = inner.phase === 'intro' ? '카니의 헌책방 정리' : done ? inner.reaction : '';
-        $('mini-copy').textContent = inner.phase === 'intro' ? '책의 제목을 보고 알맞은 책장(동화★ / 요리● / 식물▲)을 누르거나 키보드 1, 2, 3을 눌러 꽂아주세요!' : '';
+        $('mini-copy').textContent = inner.phase === 'intro' ? '책의 제목을 보고, 움직이는 커서가 알맞은 책장(동화★ / 요리● / 식물▲) 위에 올 때 Space나 꽂기 버튼을 눌러주세요!' : '';
         $('mini-paused').hidden = !inner.paused;
         $('mini-reward').textContent = done && inner.reward ? `동전 +${inner.coinReward} · 체력 +${inner.reward.stamina} · ${inner.reward.speedMultiplier}배 속도 ${inner.reward.seconds}초` : '';
       }

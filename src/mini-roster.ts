@@ -71,7 +71,6 @@ export class SlottedMiniGame implements MiniGame {
   continue() { if (!this.spinning) this.inner.continue(); }
   press() { if (!this.spinning) this.inner.press(); }
   pressLane(lane: 'left' | 'right') { if (!this.spinning) this.inner.pressLane?.(lane); }
-  pressShelf(shelf: number) { if (!this.spinning) this.inner.pressShelf?.(shelf); }
   chooseTopping(topping: string) { if (!this.spinning) (this.inner as ShisaGame).chooseTopping?.(topping as ShisaTopping); }
   undoTopping() { if (!this.spinning) (this.inner as ShisaGame).undoTopping?.(); }
   release() { this.inner.release(); }

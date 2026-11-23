@@ -1,9 +1,11 @@
-// Sixth mini game: 카니의 헌책방 정리 (Kani's used bookshop sorting), a three-button sorting game. Pure state machine like
+// Sixth mini game: 카니의 헌책방 정리 (Kani's used bookshop sorting), a one-button timing game. Pure state machine like
 // the other mini games: advanced only by step(dt), no DOM/phaser imports, so node tests can drive it. Six old books
-// (2 of each kind, shuffled by seed) arrive one at a time on the counter. Each shows only its title; the player reads it
-// and presses the shelf it belongs to (동화 / 요리 / 식물). A press answers the book and the next one comes at once; a
-// book left alone waits out its time and is missed. There is no failing: all 6 books are always played, and the reward
-// follows the number sorted correctly. Prototype art: symbols, text and basic shapes only. Nothing is scored out loud.
+// (2 of each kind, shuffled by seed) arrive one at a time on the counter, each showing only its title. A cursor sweeps
+// back and forth over the three shelves (동화 / 요리 / 식물); the player reads the title and presses the one button
+// (Space, or the on-screen button on mobile) when the cursor is over the book's shelf. A press answers the book and the
+// next one comes at once; a book left alone waits out its time and is missed. There is no failing: all 6 books are always
+// played, and the reward follows the number sorted correctly. Prototype art: symbols, text and basic shapes only.
+// Nothing is scored out loud.
 import type { MiniGame } from './mini-game';
 
 export type KaniShelf = 'story' | 'cook' | 'plant';
@@ -23,7 +25,8 @@ export const KANI_TITLES: Record<KaniShelf, readonly string[]> = {
 export const KANI_RULES = {
   books: 6,
   perKind: 2,
-  bookSeconds: 2.2,       // a book left alone waits this long on the counter, then is missed
+  bookSeconds: 3.4,       // a book left alone waits this long on the counter (a bit more than one full sweep), then is missed
+  zoneSeconds: .5,        // the cursor crosses one shelf in this long (a full there-and-back sweep takes 6 zones = 3 s)
   pressLock: .1,          // after a press brings the next book, it ignores presses this long (an accidental double tap)
   readySeconds: .5,       // lead-in after start(): books are shown but not yet on the counter; no input, no clock
   goAt: .3,               // within the lead-in the cue reads ready until this many seconds in, then go
@@ -76,6 +79,7 @@ export class KaniGame implements MiniGame {
   paused = false;
   lead = 0;                  // lead-in seconds left after start() (0 = books are running)
   index = 0;                 // the book on the counter
+  cursorClock = 0;           // seconds the cursor has been sweeping (runs only while books are on the counter)
   bookClock = 0;             // seconds the current book has been on the counter
   readonly seed: number;
   readonly books: readonly KaniBook[];
@@ -93,6 +97,13 @@ export class KaniGame implements MiniGame {
   get current(): KaniBook | null { return this.currentIndex < 0 ? null : this.books[this.currentIndex]; }
   /** Seconds the current book has been waiting (0..bookSeconds), for a progress cue. */
   get bookTime() { return this.currentIndex < 0 ? 0 : this.bookClock; }
+  /** Cursor position over the shelves: 0 = left edge of the first shelf, 3 = right edge of the last (a triangle wave). */
+  get cursor() {
+    const zones = KANI_SHELVES.length, c = (this.cursorClock / KANI_RULES.zoneSeconds) % (2 * zones);
+    return c <= zones ? c : 2 * zones - c;
+  }
+  /** Shelf index (0..2) the cursor is over right now. */
+  get cursorShelf() { return Math.min(KANI_SHELVES.length - 1, Math.floor(this.cursor + 1e-9)); }
   /** Start cue during the lead-in (ready, then go), else ''. */
   get startCue(): '' | 'ready' | 'go' {
     if (this.phase !== 'playing' || this.lead <= 0) return '';
@@ -111,19 +122,17 @@ export class KaniGame implements MiniGame {
   get interactive() { return this.phase === 'playing'; }
   pause() { this.paused = true; }
   resume() { this.paused = false; }
-  start() { if (this.phase === 'intro') { this.phase = 'playing'; this.time = 0; this.lead = KANI_RULES.readySeconds; this.index = 0; this.bookClock = 0; this.elapsed = 0; } }
+  start() { if (this.phase === 'intro') { this.phase = 'playing'; this.time = 0; this.lead = KANI_RULES.readySeconds; this.index = 0; this.bookClock = 0; this.cursorClock = 0; this.elapsed = 0; } }
   /** Result screen -> countdown, then 'done'. */
   continue() { if (this.phase === 'result') { this.phase = 'countdown'; this.elapsed = 0; } }
 
-  /** MiniGame compatibility: a side-less press cannot choose a shelf, so it is ignored. Use pressShelf(). */
-  press() { /* three-button game: see pressShelf() */ }
   release() { /* tap game: nothing to do */ }
-  /** Answers the book on the counter with a shelf (0 = 동화, 1 = 요리, 2 = 식물) and brings the next book at once. */
-  pressShelf(shelfIndex: number) {
+  /** The single button: answers the book on the counter with the shelf the cursor is over, and brings the next book at once. */
+  press() {
     if (this.paused || this.phase !== 'playing') return;
-    const shelf = KANI_SHELVES[shelfIndex];
     const i = this.currentIndex;
-    if (!shelf || i < 0 || (this.reachedByPress && this.bookClock < KANI_RULES.pressLock)) return; // accidental double tap
+    if (i < 0 || (this.reachedByPress && this.bookClock < KANI_RULES.pressLock)) return; // accidental double tap
+    const shelf = KANI_SHELVES[this.cursorShelf];
     this.chosen[i] = shelf;
     this.outcomes[i] = this.books[i].shelf === shelf ? 'sorted' : 'wrong';
     this.advance(true);
@@ -145,6 +154,7 @@ export class KaniGame implements MiniGame {
       if (!(dt > 0)) return;
     }
     this.time += dt; this.bookClock += dt;
+    this.cursorClock += dt;
     // A long frame may pass several books: books left alone are missed and the next one comes.
     while (this.phase === 'playing' && this.bookClock >= KANI_RULES.bookSeconds - 1e-9) {
       const i = this.index, rest = this.bookClock - KANI_RULES.bookSeconds;
