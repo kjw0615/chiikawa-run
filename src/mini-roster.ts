@@ -25,7 +25,7 @@ export const DEV_ROSTER: readonly RosterEntry[] = [
   { id: 'usagi', name: '우사기', portrait: { url: '/assets/event-usagi.webp' }, create: seed => new UsagiGame(seed) },
   { id: 'hachiware', name: '하치와레', portrait: { atlas: 'hachiware' }, create: seed => new WeedGame(seed) },
   { id: 'kani', name: '카니(헌책방)', portrait: { url: '/assets/event-kani.webp' }, create: seed => new KaniGame(seed) },
-  { id: 'shisa', name: '시사(라멘낭랑)', portrait: { atlas: 'mob' }, create: seed => new ShisaGame(seed) },
+  { id: 'shisa', name: '시사(라멘낭랑)', portrait: { url: '/assets/event-shisa.webp' }, create: seed => new ShisaGame(seed) },
 ];
 
 /** The character that wins the slot for this encounter seed (stable for a given seed). */

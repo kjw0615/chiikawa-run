@@ -2,23 +2,33 @@ import type { MiniGame, MiniReward } from './mini-game';
 
 export const SHISA_RULES = {
   orders: 3,
-  toppingsPerOrder: 2,
+  maxKinds: 2,
+  maxPerTopping: 2,
+  maxToppings: 4,
   orderSeconds: 6,
   feedbackSeconds: .55,
   countdownSeconds: 3,
 } as const;
-export const SHISA_TOPPINGS = ['chashu', 'egg', 'nori'] as const;
+export const SHISA_TOPPINGS = ['chashu', 'egg', 'nori', 'naruto'] as const;
 export type ShisaTopping = typeof SHISA_TOPPINGS[number];
-export type ShisaOrder = readonly [ShisaTopping, ShisaTopping];
+export type ShisaOrder = readonly ShisaTopping[];
 export type ShisaOutcome = 'success' | 'wrong' | 'timeout';
 export type ShisaPhase = 'intro' | 'playing' | 'result' | 'countdown' | 'done';
 export type ShisaStage = 'topping' | 'feedback';
 
-/** Three distinct recipes, reproducible from the encounter seed. Orders remain visible: no hidden memory rules. */
+/** Three distinct recipes, reproducible from the encounter seed. Recipes are unordered counts, with one doubled kind or two kinds (1–2 pieces each). */
 export function shisaOrdersFor(seed: number): readonly ShisaOrder[] {
   const recipes: ShisaOrder[] = [];
-  for (const first of SHISA_TOPPINGS) for (const second of SHISA_TOPPINGS) {
-    if (first !== second) recipes.push([first, second]);
+  for (let i = 0; i < SHISA_TOPPINGS.length; i++) {
+    const first = SHISA_TOPPINGS[i];
+    recipes.push([first, first]);
+    for (let j = i + 1; j < SHISA_TOPPINGS.length; j++) {
+      for (let a = 1; a <= SHISA_RULES.maxPerTopping; a++) {
+        for (let b = 1; b <= SHISA_RULES.maxPerTopping; b++) {
+          recipes.push([...Array<ShisaTopping>(a).fill(first), ...Array<ShisaTopping>(b).fill(SHISA_TOPPINGS[j])]);
+        }
+      }
+    }
   }
   let state = (seed >>> 0) ^ 0x6a09e667;
   for (let i = recipes.length - 1; i > 0; i--) {
@@ -65,7 +75,7 @@ export class ShisaGame implements MiniGame {
   get reward() { return ['result', 'countdown', 'done'].includes(this.phase) ? shisaRewardFor(this.successes) : null; }
   get coinReward() { return this.reward?.coins ?? 0; }
   get reaction() {
-    return !this.reward ? '' : this.successes === 3 ? '주문대로 완성! 라멘 서빙 성공!' : this.successes > 0 ? '수고했어! 다음 주문도 함께 해 보자' : '괜찮아! 주문서를 보며 다시 해 보자';
+    return !this.reward ? '' : this.successes === SHISA_RULES.orders ? '주문대로 완성! 라멘 서빙 성공!' : this.successes > 0 ? '수고했어! 다음 주문도 함께 해 보자' : '괜찮아! 주문서를 보며 다시 해 보자';
   }
   get countdownRemaining() {
     return this.phase === 'countdown' ? Math.max(0, SHISA_RULES.countdownSeconds - this.phaseTime) : this.phase === 'done' ? 0 : SHISA_RULES.countdownSeconds;
@@ -88,11 +98,15 @@ export class ShisaGame implements MiniGame {
   undoTopping() { /* no undo control */ }
   press() {
     if (!this.canPress || this.highlightedTopping === null) return;
-    this.bowl.push(this.highlightedTopping);
-    if (this.bowl.length === SHISA_RULES.toppingsPerOrder) {
-      this.resolve(this.bowl.every((topping, i) => topping === this.order[i]) ? 'success' : 'wrong');
-    }
+    const topping = this.highlightedTopping;
+    const needed = this.order.filter(t => t === topping).length;
+    const added = this.bowl.filter(t => t === topping).length;
+    // A wrong or excess topping never appears on the ramen.
+    if (added >= needed) { this.resolve('wrong'); return; }
+    this.bowl.push(topping);
+    if (this.bowl.length === this.order.length) this.resolve('success');
   }
+
   release() { /* no hold input */ }
   private resolve(result: ShisaOutcome) {
     this.results.push(result); this.stage = 'feedback'; this.clock = 0;
