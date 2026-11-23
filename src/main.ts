@@ -521,6 +521,8 @@ function applyCommonFrame() {
   image.hidden = false;
   if (image.dataset.frame !== frameKey) { image.dataset.frame = frameKey; portraitEntry(image, mini.entry, 88); }
   $('kuri-portrait').hidden = true; // the common frame already shows the character
+  // Start / result show only the common frame: every game panel and the sticker game's stage stay hidden (updateMiniCore restores them for play).
+  for (const id of ['kuri-panel', 'rakko-panel', 'usagi-panel', 'weed-panel', 'kani-panel', 'shisa-panel', 'lemon-tray', 'sticker-timing']) $(id).hidden = true;
   setText('mini-character', '');
   if (phase === 'intro') { setText('mini-title', info.name); setText('mini-copy', info.intro); setText('mini-reward', ''); return; }
   setText('mini-title', ''); setText('mini-copy', '');
