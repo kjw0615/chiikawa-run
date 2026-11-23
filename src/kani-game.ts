@@ -24,7 +24,7 @@ export const KANI_TITLES: Record<KaniShelf, readonly string[]> = {
 export const KANI_RULES = {
   books: 6,
   perKind: 2,
-  bookSeconds: 8,         // a book left alone waits this long on the counter, then is missed
+  bookSeconds: 2.7,       // a book left alone waits this long on the counter, then is missed (a third of the first 8 s)
   pressLock: .1,          // after a press brings the next book, it ignores presses this long (an accidental double tap)
   readySeconds: .5,       // lead-in after start(): books are shown but not yet on the counter; no input, no clock
   goAt: .3,               // within the lead-in the cue reads ready until this many seconds in, then go

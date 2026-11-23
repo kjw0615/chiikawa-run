@@ -19,7 +19,7 @@ export function mountKaniPanel(root: HTMLElement, onPress: (shelf?: number) => v
       <div class="kani-start" role="status" hidden></div></div>
     <div class="kani-cue" role="status"></div><div class="kani-timer" aria-hidden="true"><span></span></div>
     <div class="kani-progress" aria-label="진행 상황"></div>
-    <div class="kani-shelves">${KANI_SHELVES.map(shelf => `<button type="button" class="kani-shelf" data-shelf="${KANI_SHELVES.indexOf(shelf)}"><b>${KANI_SHELF_INFO[shelf].symbol}</b><span>${KANI_SHELF_INFO[shelf].name}</span><i class="kani-row" aria-hidden="true"></i></button>`).join('')}</div>
+    <div class="kani-shelves">${KANI_SHELVES.map(shelf => `<button type="button" class="kani-shelf" data-shelf="${KANI_SHELVES.indexOf(shelf)}"><b>${KANI_SHELF_INFO[shelf].symbol}</b><span>${KANI_SHELF_INFO[shelf].name}</span><i class="kani-row" aria-hidden="true">${'<s></s>'.repeat(3)}<em>${'<u></u>'.repeat(KANI_RULES.perKind)}</em>${'<s></s>'.repeat(4)}</i></button>`).join('')}</div>
     <button type="button" class="kani-put">선택한 책장에 꽂기 · Space</button>`;
   const button = root.querySelector<HTMLButtonElement>('.kani-put')!;
   root.querySelectorAll<HTMLButtonElement>('.kani-shelf').forEach(shelf => {
@@ -81,8 +81,10 @@ export function renderKaniPanel(g: KaniGame): KaniView {
     shelf.dataset.flash = flash ? (g.outcomes[last] === 'sorted' ? 'sorted' : 'wrong') : '';
     shelf.dataset.active = live && g.cursorShelf === i ? 'true' : '';
     const rowEl = shelf.querySelector<HTMLElement>('.kani-row')!;
-    const shelved = g.books.filter((_, n) => g.outcomes[n] === 'sorted' && g.chosen[n] === KANI_SHELVES[i]);
-    if (rowEl.dataset.n !== String(shelved.length)) { rowEl.dataset.n = String(shelved.length); rowEl.innerHTML = shelved.map(b => `<u data-kind="${b.shelf}"></u>`).join(''); }
+    const count = g.books.filter((_, n) => g.outcomes[n] === 'sorted' && g.chosen[n] === KANI_SHELVES[i]).length;
+    // The gap in the middle of the shelf fills up, one book per correct answer.
+    rowEl.querySelectorAll<HTMLElement>('em u').forEach((slot, k) => { slot.dataset.filled = k < count ? 'true' : ''; });
+    rowEl.dataset.kind = KANI_SHELVES[i];
   });
   host.querySelectorAll<HTMLButtonElement>('.kani-shelf').forEach(b => { b.disabled = !live; });
   host.querySelector<HTMLButtonElement>('.kani-put')!.disabled = !g.interactive || g.paused || !!g.startCue;
