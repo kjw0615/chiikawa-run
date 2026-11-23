@@ -18,9 +18,10 @@ export function mountKaniPanel(root: HTMLElement, onPress: (shelf?: number) => v
       <div class="kani-result" role="status" hidden></div>
       <div class="kani-start" role="status" hidden></div></div>
       <div class="kani-cue" role="status"></div><div class="kani-timer" aria-hidden="true"><span></span></div>
-      <div class="kani-progress" aria-label="진행 상황"></div>
-      <button type="button" class="kani-put">선택한 책장에 꽂기 · Space</button></div>
-    <div class="kani-case" role="group" aria-label="책장">${KANI_SHELVES.map(shelf => `<button type="button" class="kani-shelf" data-shelf="${KANI_SHELVES.indexOf(shelf)}"><b>${KANI_SHELF_INFO[shelf].symbol}</b><span>${KANI_SHELF_INFO[shelf].name}</span><i class="kani-row" aria-hidden="true">${'<s></s>'.repeat(3)}<em>${'<u></u>'.repeat(KANI_RULES.perKind)}</em>${'<s></s>'.repeat(4)}</i></button>`).join('')}</div></div>`;
+      <div class="kani-progress" aria-label="진행 상황"></div></div>
+    <div class="kani-case" role="img" aria-label="책장"><div class="kani-row">${'<s></s>'.repeat(3)}<em>${'<u></u>'.repeat(KANI_RULES.books)}</em>${'<s></s>'.repeat(4)}</div></div></div>
+    <div class="kani-shelves">${KANI_SHELVES.map(shelf => `<button type="button" class="kani-shelf" data-shelf="${KANI_SHELVES.indexOf(shelf)}"><b>${KANI_SHELF_INFO[shelf].symbol}</b><span>${KANI_SHELF_INFO[shelf].name}</span></button>`).join('')}</div>
+    <button type="button" class="kani-put">선택한 책장에 꽂기 · Space</button>`;
   const button = root.querySelector<HTMLButtonElement>('.kani-put')!;
   root.querySelectorAll<HTMLButtonElement>('.kani-shelf').forEach(shelf => {
     const i = Number(shelf.dataset.shelf), choose = () => { if (current?.interactive && !current.paused && !current.startCue) onPress(i); };
@@ -70,7 +71,7 @@ export function renderKaniPanel(g: KaniGame): KaniView {
     const stage = host.querySelector<HTMLElement>('.kani-split')!, from = g.books[last], at = g.chosen[last];
     const ghost = document.createElement('span');
     ghost.className = 'kani-ghost'; ghost.dataset.outcome = outcome;
-    ghost.style.setProperty('--ty', ['21%', '50%', '79%'][at ? KANI_SHELVES.indexOf(at) : 1]);
+    ghost.style.setProperty('--ty', '45%');
     ghost.innerHTML = kaniCoverSvg(from.shelf, from.title);
     stage.appendChild(ghost);
     setTimeout(() => ghost.remove(), 700);
@@ -80,13 +81,11 @@ export function renderKaniPanel(g: KaniGame): KaniView {
     const flash = showFeedback && g.chosen[last] === KANI_SHELVES[i];
     shelf.dataset.flash = flash ? (g.outcomes[last] === 'sorted' ? 'sorted' : 'wrong') : '';
     shelf.dataset.active = live && g.cursorShelf === i ? 'true' : '';
-    const rowEl = shelf.querySelector<HTMLElement>('.kani-row')!;
-    const count = g.books.filter((_, n) => g.outcomes[n] === 'sorted' && g.chosen[n] === KANI_SHELVES[i]).length;
-    // The gap in the middle of the shelf fills up, one book per correct answer.
-    rowEl.querySelectorAll<HTMLElement>('em u').forEach((slot, k) => { slot.dataset.filled = k < count ? 'true' : ''; });
-    rowEl.dataset.kind = KANI_SHELVES[i];
   });
   host.querySelectorAll<HTMLButtonElement>('.kani-shelf').forEach(b => { b.disabled = !live; });
+  // One shared bookcase: every right answer fills the next empty gap, tinted by the kind of that book.
+  const kinds = g.books.filter((_, n) => g.outcomes[n] === 'sorted').map(b => b.shelf);
+  host.querySelectorAll<HTMLElement>('.kani-row em u').forEach((slot, k) => { slot.dataset.filled = kinds[k] ? 'true' : ''; slot.dataset.kind = kinds[k] ?? ''; });
   host.querySelector<HTMLButtonElement>('.kani-put')!.disabled = !g.interactive || g.paused || !!g.startCue;
   const start = host.querySelector<HTMLElement>('.kani-start')!;
   start.hidden = !g.startCue;
