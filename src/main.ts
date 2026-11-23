@@ -31,6 +31,24 @@ const EVENT_ATLAS = 'event-art';
 const OBSTACLE_ATLAS = 'meadow-obstacles';
 const FOOD_ATLAS = 'food-art';
 const TERRAIN_ATLAS = 'terrain-art';
+const HULA_RUN = 'momonga-hula-run';
+let hulaTestSkin = false;
+let hulaArtFailed = false;
+const hulaToggle = $<HTMLButtonElement>('hula-skin-toggle'), hulaStatus = $('hula-skin-status');
+function setHulaTestSkin(enabled: boolean, message?: string) {
+  hulaTestSkin = enabled;
+  hulaToggle.setAttribute('aria-pressed', String(enabled));
+  hulaToggle.setAttribute('aria-label', `훌라 달리기 테스트 스킨: ${enabled ? '켜짐' : '꺼짐'}. 더블클릭으로 전환`);
+  hulaToggle.textContent = enabled ? '🌺' : '↓';
+  hulaStatus.hidden = false;
+  hulaStatus.textContent = message ?? (enabled ? '훌라 달리기 테스트: 켜짐' : '기본 달리기로 돌아왔어요');
+}
+hulaToggle.addEventListener('dblclick', e => {
+  e.preventDefault(); e.stopPropagation();
+  if (home.hidden || preparing || intro.active || ready.active || devActive) return;
+  if (hulaArtFailed) { setHulaTestSkin(false, '훌라 이미지를 불러오지 못했어요. 새로고침 후 다시 시도해 주세요'); return; }
+  setHulaTestSkin(!hulaTestSkin); dropFocus();
+});
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
 let mini: SlottedMiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
@@ -134,7 +152,10 @@ class RunnerScene extends Phaser.Scene {
   private cameos!: CameoLayer;
   preload() {
     this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
-    this.load.on('loaderror', (file: { key: string }) => { if (!Background.owns(file.key) && file.key !== CAMEO_ATLAS) this.loadFailed = true; }); // background and cameo art are optional
+    this.load.on('loaderror', (file: { key: string }) => {
+      if (file.key === HULA_RUN) { hulaArtFailed = true; setHulaTestSkin(false, '훌라 이미지를 불러오지 못해 기본 달리기를 사용해요'); return; }
+      if (!Background.owns(file.key) && file.key !== CAMEO_ATLAS) this.loadFailed = true;
+    }); // background, cameo and test-skin art are optional
     Background.preload(this);
     this.load.atlas(ATLAS, '/assets/game-atlas.webp', '/assets/game-atlas.json');
     this.load.atlas(EVENT_ATLAS, '/assets/event-atlas.webp', '/assets/event-atlas.json');
@@ -144,6 +165,7 @@ class RunnerScene extends Phaser.Scene {
     this.load.atlas(FOOD_ATLAS, '/assets/food-atlas.webp', '/assets/food-atlas.json');
     this.load.spritesheet('coin-spin', '/assets/coin-spin.webp', { frameWidth: 128, frameHeight: 128 });
     this.load.spritesheet('coin-gold-spin', '/assets/coin-gold-spin.webp', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet(HULA_RUN, '/assets/momonga-hula-run.webp', { frameWidth: 256, frameHeight: 224 });
   }
   create() {
     if (this.loadFailed) { preparing = false; model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
@@ -311,7 +333,8 @@ class RunnerScene extends Phaser.Scene {
     const heroFrame = gliding ? 'momonga-glide' : duck ? moving ? `momonga-crouch-${crawlFrame}` : 'momonga-crouch'
       : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
     // Preserve the glide artwork's aspect ratio while matching the running head/body scale.
-    this.hero.setTexture(ATLAS, heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
+    const hulaRun = hulaTestSkin && model.grounded && !duck && this.textures.exists(HULA_RUN);
+    this.hero.setTexture(hulaRun ? HULA_RUN : ATLAS, hulaRun ? runFrame : heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
     if (gliding) {
       for (let j = 0; j < 3; j++) {
         const y = model.y - 56 + j * 18 - bob;
