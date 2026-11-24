@@ -8,7 +8,7 @@
  * 4. Hazard Hit & Chaser Pressure (Gap reduction)
  * 5. Low Ceiling Crawl (Crouch hold)
  * 6. Puddle Slow-down & Air Gliding (Jump hold)
- * 7. Branch Platform Traverse & Drop down (Crouch + Jump)
+ * 7. Branch Platform Climb & Drop down
  * 8. Golden Food (Invulnerable Dash)
  * 9. Coin Pickups & Shop introduction
  * 10. Mini-Game Encounter (Tiers, rewards & bad penalty)
@@ -76,11 +76,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: 7,
-    title: '7. 나뭇가지 발판 뛰어내리기',
+    title: '7. 나뭇가지 발판 올라가기와 뛰어내리기',
     triggerDistance: 122,
-    message: '발판 위로 올라왔나요?\n발판 위에서 [앉기 + 점프]를 누르면 아래로 안전하게 뛰어내려와요.',
-    expectedAction: 'drop',
-    actionKey: '↓ 누른 채 Space',
+    message: '앞에 2층 발판이 있어요! [점프]를 길게 눌러 발판 위로 올라가 보세요.\n발판 위에서는 [앉기 + 점프]로 아래층으로 뛰어내릴 수 있어요!',
+    expectedAction: 'jump',
+    actionKey: 'Space 길게 눌러 2층 올라가기',
   },
   {
     id: 8,
@@ -209,11 +209,11 @@ export class TutorialRunnerModel extends RunnerModel {
       });
     }
 
-    // Step 7: Platform at x = 126m ~ 138m
+    // Step 7: Platform at x = 125m ~ 140m (Comfortable landing range from x = 122m jump)
     this.platforms.push({
       id: 700,
-      start: 126,
-      end: 138,
+      start: 125,
+      end: 140,
       y: RULES.floor - RULES.platformHeight,
     });
 
@@ -236,12 +236,12 @@ export class TutorialRunnerModel extends RunnerModel {
       { id: 204, x: 178, y: RULES.floor - 36, w: 28, h: 28, kind: 'coin', coinValue: 1, used: false },
     );
 
-    // Step 10: Fixed Chiikawa Mini-game Encounter at x = 196m
+    // Step 10: Fixed Chiikawa Mini-game Encounter at x = 196m (seed = 3 guarantees Chiikawa slot win)
     this.encounters.push({
       id: 10,
       x: 196,
       y: RULES.floor,
-      seed: 12345,
+      seed: 3,
       used: false,
     });
   }
