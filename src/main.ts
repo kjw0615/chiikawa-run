@@ -147,7 +147,17 @@ function closeTutorialStep() {
 }
 
 tutorialNextBtn?.addEventListener('click', () => {
+  const currentAction = tutorialStepActive?.expectedAction;
   closeTutorialStep();
+  if (currentAction === 'jump' || currentAction === 'double_jump' || currentAction === 'glide' || currentAction === 'drop') {
+    jumpButton.classList.add('held');
+    model.crouch = crouchHeld;
+    model.jump();
+  } else if (currentAction === 'crouch') {
+    crouchHeld = true;
+    model.crouch = true;
+    crouchButton.classList.add('held');
+  }
 });
 
 function beginTutorial() {
@@ -222,8 +232,13 @@ function updateHud() {
   pause.setAttribute('aria-label', model.phase === 'paused' || mini?.paused ? '계속하기' : '일시정지');
   if (lastPhase !== model.phase) {
     if (model.phase === 'over') { best = Math.max(best, Math.floor(model.distance)); try { localStorage.setItem('little-escape-best', String(best)); } catch { /* optional */ } }
-    overlay.hidden = model.phase === 'ready' || model.phase === 'running' || model.phase === 'minigame';
-    if (model.phase === 'paused' || model.phase === 'over') endOverlay(); lastPhase = model.phase;
+    overlay.hidden = model.phase === 'ready' || model.phase === 'running' || model.phase === 'minigame' || (isTutorialMode && !!tutorialStepActive);
+    if (model.phase === 'paused' || model.phase === 'over') {
+      if (!(isTutorialMode && tutorialStepActive && model.phase === 'paused')) {
+        endOverlay();
+      }
+    }
+    lastPhase = model.phase;
   }
 }
 class RunnerScene extends Phaser.Scene {
@@ -519,10 +534,21 @@ window.addEventListener('keydown', e => {
       return;
     }
   if (tutorialStepActive) {
-    // 튜토리얼 안내 말풍선이 켜져 있을 때 Space 또는 Enter를 누르면 다음으로 재개
-    if (e.code === 'Space' || e.code === 'Enter') {
+    if (['Space', 'Enter'].includes(e.code) || CROUCH_KEYS.includes(e.code)) {
       e.preventDefault();
+      const currentAction = tutorialStepActive.expectedAction;
       closeTutorialStep();
+      // 해당 키 조작을 즉시 인게임 모델에 반영
+      if (['Space', 'Enter'].includes(e.code)) {
+        jumpButton.classList.add('held');
+        model.crouch = crouchHeld;
+        model.jump();
+      } else if (CROUCH_KEYS.includes(e.code)) {
+        crouchKeysDown.add(e.code);
+        crouchHeld = true;
+        model.crouch = true;
+        crouchButton.classList.add('held');
+      }
       return;
     }
   }
