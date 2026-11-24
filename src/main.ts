@@ -42,29 +42,38 @@ const USAGI_RUN = 'momonga-usagi-kigurumi-run';
 const USAGI_BASE = 'momonga-usagi-kigurumi-base', USAGI_CROUCH = 'momonga-usagi-kigurumi-crouch', USAGI_GLIDE = 'momonga-usagi-kigurumi-glide';
 const USAGI_TEXTURES = [USAGI_RUN, USAGI_BASE, USAGI_CROUCH, USAGI_GLIDE];
 
-type TestSkinType = 'none' | 'hula' | 'usagi';
+const DEKATSUYO_RUN = 'momonga-dekatsuyo-run';
+const DEKATSUYO_BASE = 'momonga-dekatsuyo-base', DEKATSUYO_CROUCH = 'momonga-dekatsuyo-crouch', DEKATSUYO_GLIDE = 'momonga-dekatsuyo-glide';
+const DEKATSUYO_TEXTURES = [DEKATSUYO_RUN, DEKATSUYO_BASE, DEKATSUYO_CROUCH, DEKATSUYO_GLIDE];
+
+type TestSkinType = 'none' | 'usagi' | 'dekatsuyo' | 'hula';
 let currentTestSkin: TestSkinType = 'none';
 let hulaArtFailed = false;
 let usagiArtFailed = false;
+let dekatsuyoArtFailed = false;
 
 const hulaToggle = $<HTMLButtonElement>('hula-skin-toggle'), hulaStatus = $('hula-skin-status');
 function setSkinToggleState(type: TestSkinType, message?: string) {
   currentTestSkin = type;
   const isEnabled = type !== 'none';
   hulaToggle.setAttribute('aria-pressed', String(isEnabled));
-  hulaToggle.setAttribute('aria-label', `테스트 스킨: ${type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '훌라' : '기본'}. 더블클릭으로 전환`);
-  hulaToggle.textContent = type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
+  const skinLabel = type === 'dekatsuyo' ? '데카츠요 인형옷' : type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '훌라' : '기본';
+  hulaToggle.setAttribute('aria-label', `테스트 스킨: ${skinLabel}. 더블클릭으로 전환`);
+  hulaToggle.textContent = type === 'dekatsuyo' ? '😈' : type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
   hulaStatus.hidden = false;
-  hulaStatus.textContent = message ?? (type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '훌라 달리기 테스트: 켜짐' : '기본 달리기로 돌아왔어요');
+  hulaStatus.textContent = message ?? (type === 'dekatsuyo' ? '데카츠요 인형옷 테스트 스킨 장착!' : type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '훌라 달리기 테스트: 켜짐' : '기본 달리기로 돌아왔어요');
 }
 hulaToggle.addEventListener('dblclick', e => {
   e.preventDefault(); e.stopPropagation();
   if (home.hidden || preparing || intro.active || ready.active || devActive) return;
-  // 순환 토글: none -> usagi -> hula -> none
+  // 순환 토글: none -> usagi -> dekatsuyo -> hula -> none
   if (currentTestSkin === 'none') {
     if (usagiArtFailed) { setSkinToggleState('none', '우사기 스킨 이미지를 불러오지 못했어요.'); return; }
     setSkinToggleState('usagi');
   } else if (currentTestSkin === 'usagi') {
+    if (dekatsuyoArtFailed) { setSkinToggleState('none', '데카츠요 스킨 이미지를 불러오지 못했어요.'); return; }
+    setSkinToggleState('dekatsuyo');
+  } else if (currentTestSkin === 'dekatsuyo') {
     if (hulaArtFailed) { setSkinToggleState('none'); return; }
     setSkinToggleState('hula');
   } else {
@@ -276,6 +285,7 @@ class RunnerScene extends Phaser.Scene {
     this.load.on('loaderror', (file: { key: string }) => {
       if (HULA_TEXTURES.includes(file.key)) { hulaArtFailed = true; }
       if (USAGI_TEXTURES.includes(file.key)) { usagiArtFailed = true; }
+      if (DEKATSUYO_TEXTURES.includes(file.key)) { dekatsuyoArtFailed = true; }
       if (!Background.owns(file.key) && file.key !== CAMEO_ATLAS) this.loadFailed = true;
     }); // background, cameo and test-skin art are optional
     Background.preload(this);
@@ -295,6 +305,10 @@ class RunnerScene extends Phaser.Scene {
     this.load.image(USAGI_BASE, '/assets/momonga-usagi-kigurumi-base.webp');
     this.load.image(USAGI_GLIDE, '/assets/momonga-usagi-kigurumi-glide.webp');
     this.load.spritesheet(USAGI_CROUCH, '/assets/momonga-usagi-kigurumi-crouch.webp', { frameWidth: 192, frameHeight: 84 });
+    this.load.spritesheet(DEKATSUYO_RUN, '/assets/momonga-dekatsuyo-run.webp', { frameWidth: 256, frameHeight: 224 });
+    this.load.image(DEKATSUYO_BASE, '/assets/momonga-dekatsuyo-base.webp');
+    this.load.image(DEKATSUYO_GLIDE, '/assets/momonga-dekatsuyo-glide.webp');
+    this.load.spritesheet(DEKATSUYO_CROUCH, '/assets/momonga-dekatsuyo-crouch.webp', { frameWidth: 192, frameHeight: 72 });
   }
   create() {
     if (this.loadFailed) { preparing = false; model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
@@ -476,10 +490,11 @@ class RunnerScene extends Phaser.Scene {
     const equippedSkin = authService.getUser()?.equippedSkin;
     const activeSkin = currentTestSkin !== 'none'
       ? currentTestSkin
-      : (equippedSkin === 'momonga-kigurumi-usagi' ? 'usagi' : equippedSkin === 'momonga-hula' ? 'hula' : 'none');
+      : (equippedSkin === 'momonga-kigurumi-dekatsuyo' ? 'dekatsuyo' : equippedSkin === 'momonga-kigurumi-usagi' ? 'usagi' : equippedSkin === 'momonga-hula' ? 'hula' : 'none');
 
     const hulaActive = activeSkin === 'hula' && !hulaArtFailed && HULA_TEXTURES.every(key => this.textures.exists(key));
     const usagiActive = activeSkin === 'usagi' && !usagiArtFailed && USAGI_TEXTURES.every(key => this.textures.exists(key));
+    const dekatsuyoActive = activeSkin === 'dekatsuyo' && !dekatsuyoArtFailed && DEKATSUYO_TEXTURES.every(key => this.textures.exists(key));
 
     let charTexture = ATLAS;
     let charFrame: string | number = heroFrame;
@@ -488,7 +503,10 @@ class RunnerScene extends Phaser.Scene {
     let heroHeight = gliding ? 81 : duck ? 43 : 98;
     let heroYOffset = 4;
 
-    if (usagiActive) {
+    if (dekatsuyoActive) {
+      charTexture = gliding ? DEKATSUYO_GLIDE : duck ? DEKATSUYO_CROUCH : model.grounded ? DEKATSUYO_RUN : DEKATSUYO_BASE;
+      charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
+    } else if (usagiActive) {
       charTexture = gliding ? USAGI_GLIDE : duck ? USAGI_CROUCH : model.grounded ? USAGI_RUN : USAGI_BASE;
       charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
       if (gliding) {

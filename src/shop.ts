@@ -25,6 +25,14 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 150,
     icon: '/assets/momonga-usagi-kigurumi-base.webp',
     preview: '/assets/momonga-usagi-kigurumi-run.webp'
+  },
+  {
+    id: 'momonga-kigurumi-dekatsuyo',
+    name: '데카츠요 인형옷 스킨',
+    desc: '노란 털옷과 뿔 달린 데카츠요 가면을 쓴 모몽가 코스튬 (달리기/점프/기어가기/활공)',
+    price: 200,
+    icon: '/assets/momonga-dekatsuyo-base.webp',
+    preview: '/assets/momonga-dekatsuyo-run.webp'
   }
 ];
 
