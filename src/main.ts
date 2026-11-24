@@ -1169,9 +1169,7 @@ function renderShop() {
     const isEquipped = user ? user.equippedSkin === item.id : false;
 
     let actionBtnHtml = '';
-    if (item.id === 'momonga-kigurumi-usagi') {
-      actionBtnHtml = `<button class="shop-action-btn" disabled>출시 준비 중</button>`;
-    } else if (!user) {
+    if (!user) {
       actionBtnHtml = `<button class="shop-action-btn buy" data-need-auth="true">로그인 필요</button>`;
     } else if (isEquipped) {
       actionBtnHtml = `<button class="shop-action-btn unequip" data-equip="${item.id}" title="클릭 시 장착 해제 (기본 스킨)">착용 중 (해제)</button>`;
@@ -1182,7 +1180,9 @@ function renderShop() {
     }
 
     card.innerHTML = `
-      <div class="shop-item-thumb"><img src="${item.icon}" alt="${item.name}"/></div>
+      <div class="shop-item-thumb" data-preview-skin="${item.id}" title="클릭하여 모션 미리보기">
+        <img src="${item.icon}" alt="${item.name}"/>
+      </div>
       <div class="shop-item-info">
         <h3>${item.name}</h3>
         <p>${item.desc}</p>
@@ -1194,6 +1194,14 @@ function renderShop() {
     `;
 
     shopItemsContainer.appendChild(card);
+  });
+
+  // Attach thumb preview click events
+  shopItemsContainer.querySelectorAll('[data-preview-skin]').forEach(thumb => {
+    thumb.addEventListener('click', () => {
+      const skinId = thumb.getAttribute('data-preview-skin')!;
+      openSkinPreview(skinId);
+    });
   });
 
   // Attach action button events
@@ -1227,6 +1235,213 @@ function showShopToast(msg: string) {
   shopMessage.hidden = false;
   shopMessage.textContent = msg;
 }
+
+// ============================================================================
+// 상점 스킨 모션 미리보기 캔버스 애니메이션
+// ============================================================================
+const skinPreviewModal = $('skin-preview-modal');
+const skinPreviewTitle = $('skin-preview-title');
+const skinPreviewClose = $('skin-preview-close');
+const skinPreviewCanvas = $<HTMLCanvasElement>('skin-preview-canvas');
+const skinPreviewCtx = skinPreviewCanvas?.getContext('2d');
+const skinPreviewTabBtns = document.querySelectorAll<HTMLButtonElement>('.preview-tab-btn');
+
+interface SkinAssetConfig {
+  name: string;
+  runSrc: string;
+  baseSrc: string;
+  crouchSrc: string;
+  glideSrc: string;
+  crouchFrameW: number;
+  crouchFrameH: number;
+  glideAspectW: number;
+  glideAspectH: number;
+}
+
+const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
+  'momonga-hula': {
+    name: '하와이안 훌라 스킨',
+    runSrc: '/assets/momonga-hula-run.webp',
+    baseSrc: '/assets/momonga-hula-base.webp',
+    crouchSrc: '/assets/momonga-hula-crouch.webp',
+    glideSrc: '/assets/momonga-hula-glide.webp',
+    crouchFrameW: 192, crouchFrameH: 72,
+    glideAspectW: 138, glideAspectH: 101
+  },
+  'momonga-kigurumi-usagi': {
+    name: '우사기 인형옷 스킨',
+    runSrc: '/assets/momonga-usagi-kigurumi-run.webp',
+    baseSrc: '/assets/momonga-usagi-kigurumi-base.webp',
+    crouchSrc: '/assets/momonga-usagi-kigurumi-crouch.webp',
+    glideSrc: '/assets/momonga-usagi-kigurumi-glide.webp',
+    crouchFrameW: 192, crouchFrameH: 84,
+    glideAspectW: 138, glideAspectH: 118
+  },
+  'momonga-kigurumi-dekatsuyo': {
+    name: '데카츠요 인형옷 스킨',
+    runSrc: '/assets/momonga-dekatsuyo-run.webp',
+    baseSrc: '/assets/momonga-dekatsuyo-base.webp',
+    crouchSrc: '/assets/momonga-dekatsuyo-crouch.webp',
+    glideSrc: '/assets/momonga-dekatsuyo-glide.webp',
+    crouchFrameW: 192, crouchFrameH: 72,
+    glideAspectW: 138, glideAspectH: 101
+  },
+  'momonga-kigurumi-anoko': {
+    name: '아노코 인형옷 스킨',
+    runSrc: '/assets/momonga-anoko-run.webp',
+    baseSrc: '/assets/momonga-anoko-base.webp',
+    crouchSrc: '/assets/momonga-anoko-crouch.webp',
+    glideSrc: '/assets/momonga-anoko-glide.webp',
+    crouchFrameW: 208, crouchFrameH: 84,
+    glideAspectW: 150, glideAspectH: 102
+  }
+};
+
+let currentPreviewSkinId = '';
+let currentPreviewMotion = 'run';
+let previewAnimId: number | null = null;
+let previewImages: Record<string, HTMLImageElement> = {};
+
+function loadPreviewImages(cfg: SkinAssetConfig): Promise<void> {
+  const sources = {
+    run: cfg.runSrc,
+    base: cfg.baseSrc,
+    crouch: cfg.crouchSrc,
+    glide: cfg.glideSrc
+  };
+  const entries = Object.entries(sources);
+  let loaded = 0;
+  return new Promise((resolve) => {
+    entries.forEach(([key, src]) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        previewImages[key] = img;
+        loaded++;
+        if (loaded === entries.length) resolve();
+      };
+      img.onerror = () => {
+        loaded++;
+        if (loaded === entries.length) resolve();
+      };
+    });
+  });
+}
+
+function openSkinPreview(skinId: string) {
+  const cfg = SKIN_CONFIGS[skinId];
+  if (!cfg) return;
+
+  currentPreviewSkinId = skinId;
+  skinPreviewTitle.textContent = `${cfg.name} 모션`;
+  skinPreviewModal.hidden = false;
+
+  // Reset tab to run
+  currentPreviewMotion = 'run';
+  skinPreviewTabBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-motion') === 'run');
+  });
+
+  loadPreviewImages(cfg).then(() => {
+    startPreviewAnimation();
+  });
+}
+
+function startPreviewAnimation() {
+  if (previewAnimId) cancelAnimationFrame(previewAnimId);
+  let startTime = performance.now();
+
+  function loop(now: number) {
+    const elapsed = (now - startTime) / 1000;
+    renderPreviewFrame(elapsed);
+    previewAnimId = requestAnimationFrame(loop);
+  }
+  previewAnimId = requestAnimationFrame(loop);
+}
+
+function renderPreviewFrame(elapsed: number) {
+  if (!skinPreviewCtx || !skinPreviewCanvas) return;
+  const cfg = SKIN_CONFIGS[currentPreviewSkinId];
+  if (!cfg) return;
+
+  const w = skinPreviewCanvas.width;
+  const h = skinPreviewCanvas.height;
+  skinPreviewCtx.clearRect(0, 0, w, h);
+
+  // Draw soft floor line & shadow
+  const floorY = h - 35;
+  skinPreviewCtx.fillStyle = 'rgba(53, 83, 64, 0.12)';
+  skinPreviewCtx.beginPath();
+  skinPreviewCtx.ellipse(w / 2, floorY + 6, 70, 12, 0, 0, Math.PI * 2);
+  skinPreviewCtx.fill();
+
+  const motion = currentPreviewMotion;
+
+  if (motion === 'run') {
+    const img = previewImages.run;
+    if (!img) return;
+    const frameIndex = Math.floor(elapsed * 10) % 4;
+    const frameW = 256;
+    const frameH = 224;
+    const destW = 160;
+    const destH = (destW / frameW) * frameH;
+    const bob = Math.abs(Math.sin(elapsed * 12)) * 5;
+    skinPreviewCtx.drawImage(
+      img,
+      frameIndex * frameW, 0, frameW, frameH,
+      (w - destW) / 2, floorY - destH - bob, destW, destH
+    );
+  } else if (motion === 'jump') {
+    const img = previewImages.base;
+    if (!img) return;
+    const destW = 160;
+    const destH = (destW / 256) * 217;
+    const jumpOffset = Math.sin(elapsed * 3) * 20;
+    skinPreviewCtx.drawImage(
+      img,
+      (w - destW) / 2, floorY - destH - 15 - Math.max(0, jumpOffset), destW, destH
+    );
+  } else if (motion === 'crouch') {
+    const img = previewImages.crouch;
+    if (!img) return;
+    const frameIndex = Math.floor(elapsed * 8) % 4;
+    const frameW = cfg.crouchFrameW;
+    const frameH = cfg.crouchFrameH;
+    const destW = 175;
+    const destH = (destW / frameW) * frameH;
+    skinPreviewCtx.drawImage(
+      img,
+      frameIndex * frameW, 0, frameW, frameH,
+      (w - destW) / 2, floorY - destH, destW, destH
+    );
+  } else if (motion === 'glide') {
+    const img = previewImages.glide;
+    if (!img) return;
+    const destW = 150;
+    const destH = (destW / cfg.glideAspectW) * cfg.glideAspectH;
+    const bob = Math.sin(elapsed * 4) * 6;
+    skinPreviewCtx.drawImage(
+      img,
+      (w - destW) / 2, floorY - destH - 25 - bob, destW, destH
+    );
+  }
+}
+
+skinPreviewClose?.addEventListener('click', () => {
+  skinPreviewModal.hidden = true;
+  if (previewAnimId) {
+    cancelAnimationFrame(previewAnimId);
+    previewAnimId = null;
+  }
+});
+
+skinPreviewTabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    skinPreviewTabBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPreviewMotion = btn.getAttribute('data-motion') || 'run';
+  });
+});
 
 // User state subscription to update user bar
 authService.subscribe((user: AuthUser | null) => {
