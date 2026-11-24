@@ -629,11 +629,11 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 
 .tutorial-guide-layer {
   position: absolute;
-  top: 18px;
+  bottom: 96px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
-  width: min(92%, 640px);
+  z-index: 90;
+  width: min(90%, 560px);
   pointer-events: auto;
   animation: pop-in .2s cubic-bezier(.18,.89,.32,1.28);
 }
@@ -641,20 +641,22 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 .tutorial-bubble {
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: #fffef2;
-  border: 4px solid var(--ink);
-  border-radius: 24px;
-  padding: 14px 20px;
-  box-shadow: 0 8px 0 var(--ink);
+  gap: 14px;
+  background: rgba(255, 254, 242, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  padding: 10px 16px;
+  box-shadow: 0 6px 0 var(--ink);
 }
 
 .tutorial-portrait {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   background: #fff1c7;
-  border: 3px solid var(--ink);
+  border: 2px solid var(--ink);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -674,15 +676,15 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 
 .tutorial-step-title {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--pink-deep);
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .tutorial-step-msg {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.4;
   color: var(--ink);
   white-space: pre-line;
 }
@@ -690,47 +692,47 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 .tutorial-action-prompt {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  background: #eef7ff;
-  border: 2px dashed #7fc5ea;
-  border-radius: 12px;
-  padding: 3px 10px;
+  gap: 6px;
+  margin-top: 4px;
+  background: rgba(238, 247, 255, 0.85);
+  border: 1.5px dashed #7fc5ea;
+  border-radius: 10px;
+  padding: 2px 8px;
 }
 
 .prompt-badge {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   color: #2b749d;
 }
 
 .prompt-key {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   color: var(--ink);
 }
 
 .tutorial-next-btn {
   flex-shrink: 0;
-  border: 3px solid var(--ink);
+  border: 2px solid var(--ink);
   background: var(--mint-deep);
   color: #fff;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: bold;
-  padding: 8px 16px;
-  border-radius: 14px;
-  box-shadow: 0 4px 0 var(--ink);
+  padding: 6px 12px;
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--ink);
   transition: transform .08s, box-shadow .08s;
 }
 .tutorial-next-btn:hover {
   background: #6eb77c;
 }
 .tutorial-next-btn:active {
-  transform: translateY(3px);
+  transform: translateY(2px);
   box-shadow: 0 1px 0 var(--ink);
 }
 
 @keyframes pop-in {
-  from { opacity: 0; transform: translate(-50%, -10px) scale(.95); }
+  from { opacity: 0; transform: translate(-50%, 10px) scale(.96); }
   to { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
