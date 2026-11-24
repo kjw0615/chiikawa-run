@@ -24,6 +24,18 @@
   <section id="home-screen" class="home" aria-labelledby="home-title">
     <div class="home-card">
       <div class="home-copy">
+        <div class="user-bar" id="user-bar">
+          <div class="user-info" id="user-info-guest">
+            <span class="guest-label">게스트 모드</span>
+            <button id="btn-open-auth" class="auth-btn" type="button">로그인 / 가입</button>
+          </div>
+          <div class="user-info" id="user-info-logged" hidden>
+            <span class="user-nick" id="user-nick-display">닉네임</span>
+            <span class="user-coins-pill"><img src="/assets/coin.webp" alt="동전"/> <b id="user-coins-display">0</b></span>
+            <button id="btn-logout" class="auth-btn sub" type="button">로그아웃</button>
+          </div>
+          <button id="btn-open-shop" class="shop-entry-btn" type="button">🛍️ 상점</button>
+        </div>
         <p class="eyebrow">모몽가의 작은 도주</p>
         <h1 id="home-title">치이카와 <span>런</span></h1>
         <p class="home-sub">뒤에서 데카츠요가 쫓아와요!<br>맛있는 걸 먹고, 뛰어넘고, 끝까지 도망쳐요.</p>
@@ -117,6 +129,59 @@
         <p id="mini-reward" class="mini-reward" aria-live="polite"></p>
       <button id="mini-action" class="big-button" type="button">스티커 붙이기</button>
       <p id="mini-paused" class="mini-paused" hidden>잠깐 쉬어요. 준비되면 계속하기를 눌러주세요.</p>
+    </div>
+  </section>
+
+
+  <!-- 로그인 / 회원가입 모달 -->
+  <section id="auth-modal" class="custom-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" hidden>
+    <div class="custom-modal-card auth-card">
+      <div class="modal-header">
+        <h2 id="auth-modal-title">로그인 / 회원가입</h2>
+        <button id="auth-close" class="modal-close-btn" type="button" aria-label="닫기">×</button>
+      </div>
+      <div class="auth-tabs">
+        <button id="tab-login" class="auth-tab-btn active" type="button">로그인</button>
+        <button id="tab-signup" class="auth-tab-btn" type="button">회원가입</button>
+      </div>
+      <form id="auth-form" onsubmit="return false;">
+        <div class="form-group" id="group-nick">
+          <label for="auth-nick">아이디 (닉네임)</label>
+          <input type="text" id="auth-nick" placeholder="한글/영문/숫자 2~12자" autocomplete="username" required/>
+        </div>
+        <div class="form-group" id="group-email" hidden>
+          <label for="auth-email">이메일 (비밀번호 분실용)</label>
+          <input type="email" id="auth-email" placeholder="name@example.com" autocomplete="email"/>
+        </div>
+        <div class="form-group">
+          <label for="auth-pw">비밀번호</label>
+          <input type="password" id="auth-pw" placeholder="8자 이상, 영문+숫자 포함" autocomplete="current-password" required/>
+        </div>
+        <div class="form-group" id="group-pw2" hidden>
+          <label for="auth-pw2">비밀번호 확인</label>
+          <input type="password" id="auth-pw2" placeholder="비밀번호를 한 번 더 입력해 주세요" autocomplete="new-password"/>
+        </div>
+        <p id="auth-error-msg" class="auth-error-msg" role="alert" hidden></p>
+        <button id="auth-submit" class="big-button auth-submit-btn" type="button">로그인</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 코인 상점 모달 -->
+  <section id="shop-modal" class="custom-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="shop-modal-title" hidden>
+    <div class="custom-modal-card shop-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="shop-modal-title">치이카와 런 <span>상점</span></h2>
+          <p class="shop-sub">모은 동전으로 모몽가의 다양한 코스튬을 입어보세요!</p>
+        </div>
+        <div class="shop-header-right">
+          <span class="shop-coins-badge"><img src="/assets/coin.webp" alt="동전"/> <b id="shop-coins-display">0</b></span>
+          <button id="shop-close" class="modal-close-btn" type="button" aria-label="닫기">×</button>
+        </div>
+      </div>
+      <div id="shop-items-container" class="shop-items-grid"></div>
+      <div id="shop-message" class="shop-toast-msg" role="status" hidden></div>
     </div>
   </section>
 
