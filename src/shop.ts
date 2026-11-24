@@ -21,10 +21,10 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'momonga-kigurumi-usagi',
     name: '우사기 인형옷 스킨',
-    desc: '귀여운 우사기 후드 바디슈트를 뒤집어쓴 특별 모몽가 코스튬 (출시 예정)',
+    desc: '귀여운 우사기 후드 바디슈트를 뒤집어쓴 특별 모몽가 코스튬 (달리기/점프/기어가기/활공)',
     price: 150,
-    icon: '/assets/momonga.webp',
-    preview: '/assets/momonga.webp'
+    icon: '/assets/momonga-usagi-kigurumi-base.webp',
+    preview: '/assets/momonga-usagi-kigurumi-run.webp'
   }
 ];
 

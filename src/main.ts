@@ -37,22 +37,40 @@ const TERRAIN_ATLAS = 'terrain-art';
 const HULA_RUN = 'momonga-hula-run';
 const HULA_BASE = 'momonga-hula-base', HULA_CROUCH = 'momonga-hula-crouch', HULA_GLIDE = 'momonga-hula-glide';
 const HULA_TEXTURES = [HULA_RUN, HULA_BASE, HULA_CROUCH, HULA_GLIDE];
-let hulaTestSkin = false;
+
+const USAGI_RUN = 'momonga-usagi-kigurumi-run';
+const USAGI_BASE = 'momonga-usagi-kigurumi-base', USAGI_CROUCH = 'momonga-usagi-kigurumi-crouch', USAGI_GLIDE = 'momonga-usagi-kigurumi-glide';
+const USAGI_TEXTURES = [USAGI_RUN, USAGI_BASE, USAGI_CROUCH, USAGI_GLIDE];
+
+type TestSkinType = 'none' | 'hula' | 'usagi';
+let currentTestSkin: TestSkinType = 'none';
 let hulaArtFailed = false;
+let usagiArtFailed = false;
+
 const hulaToggle = $<HTMLButtonElement>('hula-skin-toggle'), hulaStatus = $('hula-skin-status');
-function setHulaTestSkin(enabled: boolean, message?: string) {
-  hulaTestSkin = enabled;
-  hulaToggle.setAttribute('aria-pressed', String(enabled));
-  hulaToggle.setAttribute('aria-label', `훌라 달리기 테스트 스킨: ${enabled ? '켜짐' : '꺼짐'}. 더블클릭으로 전환`);
-  hulaToggle.textContent = enabled ? '🌺' : '↓';
+function setSkinToggleState(type: TestSkinType, message?: string) {
+  currentTestSkin = type;
+  const isEnabled = type !== 'none';
+  hulaToggle.setAttribute('aria-pressed', String(isEnabled));
+  hulaToggle.setAttribute('aria-label', `테스트 스킨: ${type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '훌라' : '기본'}. 더블클릭으로 전환`);
+  hulaToggle.textContent = type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
   hulaStatus.hidden = false;
-  hulaStatus.textContent = message ?? (enabled ? '훌라 달리기 테스트: 켜짐' : '기본 달리기로 돌아왔어요');
+  hulaStatus.textContent = message ?? (type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '훌라 달리기 테스트: 켜짐' : '기본 달리기로 돌아왔어요');
 }
 hulaToggle.addEventListener('dblclick', e => {
   e.preventDefault(); e.stopPropagation();
   if (home.hidden || preparing || intro.active || ready.active || devActive) return;
-  if (hulaArtFailed) { setHulaTestSkin(false, '훌라 이미지를 불러오지 못했어요. 새로고침 후 다시 시도해 주세요'); return; }
-  setHulaTestSkin(!hulaTestSkin); dropFocus();
+  // 순환 토글: none -> usagi -> hula -> none
+  if (currentTestSkin === 'none') {
+    if (usagiArtFailed) { setSkinToggleState('none', '우사기 스킨 이미지를 불러오지 못했어요.'); return; }
+    setSkinToggleState('usagi');
+  } else if (currentTestSkin === 'usagi') {
+    if (hulaArtFailed) { setSkinToggleState('none'); return; }
+    setSkinToggleState('hula');
+  } else {
+    setSkinToggleState('none');
+  }
+  dropFocus();
 });
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
 let mini: SlottedMiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
@@ -256,7 +274,8 @@ class RunnerScene extends Phaser.Scene {
   preload() {
     this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
     this.load.on('loaderror', (file: { key: string }) => {
-      if (HULA_TEXTURES.includes(file.key)) { hulaArtFailed = true; setHulaTestSkin(false, '훌라 이미지를 불러오지 못해 기본 달리기를 사용해요'); return; }
+      if (HULA_TEXTURES.includes(file.key)) { hulaArtFailed = true; }
+      if (USAGI_TEXTURES.includes(file.key)) { usagiArtFailed = true; }
       if (!Background.owns(file.key) && file.key !== CAMEO_ATLAS) this.loadFailed = true;
     }); // background, cameo and test-skin art are optional
     Background.preload(this);
@@ -272,6 +291,10 @@ class RunnerScene extends Phaser.Scene {
     this.load.image(HULA_BASE, '/assets/momonga-hula-base.webp');
     this.load.image(HULA_GLIDE, '/assets/momonga-hula-glide.webp');
     this.load.spritesheet(HULA_CROUCH, '/assets/momonga-hula-crouch.webp', { frameWidth: 192, frameHeight: 72 });
+    this.load.spritesheet(USAGI_RUN, '/assets/momonga-usagi-kigurumi-run.webp', { frameWidth: 256, frameHeight: 224 });
+    this.load.image(USAGI_BASE, '/assets/momonga-usagi-kigurumi-base.webp');
+    this.load.image(USAGI_GLIDE, '/assets/momonga-usagi-kigurumi-glide.webp');
+    this.load.spritesheet(USAGI_CROUCH, '/assets/momonga-usagi-kigurumi-crouch.webp', { frameWidth: 192, frameHeight: 72 });
   }
   create() {
     if (this.loadFailed) { preparing = false; model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
@@ -450,11 +473,26 @@ class RunnerScene extends Phaser.Scene {
     const heroFrame = gliding ? 'momonga-glide' : duck ? moving ? `momonga-crouch-${crawlFrame}` : 'momonga-crouch'
       : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
     // Preserve the glide artwork's aspect ratio while matching the running head/body scale.
-    const userEquipped = authService.getUser()?.equippedSkin === 'momonga-hula';
-    const hulaActive = (hulaTestSkin || userEquipped) && !hulaArtFailed && HULA_TEXTURES.every(key => this.textures.exists(key));
-    const hulaTexture = gliding ? HULA_GLIDE : duck ? HULA_CROUCH : model.grounded ? HULA_RUN : HULA_BASE;
-    const hulaFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
-    this.hero.setTexture(hulaActive ? hulaTexture : ATLAS, hulaActive ? hulaFrame : heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
+    const equippedSkin = authService.getUser()?.equippedSkin;
+    const activeSkin = currentTestSkin !== 'none'
+      ? currentTestSkin
+      : (equippedSkin === 'momonga-kigurumi-usagi' ? 'usagi' : equippedSkin === 'momonga-hula' ? 'hula' : 'none');
+
+    const hulaActive = activeSkin === 'hula' && !hulaArtFailed && HULA_TEXTURES.every(key => this.textures.exists(key));
+    const usagiActive = activeSkin === 'usagi' && !usagiArtFailed && USAGI_TEXTURES.every(key => this.textures.exists(key));
+
+    let charTexture = ATLAS;
+    let charFrame: string | number = heroFrame;
+
+    if (usagiActive) {
+      charTexture = gliding ? USAGI_GLIDE : duck ? USAGI_CROUCH : model.grounded ? USAGI_RUN : USAGI_BASE;
+      charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
+    } else if (hulaActive) {
+      charTexture = gliding ? HULA_GLIDE : duck ? HULA_CROUCH : model.grounded ? HULA_RUN : HULA_BASE;
+      charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
+    }
+
+    this.hero.setTexture(charTexture, charFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
     if (gliding) {
       for (let j = 0; j < 3; j++) {
         const y = model.y - 56 + j * 18 - bob;
