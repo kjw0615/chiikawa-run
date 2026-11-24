@@ -214,3 +214,380 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 .modal .intro-option{margin:14px auto 0;font-size:14px}
 @media(prefers-reduced-motion:reduce){.switch-track,.switch-thumb{transition:none}}
 @media(max-width:600px){.intro-option{margin-left:auto;margin-right:auto}}
+
+
+/* ==========================================================================
+   유저 바 (로그인 / 프로필 / 상점 진입)
+   ========================================================================== */
+.user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffffbb;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  margin-bottom: 12px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 3px 0 #624b4b22;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guest-label {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.user-nick {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--pink-deep);
+}
+
+.user-coins-pill, .shop-coins-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fffdf0;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.user-coins-pill img, .shop-coins-badge img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.auth-btn {
+  background: var(--pink);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink);
+  box-shadow: 0 2px 0 #624b4b22;
+}
+
+.auth-btn:hover {
+  background: var(--pink-light);
+}
+
+.auth-btn.sub {
+  background: #f0f0f0;
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
+.shop-entry-btn {
+  background: #fbf2c0;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  color: var(--ink);
+  box-shadow: 0 3px 0 #624b4b33;
+  transition: transform 0.1s;
+}
+
+.shop-entry-btn:hover {
+  background: #fff8d6;
+  transform: translateY(-1px);
+}
+
+.shop-entry-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #624b4b33;
+}
+
+/* ==========================================================================
+   커스텀 모달 (로그인 / 상점 공통 팝업)
+   ========================================================================== */
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 20, 25, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  backdrop-filter: blur(3px);
+}
+
+.custom-modal-card {
+  background: #fffcf8;
+  border: 3px solid var(--ink);
+  border-radius: 24px;
+  box-shadow: 0 10px 0 var(--ink);
+  width: 100%;
+  max-width: 440px;
+  padding: 24px 22px;
+  position: relative;
+  box-sizing: border-box;
+  animation: modalPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-header h2 {
+  font-size: 24px;
+  margin: 0;
+  color: var(--ink);
+}
+
+.modal-header h2 span {
+  color: var(--pink-deep);
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-soft);
+  padding: 0 4px;
+}
+
+.modal-close-btn:hover {
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   로그인 / 회원가입 폼 스타일
+   ========================================================================== */
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+  background: #eee4ea;
+  padding: 4px;
+  border-radius: 14px;
+}
+
+.auth-tab-btn {
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.auth-tab-btn.active {
+  background: #ffffff;
+  color: var(--pink-deep);
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+
+.form-group {
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--ink-soft);
+  margin-bottom: 5px;
+}
+
+.form-group input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  font-size: 15px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  font-family: inherit;
+}
+
+.form-group input:focus {
+  border-color: var(--pink-deep);
+  background: #fffcfd;
+}
+
+.auth-error-msg {
+  color: #c93b3b;
+  font-size: 13px;
+  margin: 10px 0;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  font-size: 18px;
+}
+
+/* ==========================================================================
+   상점 모달 & 상품 그리드
+   ========================================================================== */
+.shop-card {
+  max-width: 540px;
+}
+
+.shop-sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 4px 0 0;
+}
+
+.shop-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shop-coins-badge {
+  font-size: 16px;
+  padding: 4px 10px;
+}
+
+.shop-items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.shop-item-card {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 4px 0 #624b4b1a;
+}
+
+.shop-item-thumb {
+  width: 80px;
+  height: 80px;
+  background: #fbf5eb;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.shop-item-thumb img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+}
+
+.shop-item-info h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.shop-item-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.shop-item-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #b07010;
+  margin-top: 6px;
+}
+
+.shop-item-price img {
+  width: 16px;
+  height: 16px;
+}
+
+.shop-action-btn {
+  padding: 8px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 3px 0 var(--ink);
+}
+
+.shop-action-btn.buy {
+  background: #ffec85;
+  color: var(--ink);
+}
+
+.shop-action-btn.buy:hover {
+  background: #fff5a5;
+}
+
+.shop-action-btn.equip {
+  background: var(--pink);
+  color: var(--ink);
+}
+
+.shop-action-btn.equipped {
+  background: #e0eedb;
+  color: #3b6b35;
+  cursor: default;
+  box-shadow: none;
+  border-color: #8bb582;
+}
+
+.shop-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.shop-toast-msg {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  color: var(--pink-deep);
+}

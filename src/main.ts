@@ -1,3 +1,5 @@
+import { authService, AuthUser } from './auth';
+import { ShopManager, SHOP_ITEMS } from './shop';
 import { describeReward } from './mini-tier';
 import Phaser from 'phaser';
 import './style.css';
@@ -116,7 +118,10 @@ function endOverlay() {
   $('modal-kicker').textContent = over ? '한 번 더 달려볼까요?' : '모몽가도 잠깐 쉬어요';
   $('modal-title').textContent = over ? '앗, 붙잡혔다!' : '잠깐 쉬어 가요.';
   $('modal-copy').textContent = over ? '다음에는 조금 더 멀리 갈 수 있을 거예요.' : '준비되면 다시 달려요.';
-  $('result').hidden = !over; $('result').textContent = `${Math.floor(model.distance)} m · 최고 ${best} m · 동전 ${model.coins}`;
+  $('result').hidden = !over; $('result').textContent = `${Math.floor(model.distance)} m · 최고 ${best} m · 획득 동전 ${model.coins}`;
+  if (over && model.coins > 0) {
+    authService.addCoins(model.coins);
+  }
   start.textContent = over ? '다시 달리기' : '계속 달리기';
 }
 function updateHud() {
@@ -338,7 +343,8 @@ class RunnerScene extends Phaser.Scene {
     const heroFrame = gliding ? 'momonga-glide' : duck ? moving ? `momonga-crouch-${crawlFrame}` : 'momonga-crouch'
       : moving && model.grounded ? `momonga-run-${runFrame}` : 'momonga';
     // Preserve the glide artwork's aspect ratio while matching the running head/body scale.
-    const hulaActive = hulaTestSkin && !hulaArtFailed && HULA_TEXTURES.every(key => this.textures.exists(key));
+    const userEquipped = authService.getUser()?.equippedSkin === 'momonga-hula';
+    const hulaActive = (hulaTestSkin || userEquipped) && !hulaArtFailed && HULA_TEXTURES.every(key => this.textures.exists(key));
     const hulaTexture = gliding ? HULA_GLIDE : duck ? HULA_CROUCH : model.grounded ? HULA_RUN : HULA_BASE;
     const hulaFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
     this.hero.setTexture(hulaActive ? hulaTexture : ATLAS, hulaActive ? hulaFrame : heroFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
@@ -741,3 +747,226 @@ function updateMiniCore() {
   if (sg.phase === 'result' && sg.reward) $('mini-reward').textContent = `동전 +${sg.coinReward} · 체력 +${sg.reward.stamina} · ${sg.reward.speedMultiplier}배 속도 ${sg.reward.seconds}초`;
   if (['intro','result'].includes(sg.phase)) dropFocus();
 }
+
+
+// ============================================================================
+// 인증(로그인 / 회원가입) 및 상점 UI 이벤트 바인딩
+// ============================================================================
+const authModal = $('auth-modal');
+const btnOpenAuth = $('btn-open-auth');
+const btnLogout = $('btn-logout');
+const authClose = $('auth-close');
+const tabLogin = $('tab-login');
+const tabSignup = $('tab-signup');
+const groupEmail = $('group-email');
+const groupPw2 = $('group-pw2');
+const authNickInput = $<HTMLInputElement>('auth-nick');
+const authEmailInput = $<HTMLInputElement>('auth-email');
+const authPwInput = $<HTMLInputElement>('auth-pw');
+const authPw2Input = $<HTMLInputElement>('auth-pw2');
+const authSubmit = $('auth-submit');
+const authErrorMsg = $('auth-error-msg');
+
+let isSignupMode = false;
+
+function setAuthMode(signup: boolean) {
+  isSignupMode = signup;
+  tabLogin.classList.toggle('active', !signup);
+  tabSignup.classList.toggle('active', signup);
+  groupEmail.hidden = !signup;
+  groupPw2.hidden = !signup;
+  authSubmit.textContent = signup ? '회원가입' : '로그인';
+  authErrorMsg.hidden = true;
+  authErrorMsg.textContent = '';
+}
+
+btnOpenAuth?.addEventListener('click', () => {
+  setAuthMode(false);
+  authNickInput.value = '';
+  authEmailInput.value = '';
+  authPwInput.value = '';
+  authPw2Input.value = '';
+  authModal.hidden = false;
+});
+
+authClose?.addEventListener('click', () => {
+  authModal.hidden = true;
+});
+
+tabLogin?.addEventListener('click', () => setAuthMode(false));
+tabSignup?.addEventListener('click', () => setAuthMode(true));
+
+btnLogout?.addEventListener('click', () => {
+  if (confirm('로그아웃 하시겠습니까?')) {
+    authService.logout();
+  }
+});
+
+authSubmit?.addEventListener('click', async () => {
+  const nick = authNickInput.value.trim();
+  const email = authEmailInput.value.trim();
+  const pw = authPwInput.value;
+  const pw2 = authPw2Input.value;
+
+  authErrorMsg.hidden = true;
+  authErrorMsg.textContent = '';
+
+  if (!nick) {
+    showAuthError('아이디(닉네임)를 입력해 주세요.');
+    return;
+  }
+  if (!pw) {
+    showAuthError('비밀번호를 입력해 주세요.');
+    return;
+  }
+
+  authSubmit.setAttribute('disabled', 'true');
+  authSubmit.textContent = '처리 중…';
+
+  try {
+    if (isSignupMode) {
+      if (!email) {
+        showAuthError('이메일을 입력해 주세요.');
+        return;
+      }
+      if (pw.length < 8) {
+        showAuthError('비밀번호는 8자 이상이어야 합니다.');
+        return;
+      }
+      if (pw !== pw2) {
+        showAuthError('비밀번호 확인이 일치하지 않습니다.');
+        return;
+      }
+
+      const res = await authService.signUp(nick, email, pw);
+      if (res.ok) {
+        alert('회원가입이 완료되었습니다! 자동 로그인되었습니다.');
+        authModal.hidden = true;
+      } else {
+        showAuthError(res.error || '회원가입에 실패했습니다.');
+      }
+    } else {
+      const res = await authService.login(nick, pw);
+      if (res.ok) {
+        authModal.hidden = true;
+      } else {
+        showAuthError(res.error || '로그인에 실패했습니다.');
+      }
+    }
+  } catch (err: any) {
+    showAuthError(err.message || '네트워크 오류가 발생했습니다.');
+  } finally {
+    authSubmit.removeAttribute('disabled');
+    authSubmit.textContent = isSignupMode ? '회원가입' : '로그인';
+  }
+});
+
+function showAuthError(msg: string) {
+  authErrorMsg.hidden = false;
+  authErrorMsg.textContent = msg;
+}
+
+// ============================================================================
+// 상점 UI 이벤트 및 렌더링
+// ============================================================================
+const shopModal = $('shop-modal');
+const btnOpenShop = $('btn-open-shop');
+const shopClose = $('shop-close');
+const shopItemsContainer = $('shop-items-container');
+const shopCoinsDisplay = $('shop-coins-display');
+const shopMessage = $('shop-message');
+
+btnOpenShop?.addEventListener('click', () => {
+  renderShop();
+  shopModal.hidden = false;
+});
+
+shopClose?.addEventListener('click', () => {
+  shopModal.hidden = true;
+});
+
+function renderShop() {
+  const user = authService.getUser();
+  const currentCoins = user ? user.coins : 0;
+  shopCoinsDisplay.textContent = String(currentCoins);
+  shopMessage.hidden = true;
+  shopMessage.textContent = '';
+
+  const items = ShopManager.getItems();
+  shopItemsContainer.innerHTML = '';
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'shop-item-card';
+
+    const isOwned = user ? user.ownedSkins.includes(item.id) : false;
+    const isEquipped = user ? user.equippedSkin === item.id : false;
+
+    let actionBtnHtml = '';
+    if (item.id === 'momonga-kigurumi-usagi') {
+      actionBtnHtml = `<button class="shop-action-btn" disabled>출시 준비 중</button>`;
+    } else if (!user) {
+      actionBtnHtml = `<button class="shop-action-btn buy" onclick="document.getElementById('btn-open-auth')?.click()">로그인 필요</button>`;
+    } else if (isEquipped) {
+      actionBtnHtml = `<button class="shop-action-btn equipped" disabled>착용 중</button>`;
+    } else if (isOwned) {
+      actionBtnHtml = `<button class="shop-action-btn equip" data-equip="${item.id}">착용하기</button>`;
+    } else {
+      actionBtnHtml = `<button class="shop-action-btn buy" data-buy="${item.id}">구매하기</button>`;
+    }
+
+    card.innerHTML = `
+      <div class="shop-item-thumb"><img src="${item.icon}" alt="${item.name}"/></div>
+      <div class="shop-item-info">
+        <h3>${item.name}</h3>
+        <p>${item.desc}</p>
+        <span class="shop-item-price"><img src="/assets/coin.webp" alt="동전"/> ${item.price}개</span>
+      </div>
+      <div>${actionBtnHtml}</div>
+    `;
+
+    shopItemsContainer.appendChild(card);
+  });
+
+  // Attach action button events
+  shopItemsContainer.querySelectorAll('[data-buy]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-buy')!;
+      const res = ShopManager.buyItem(id);
+      showShopToast(res.message);
+      renderShop();
+    });
+  });
+
+  shopItemsContainer.querySelectorAll('[data-equip]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-equip')!;
+      const res = ShopManager.equip(id);
+      showShopToast(res.message);
+      renderShop();
+    });
+  });
+}
+
+function showShopToast(msg: string) {
+  shopMessage.hidden = false;
+  shopMessage.textContent = msg;
+}
+
+// User state subscription to update user bar
+authService.subscribe((user: AuthUser | null) => {
+  const guestInfo = $('user-info-guest');
+  const loggedInfo = $('user-info-logged');
+  const nickDisplay = $('user-nick-display');
+  const coinsDisplay = $('user-coins-display');
+
+  if (user) {
+    guestInfo.hidden = true;
+    loggedInfo.hidden = false;
+    nickDisplay.textContent = user.nickname;
+    coinsDisplay.textContent = String(user.coins);
+  } else {
+    guestInfo.hidden = false;
+    loggedInfo.hidden = true;
+  }
+});
