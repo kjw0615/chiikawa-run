@@ -147,13 +147,13 @@ function closeTutorialStep() {
 }
 
 tutorialNextBtn?.addEventListener('click', () => {
-  const currentAction = tutorialStepActive?.expectedAction;
+  const requiredAction = tutorialStepActive?.expectedAction;
   closeTutorialStep();
-  if (currentAction === 'jump' || currentAction === 'double_jump' || currentAction === 'glide' || currentAction === 'drop') {
+  if (requiredAction && ['jump', 'double_jump', 'glide', 'drop'].includes(requiredAction)) {
     jumpButton.classList.add('held');
     model.crouch = crouchHeld;
     model.jump();
-  } else if (currentAction === 'crouch') {
+  } else if (requiredAction === 'crouch') {
     crouchHeld = true;
     model.crouch = true;
     crouchButton.classList.add('held');
@@ -534,23 +534,48 @@ window.addEventListener('keydown', e => {
       return;
     }
   if (tutorialStepActive) {
-    if (['Space', 'Enter'].includes(e.code) || CROUCH_KEYS.includes(e.code)) {
-      e.preventDefault();
-      const currentAction = tutorialStepActive.expectedAction;
-      closeTutorialStep();
-      // 해당 키 조작을 즉시 인게임 모델에 반영
+    const requiredAction = tutorialStepActive.expectedAction;
+
+    // 조작이 필요 없는 일반 안내 스텝(expectedAction === 'none')인 경우:
+    // Space 또는 Enter를 누르면 말풍선만 닫고 게임을 재개 (점프는 발생하지 않음)
+    if (requiredAction === 'none') {
       if (['Space', 'Enter'].includes(e.code)) {
+        e.preventDefault();
+        closeTutorialStep();
+        return;
+      }
+      return;
+    }
+
+    // 조작이 필요한 스텝(jump, double_jump, glide, drop, crouch):
+    // 1) 점프 계열 액션 요구 시: Space 또는 ArrowUp 입력 시에만 통과하고 즉시 점프 실행
+    if (['jump', 'double_jump', 'glide', 'drop'].includes(requiredAction)) {
+      if (['Space', 'ArrowUp'].includes(e.code)) {
+        e.preventDefault();
+        closeTutorialStep();
         jumpButton.classList.add('held');
         model.crouch = crouchHeld;
         model.jump();
-      } else if (CROUCH_KEYS.includes(e.code)) {
+        return;
+      }
+      // 다른 키는 무시하고 해당 조작키 입력을 기다림
+      return;
+    }
+
+    // 2) 앉기/기어가기 액션 요구 시: crouch 키 입력 시에만 통과하고 즉시 앉기 실행
+    if (requiredAction === 'crouch') {
+      if (CROUCH_KEYS.includes(e.code)) {
+        e.preventDefault();
+        closeTutorialStep();
         crouchKeysDown.add(e.code);
         crouchHeld = true;
         model.crouch = true;
         crouchButton.classList.add('held');
+        return;
       }
       return;
     }
+    return;
   }
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     if (home.hidden === false) {
