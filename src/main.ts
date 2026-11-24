@@ -69,7 +69,17 @@ for (const button of introSwitches) button.addEventListener('click', () => {
 // (the game's own key handler below still sees them), and no code moves focus onto a button.
 const dropFocus = () => (document.activeElement as HTMLElement | null)?.blur?.();
 window.addEventListener('keydown', e => {
-  if (e.key === 'Tab' || e.code === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); return; }
+  if (e.key === 'Tab' || e.code === 'Tab') {
+    // Only block Tab in start intro or active gameplay/stage
+    const inGame = !play.hidden || intro.active || ready.active;
+    if (inGame) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+    // Main/Home screen and modals allow natural Tab focus for forms and buttons
+    return;
+  }
   const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
   if (e.code === 'Enter' || e.code === 'NumpadEnter' || (!typing && e.code.startsWith('Arrow'))) e.preventDefault();
 }, { capture: true });
@@ -908,7 +918,7 @@ function renderShop() {
     } else if (!user) {
       actionBtnHtml = `<button class="shop-action-btn buy" onclick="document.getElementById('btn-open-auth')?.click()">로그인 필요</button>`;
     } else if (isEquipped) {
-      actionBtnHtml = `<button class="shop-action-btn equipped" disabled>착용 중</button>`;
+      actionBtnHtml = `<button class="shop-action-btn unequip" data-equip="${item.id}" title="클릭 시 장착 해제 (기본 스킨)">착용 중 (해제)</button>`;
     } else if (isOwned) {
       actionBtnHtml = `<button class="shop-action-btn equip" data-equip="${item.id}">착용하기</button>`;
     } else {
@@ -941,7 +951,7 @@ function renderShop() {
   shopItemsContainer.querySelectorAll('[data-equip]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-equip')!;
-      const res = ShopManager.equip(id);
+      const res = ShopManager.toggleEquip(id);
       showShopToast(res.message);
       renderShop();
     });

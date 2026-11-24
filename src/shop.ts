@@ -65,17 +65,32 @@ export class ShopManager {
     return { ok: false, message: '구매 처리에 실패했습니다.' };
   }
 
-  public static equip(skinId: string): { ok: boolean; message: string } {
+  public static toggleEquip(skinId: string): { ok: boolean; message: string; equipped: boolean } {
     const user = authService.getUser();
     if (!user) {
-      return { ok: false, message: '로그인이 필요합니다.' };
+      return { ok: false, message: '로그인이 필요합니다.', equipped: false };
     }
 
     if (!user.ownedSkins.includes(skinId)) {
-      return { ok: false, message: '보유하지 않은 스킨입니다.' };
+      return { ok: false, message: '보유하지 않은 스킨입니다.', equipped: false };
     }
 
+    const item = SHOP_ITEMS.find(i => i.id === skinId);
+    const itemName = item ? item.name : skinId;
+
+    // 이미 장착 중인 경우 -> 해제하고 기본 스킨으로 복귀
+    if (user.equippedSkin === skinId) {
+      authService.unequipSkin();
+      return { ok: true, message: `"${itemName}" 장착을 해제하고 기본 스킨으로 변경했습니다.`, equipped: false };
+    }
+
+    // 다른 스킨이 장착되어 있거나 기본 스킨인 경우 -> 해당 스킨으로 단일 교체 장착
     authService.equipSkin(skinId);
-    return { ok: true, message: '스킨을 장착했습니다.' };
+    return { ok: true, message: `"${itemName}"을(를) 장착했습니다!`, equipped: true };
+  }
+
+  public static equip(skinId: string): { ok: boolean; message: string } {
+    const res = this.toggleEquip(skinId);
+    return { ok: res.ok, message: res.message };
   }
 }

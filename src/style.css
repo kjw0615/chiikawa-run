@@ -591,3 +591,14 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
   text-align: center;
   color: var(--pink-deep);
 }
+
+.shop-action-btn.unequip {
+  background: #ffdede;
+  color: #a32a2a;
+  border-color: #d98888;
+}
+
+.shop-action-btn.unequip:hover {
+  background: #ffcccc;
+  border-color: #c93b3b;
+}
