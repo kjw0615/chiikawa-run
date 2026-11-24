@@ -404,6 +404,7 @@ window.addEventListener('keydown', e => {
     e.preventDefault(); return;
   }
   if (devActive && !mini) { if (e.code === 'Escape') devClose(); return; } // test menu: keys must not start a run
+  if (e.target instanceof HTMLElement && (e.target.closest('#auth-modal') || e.target.closest('#shop-modal'))) return;
   if (home.hidden === false && e.target instanceof HTMLInputElement) return;
   if (e.target instanceof HTMLElement && e.target.closest('[role="switch"]') && ['Space', 'Enter'].includes(e.code)) return;
   if (e.target instanceof HTMLButtonElement && e.target.classList.contains('stop-running') && ['Space', 'Enter'].includes(e.code)) return;
@@ -435,7 +436,16 @@ window.addEventListener('keydown', e => {
       if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
       return;
     }
-  if (e.code === 'Space' || e.code === 'ArrowUp') { jumpButton.classList.add('held'); if (home.hidden === false || model.phase === 'ready' || model.phase === 'over') begin(); else if (model.phase === 'paused') togglePause(); else { model.crouch = crouchHeld; model.jump(); } }
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    if (home.hidden === false) {
+      // 메인(홈) 화면에서는 스페이스바로 게임을 바로 시작하지 않고 '달리기 시작' 버튼 클릭으로만 시작
+      return;
+    }
+    jumpButton.classList.add('held');
+    if (model.phase === 'ready' || model.phase === 'over') begin();
+    else if (model.phase === 'paused') togglePause();
+    else { model.crouch = crouchHeld; model.jump(); }
+  }
   if (CROUCH_KEYS.includes(e.code) && !play.hidden) { crouchKeysDown.add(e.code); crouchHeld = true; model.crouch = true; crouchButton.classList.add('held'); }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
 });
@@ -869,6 +879,16 @@ authSubmit?.addEventListener('click', async () => {
     authSubmit.removeAttribute('disabled');
     authSubmit.textContent = isSignupMode ? '회원가입' : '로그인';
   }
+});
+
+// 로그인 / 회원가입 폼 내부 엔터 키 제출 처리
+[authNickInput, authEmailInput, authPwInput, authPw2Input].forEach(input => {
+  input?.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      authSubmit?.click();
+    }
+  });
 });
 
 function showAuthError(msg: string) {
