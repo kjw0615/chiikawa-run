@@ -64,10 +64,6 @@ export class ShopManager {
       return { ok: false, message: '이미 보유 중인 상품입니다.' };
     }
 
-    if (item.id === 'momonga-kigurumi-usagi') {
-      return { ok: false, message: '현재 제작 중인 코스튬입니다. 곧 출시됩니다!' };
-    }
-
     if (user.coins < item.price) {
       return { ok: false, message: `동전이 부족합니다! (필요: ${item.price}개 / 보유: ${user.coins}개)` };
     }

@@ -202,6 +202,28 @@
     </div>
   </section>
 
+  <!-- 스킨 모션 미리보기 모달 -->
+  <section id="skin-preview-modal" class="custom-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="skin-preview-title" hidden>
+    <div class="custom-modal-card skin-preview-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="skin-preview-title">스킨 모션 미리보기</h2>
+          <p id="skin-preview-desc" class="shop-sub">모션을 클릭하여 실제 인게임 애니메이션을 확인해 보세요!</p>
+        </div>
+        <button id="skin-preview-close" class="modal-close-btn" type="button" aria-label="닫기">×</button>
+      </div>
+      <div class="skin-preview-stage">
+        <canvas id="skin-preview-canvas" width="280" height="240"></canvas>
+      </div>
+      <div class="skin-preview-tabs">
+        <button type="button" class="preview-tab-btn active" data-motion="run">🏃 달리기</button>
+        <button type="button" class="preview-tab-btn" data-motion="jump">🦘 점프</button>
+        <button type="button" class="preview-tab-btn" data-motion="crouch">🐛 기어가기</button>
+        <button type="button" class="preview-tab-btn" data-motion="glide">🪁 활공</button>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <p>치이카와의 캐릭터와 세계관은 원작자에게 권리가 있습니다. 이 게임은 공식이 아닌 팬메이드 작품입니다.</p>
     <button id="restart" type="button">처음부터 다시</button>
