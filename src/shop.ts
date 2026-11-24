@@ -33,6 +33,14 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 200,
     icon: '/assets/momonga-dekatsuyo-base.webp',
     preview: '/assets/momonga-dekatsuyo-run.webp'
+  },
+  {
+    id: 'momonga-kigurumi-anoko',
+    name: '아노코 인형옷 스킨',
+    desc: '이마의 외뿔, 풍성한 가슴털과 줄무늬 꼬리가 달린 아노코 코스튬 (달리기/점프/기어가기/활공)',
+    price: 250,
+    icon: '/assets/momonga-anoko-base.webp',
+    preview: '/assets/momonga-anoko-run.webp'
   }
 ];
 
