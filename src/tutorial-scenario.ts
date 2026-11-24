@@ -23,7 +23,7 @@ export interface TutorialStep {
   triggerDistance: number;
   message: string;
   subMessage?: string;
-  expectedAction?: 'jump' | 'double_jump' | 'crouch' | 'glide' | 'drop' | 'none';
+  expectedAction: 'jump' | 'double_jump' | 'crouch' | 'glide' | 'drop' | 'none';
   actionKey?: string;
 }
 
@@ -32,7 +32,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 1,
     title: '1. 기본 점프',
     triggerDistance: 12,
-    message: '앞에 장애물이 다가와요!\n[점프]를 눌러 가볍게 뛰어넘어 보세요.',
+    message: '앞에 장애물이 다가와요!\n[점프] (Space 또는 ↑)를 눌러 가볍게 뛰어넘어 보세요.',
     expectedAction: 'jump',
     actionKey: 'Space 또는 ↑ 점프',
   },
@@ -119,7 +119,7 @@ export class TutorialRunnerModel extends RunnerModel {
 
   constructor() {
     super(42, false, { platforms: false, encounters: false, coins: false, separateSpawns: true });
-    this.gap = 20;
+    this.gap = 25;
     this.stamina = 100;
     this.setupFixedScenario();
   }
@@ -162,7 +162,7 @@ export class TutorialRunnerModel extends RunnerModel {
       used: false,
     });
 
-    // Step 4: Ground obstacle at x = 68m
+    // Step 4: Ground obstacle at x = 68m (Demonstrating hit & distance shrink)
     this.items.push({
       id: 4,
       x: 68,
@@ -255,7 +255,8 @@ export class TutorialRunnerModel extends RunnerModel {
         this.exhausted = true;
       }
       if (nextStep.id === 4) {
-        this.gap = Math.min(this.gap, 8);
+        // Safe demonstration: keep gap at 12m so a hit does not cause premature game over
+        this.gap = Math.max(12, this.gap);
       }
       if (nextStep.id === 11) {
         this.stamina = 0;
@@ -278,6 +279,9 @@ export class TutorialRunnerModel extends RunnerModel {
         this.tutorialCompleted = true;
         return;
       }
+    } else {
+      // In steps 1 ~ 10, keep minimum safety gap so player never gets captured early
+      this.gap = Math.max(6, this.gap);
     }
 
     super.step(dt);
