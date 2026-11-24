@@ -602,3 +602,18 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
   background: #ffcccc;
   border-color: #c93b3b;
 }
+
+.shop-item-owned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #3b6b35;
+  background: #eef6ec;
+  border: 1px solid #c2e2bb;
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-top: 6px;
+  width: fit-content;
+}
