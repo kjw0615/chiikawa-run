@@ -144,18 +144,18 @@
         <button id="tab-login" class="auth-tab-btn active" type="button">로그인</button>
         <button id="tab-signup" class="auth-tab-btn" type="button">회원가입</button>
       </div>
-      <form id="auth-form" onsubmit="return false;">
+      <div id="auth-form" class="auth-form-wrap">
         <div class="form-group" id="group-nick">
           <label for="auth-nick">아이디 (닉네임)</label>
-          <input type="text" id="auth-nick" placeholder="한글/영문/숫자 2~12자" autocomplete="username" required/>
+          <input type="text" id="auth-nick" placeholder="한글/영문/숫자 2~12자" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required/>
         </div>
         <div class="form-group" id="group-email" hidden>
           <label for="auth-email">이메일 (비밀번호 분실용)</label>
-          <input type="email" id="auth-email" placeholder="name@example.com" autocomplete="email"/>
+          <input type="email" id="auth-email" placeholder="name@example.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
         </div>
         <div class="form-group">
           <label for="auth-pw">비밀번호</label>
-          <input type="password" id="auth-pw" placeholder="8자 이상, 영문+숫자 포함" autocomplete="current-password" required/>
+          <input type="password" id="auth-pw" placeholder="8자 이상, 영문+숫자 포함" autocomplete="new-password" required/>
         </div>
         <div class="form-group" id="group-pw2" hidden>
           <label for="auth-pw2">비밀번호 확인</label>
@@ -163,7 +163,7 @@
         </div>
         <p id="auth-error-msg" class="auth-error-msg" role="alert" hidden></p>
         <button id="auth-submit" class="big-button auth-submit-btn" type="button">로그인</button>
-      </form>
+      </div>
     </div>
   </section>
 

@@ -916,7 +916,7 @@ function renderShop() {
     if (item.id === 'momonga-kigurumi-usagi') {
       actionBtnHtml = `<button class="shop-action-btn" disabled>출시 준비 중</button>`;
     } else if (!user) {
-      actionBtnHtml = `<button class="shop-action-btn buy" onclick="document.getElementById('btn-open-auth')?.click()">로그인 필요</button>`;
+      actionBtnHtml = `<button class="shop-action-btn buy" data-need-auth="true">로그인 필요</button>`;
     } else if (isEquipped) {
       actionBtnHtml = `<button class="shop-action-btn unequip" data-equip="${item.id}" title="클릭 시 장착 해제 (기본 스킨)">착용 중 (해제)</button>`;
     } else if (isOwned) {
@@ -930,7 +930,9 @@ function renderShop() {
       <div class="shop-item-info">
         <h3>${item.name}</h3>
         <p>${item.desc}</p>
-        <span class="shop-item-price"><img src="/assets/coin.webp" alt="동전"/> ${item.price}개</span>
+        ${isOwned
+          ? `<span class="shop-item-owned-badge">✓ 구매완료</span>`
+          : `<span class="shop-item-price"><img src="/assets/coin.webp" alt="동전"/> ${item.price}개</span>`}
       </div>
       <div>${actionBtnHtml}</div>
     `;
@@ -939,6 +941,13 @@ function renderShop() {
   });
 
   // Attach action button events
+  shopItemsContainer.querySelectorAll('[data-need-auth]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      shopModal.hidden = true;
+      btnOpenAuth?.click();
+    });
+  });
+
   shopItemsContainer.querySelectorAll('[data-buy]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-buy')!;
