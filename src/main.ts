@@ -294,7 +294,7 @@ class RunnerScene extends Phaser.Scene {
     this.load.spritesheet(USAGI_RUN, '/assets/momonga-usagi-kigurumi-run.webp', { frameWidth: 256, frameHeight: 224 });
     this.load.image(USAGI_BASE, '/assets/momonga-usagi-kigurumi-base.webp');
     this.load.image(USAGI_GLIDE, '/assets/momonga-usagi-kigurumi-glide.webp');
-    this.load.spritesheet(USAGI_CROUCH, '/assets/momonga-usagi-kigurumi-crouch.webp', { frameWidth: 192, frameHeight: 72 });
+    this.load.spritesheet(USAGI_CROUCH, '/assets/momonga-usagi-kigurumi-crouch.webp', { frameWidth: 192, frameHeight: 84 });
   }
   create() {
     if (this.loadFailed) { preparing = false; model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
@@ -484,15 +484,28 @@ class RunnerScene extends Phaser.Scene {
     let charTexture = ATLAS;
     let charFrame: string | number = heroFrame;
 
+    let heroWidth = duck ? 120 : 110;
+    let heroHeight = gliding ? 81 : duck ? 43 : 98;
+    let heroYOffset = 4;
+
     if (usagiActive) {
       charTexture = gliding ? USAGI_GLIDE : duck ? USAGI_CROUCH : model.grounded ? USAGI_RUN : USAGI_BASE;
       charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
+      if (gliding) {
+        heroWidth = 110;
+        heroHeight = 94; // 138x118 aspect ratio proportional to 110 width
+        heroYOffset = 4;
+      } else if (duck) {
+        heroWidth = 120;
+        heroHeight = 52.5; // 192x84 aspect ratio proportional to 120 width
+        heroYOffset = 4 - (52.5 - 43) / 2; // Keep bottom contact aligned to ground
+      }
     } else if (hulaActive) {
       charTexture = gliding ? HULA_GLIDE : duck ? HULA_CROUCH : model.grounded ? HULA_RUN : HULA_BASE;
       charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
     }
 
-    this.hero.setTexture(charTexture, charFrame).setPosition(hx, model.y + 4 - bob).setDisplaySize(duck ? 120 : 110, gliding ? 81 : duck ? 43 : 98).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
+    this.hero.setTexture(charTexture, charFrame).setPosition(hx, model.y + heroYOffset - bob).setDisplaySize(heroWidth, heroHeight).setRotation(gliding ? -.04 + Math.sin(model.elapsed * 5) * .025 : duck ? 0 : !model.grounded ? -.08 : moving ? Math.sin(model.elapsed * 13) * .025 : 0).setVisible(!(model.hitFlash > 0 && Math.floor(model.hitFlash * 18) % 2)).clearTint();
     if (gliding) {
       for (let j = 0; j < 3; j++) {
         const y = model.y - 56 + j * 18 - bob;
