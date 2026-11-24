@@ -7,6 +7,7 @@ import './minigame.css';
 import { createStartIntro } from './start-intro';
 import { createRunReady } from './run-ready';
 import { RunnerModel, RULES, TERRAIN } from './model';
+import { TutorialRunnerModel, TUTORIAL_STEPS, type TutorialStep } from './tutorial-scenario';
 import { Background } from './background';
 import { CameoLayer, CAMEO_ATLAS } from './cameo';
 import { FOOD_ART, FOOD_DISPLAY_SIZE } from './food-art';
@@ -106,7 +107,68 @@ function begin() {
     intro.start();
   } else beginRun();
 }
+let isTutorialMode = false;
+let tutorialStepActive: TutorialStep | null = null;
+const tutorialGuide = $('tutorial-guide');
+const tutorialStepTitle = $('tutorial-step-title');
+const tutorialStepMsg = $('tutorial-step-msg');
+const tutorialActionPrompt = $('tutorial-action-prompt');
+const tutorialActionKey = $('tutorial-action-key');
+const tutorialNextBtn = $('tutorial-next-btn');
+const btnHomeTutorial = $('home-tutorial');
+
+function showTutorialStep(step: TutorialStep) {
+  tutorialStepActive = step;
+  if (!tutorialGuide) return;
+  tutorialStepTitle.textContent = step.title;
+  tutorialStepMsg.textContent = step.message;
+  if (step.actionKey) {
+    tutorialActionPrompt.hidden = false;
+    tutorialActionKey.textContent = step.actionKey;
+  } else {
+    tutorialActionPrompt.hidden = true;
+  }
+  tutorialGuide.hidden = false;
+  // Pause runner for reading
+  if (model.phase === 'running') {
+    model.pause();
+    release();
+    releaseJump();
+  }
+}
+
+function closeTutorialStep() {
+  if (tutorialGuide) tutorialGuide.hidden = true;
+  tutorialStepActive = null;
+  if (model.phase === 'paused') {
+    model.start();
+    accumulator = 0;
+  }
+}
+
+tutorialNextBtn?.addEventListener('click', () => {
+  closeTutorialStep();
+});
+
+function beginTutorial() {
+  isTutorialMode = true;
+  mini = null; encounterId = null; miniViewKey = ''; updateMini();
+  model = new TutorialRunnerModel();
+  accumulator = 0; crouchHeld = false; lastPhase = ''; preparing = true;
+  home.hidden = true; play.hidden = false; displayGap = model.gap; release(); releaseJump();
+  if (!game) { play.appendChild(loading); game = new Phaser.Game({ type: Phaser.AUTO, width: 1120, height: 630, parent: 'game', backgroundColor: '#edf4e7', scene: RunnerScene, render: { antialias: true }, audio: { noAudio: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH } }); }
+  else { game.loop.wake(); if (sceneReady) armStart(); }
+  requestAnimationFrame(() => game?.scale.refresh());
+  updateHud(); play.scrollIntoView({ block: 'center' });
+}
+
+btnHomeTutorial?.addEventListener('click', () => {
+  beginTutorial();
+});
+
 function beginRun() {
+  isTutorialMode = false;
+  if (tutorialGuide) tutorialGuide.hidden = true;
   mini = null; encounterId = null; miniViewKey = ''; updateMini();
   model = new RunnerModel(Date.now(), true, { coins: true, foodFreeDistance: 30, separateSpawns: true }); accumulator = 0; crouchHeld = false; lastPhase = ''; preparing = true;
   home.hidden = true; play.hidden = false; displayGap = model.gap; release(); releaseJump();
@@ -125,6 +187,15 @@ function togglePause() {
 function endOverlay() {
   const over = model.phase === 'over';
   $('pause-home').hidden = false;
+  if (isTutorialMode) {
+    $('modal-kicker').textContent = '튜토리얼 완료!';
+    $('modal-title').textContent = '도주 훈련 수료!';
+    $('modal-copy').textContent = '기본 조작부터 도주 규칙까지 모두 배웠어요. 이제 실전에 도전해 보세요!';
+    $('result').hidden = false;
+    $('result').textContent = '데카츠요를 피해 끝까지 도망쳐 보세요!';
+    start.textContent = '실전 달리기 시작';
+    return;
+  }
   $('modal-kicker').textContent = over ? '한 번 더 달려볼까요?' : '모몽가도 잠깐 쉬어요';
   $('modal-title').textContent = over ? '앗, 붙잡혔다!' : '잠깐 쉬어 가요.';
   $('modal-copy').textContent = over ? '다음에는 조금 더 멀리 갈 수 있을 거예요.' : '준비되면 다시 달려요.';
@@ -205,7 +276,18 @@ class RunnerScene extends Phaser.Scene {
   update(_time: number, delta: number) {
     if (model.phase === 'running') {
       accumulator += Math.min(delta / 1000, .05);
-      while (accumulator >= 1 / 120) { model.crouch = crouchHeld; model.step(1 / 120); accumulator -= 1 / 120; }
+      while (accumulator >= 1 / 120) {
+        model.crouch = crouchHeld;
+        model.step(1 / 120);
+        accumulator -= 1 / 120;
+        if (isTutorialMode && model instanceof TutorialRunnerModel) {
+          const trigger = model.checkStepTrigger();
+          if (trigger) {
+            showTutorialStep(trigger);
+            break;
+          }
+        }
+      }
     }
     if (model.activeEncounter && !mini) {
       encounterId = model.activeEncounter.id; mini = new SlottedMiniGame(model.activeEncounter.seed);
@@ -436,6 +518,14 @@ window.addEventListener('keydown', e => {
       if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
       return;
     }
+  if (tutorialStepActive) {
+    // 튜토리얼 안내 말풍선이 켜져 있을 때 Space 또는 Enter를 누르면 다음으로 재개
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      closeTutorialStep();
+      return;
+    }
+  }
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     if (home.hidden === false) {
       // 메인(홈) 화면에서는 스페이스바로 게임을 바로 시작하지 않고 '달리기 시작' 버튼 클릭으로만 시작

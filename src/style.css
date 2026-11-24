@@ -617,3 +617,120 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
   margin-top: 6px;
   width: fit-content;
 }
+
+/* ---------- 튜토리얼 UI ---------- */
+.tutorial-btn {
+  background: #ffb834;
+  margin-left: 8px;
+}
+.tutorial-btn:hover {
+  background: #ffa812;
+}
+
+.tutorial-guide-layer {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: min(92%, 640px);
+  pointer-events: auto;
+  animation: pop-in .2s cubic-bezier(.18,.89,.32,1.28);
+}
+
+.tutorial-bubble {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fffef2;
+  border: 4px solid var(--ink);
+  border-radius: 24px;
+  padding: 14px 20px;
+  box-shadow: 0 8px 0 var(--ink);
+}
+
+.tutorial-portrait {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  background: #fff1c7;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.tutorial-portrait img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+}
+
+.tutorial-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tutorial-step-title {
+  display: block;
+  font-size: 14px;
+  color: var(--pink-deep);
+  margin-bottom: 3px;
+}
+
+.tutorial-step-msg {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+  white-space: pre-line;
+}
+
+.tutorial-action-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  background: #eef7ff;
+  border: 2px dashed #7fc5ea;
+  border-radius: 12px;
+  padding: 3px 10px;
+}
+
+.prompt-badge {
+  font-size: 12px;
+  font-weight: bold;
+  color: #2b749d;
+}
+
+.prompt-key {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--ink);
+}
+
+.tutorial-next-btn {
+  flex-shrink: 0;
+  border: 3px solid var(--ink);
+  background: var(--mint-deep);
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 8px 16px;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--ink);
+  transition: transform .08s, box-shadow .08s;
+}
+.tutorial-next-btn:hover {
+  background: #6eb77c;
+}
+.tutorial-next-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translate(-50%, -10px) scale(.95); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
