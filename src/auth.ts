@@ -333,6 +333,15 @@ export class SupabaseAuthService {
     return true;
   }
 
+  public unequipSkin(): boolean {
+    if (!this.user) return false;
+    this.user.equippedSkin = 'default';
+    this.persistUserState();
+    this.saveSession();
+    this.notify();
+    return true;
+  }
+
   private persistUserState() {
     if (!this.user) return;
     const userStoreKey = `user_state_${this.user.id}`;
