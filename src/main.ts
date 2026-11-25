@@ -1252,6 +1252,7 @@ interface SkinAssetConfig {
   baseSrc: string;
   crouchSrc: string;
   glideSrc: string;
+  idleSrc: string;
   crouchFrameW: number;
   crouchFrameH: number;
   glideAspectW: number;
@@ -1265,6 +1266,7 @@ const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
     baseSrc: '/assets/momonga-hula-base.webp',
     crouchSrc: '/assets/momonga-hula-crouch.webp',
     glideSrc: '/assets/momonga-hula-glide.webp',
+    idleSrc: '/assets/momonga-hula-idle.webp',
     crouchFrameW: 192, crouchFrameH: 72,
     glideAspectW: 138, glideAspectH: 101
   },
@@ -1274,6 +1276,7 @@ const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
     baseSrc: '/assets/momonga-usagi-kigurumi-base.webp',
     crouchSrc: '/assets/momonga-usagi-kigurumi-crouch.webp',
     glideSrc: '/assets/momonga-usagi-kigurumi-glide.webp',
+    idleSrc: '/assets/momonga-usagi-idle.webp',
     crouchFrameW: 192, crouchFrameH: 84,
     glideAspectW: 138, glideAspectH: 118
   },
@@ -1283,6 +1286,7 @@ const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
     baseSrc: '/assets/momonga-dekatsuyo-base.webp',
     crouchSrc: '/assets/momonga-dekatsuyo-crouch.webp',
     glideSrc: '/assets/momonga-dekatsuyo-glide.webp',
+    idleSrc: '/assets/momonga-dekatsuyo-idle.webp',
     crouchFrameW: 192, crouchFrameH: 72,
     glideAspectW: 138, glideAspectH: 101
   },
@@ -1292,6 +1296,7 @@ const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
     baseSrc: '/assets/momonga-anoko-base.webp',
     crouchSrc: '/assets/momonga-anoko-crouch.webp',
     glideSrc: '/assets/momonga-anoko-glide.webp',
+    idleSrc: '/assets/momonga-anoko-idle.webp',
     crouchFrameW: 208, crouchFrameH: 84,
     glideAspectW: 150, glideAspectH: 102
   }
@@ -1330,10 +1335,66 @@ function loadPreviewImages(cfg: SkinAssetConfig): Promise<void> {
 
 function openSkinPreview(skinId: string) {
   const cfg = SKIN_CONFIGS[skinId];
-  if (!cfg) return;
+  const item = SHOP_ITEMS.find(i => i.id === skinId);
+  if (!cfg || !item) return;
 
   currentPreviewSkinId = skinId;
   skinPreviewTitle.textContent = `${cfg.name} 모션`;
+  
+  // 1열: 대기 이미지 및 정보 세팅
+  const idleImg = $('skin-preview-idle-img') as HTMLImageElement;
+  if (idleImg) idleImg.src = cfg.idleSrc;
+
+  const nameEl = $('skin-preview-name');
+  if (nameEl) nameEl.textContent = item.name;
+
+  const descEl = $('skin-preview-info-desc');
+  if (descEl) descEl.textContent = item.desc;
+
+  const priceBox = $('skin-preview-price-box');
+  const actionWrap = $('skin-preview-action-wrap');
+  const user = authService.getUser();
+  const isOwned = user ? user.ownedSkins.includes(item.id) : false;
+  const isEquipped = user ? user.equippedSkin === item.id : false;
+
+  if (priceBox) {
+    priceBox.innerHTML = isOwned
+      ? `<span class="shop-item-owned-badge">✓ 구매완료</span>`
+      : `<img src="/assets/coin.webp" alt="동전"/> ${item.price}개`;
+  }
+
+  if (actionWrap) {
+    if (!user) {
+      actionWrap.innerHTML = `<button class="shop-action-btn buy" data-preview-auth="true">로그인 필요</button>`;
+    } else if (isEquipped) {
+      actionWrap.innerHTML = `<button class="shop-action-btn unequip" data-preview-equip="${item.id}">착용 중 (해제)</button>`;
+    } else if (isOwned) {
+      actionWrap.innerHTML = `<button class="shop-action-btn equip" data-preview-equip="${item.id}">착용하기</button>`;
+    } else {
+      actionWrap.innerHTML = `<button class="shop-action-btn buy" data-preview-buy="${item.id}">구매하기</button>`;
+    }
+
+    actionWrap.querySelector('[data-preview-auth]')?.addEventListener('click', () => {
+      skinPreviewModal.hidden = true;
+      shopModal.hidden = true;
+      btnOpenAuth?.click();
+    });
+
+    actionWrap.querySelector('[data-preview-buy]')?.addEventListener('click', () => {
+      const res = ShopManager.buyItem(item.id);
+      showShopToast(res.message);
+      renderShop();
+      openSkinPreview(item.id);
+    });
+
+    actionWrap.querySelector('[data-preview-equip]')?.addEventListener('click', () => {
+      const res = ShopManager.toggleEquip(item.id);
+      showShopToast(res.message);
+      renderShop();
+      openSkinPreview(item.id);
+    });
+  }
+
   skinPreviewModal.hidden = false;
 
   // Reset tab to run

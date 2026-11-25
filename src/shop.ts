@@ -7,6 +7,7 @@ export interface ShopItem {
   price: number;
   icon: string; // url or asset frame
   preview: string;
+  idleImg: string;
 }
 
 export const SHOP_ITEMS: ShopItem[] = [
@@ -15,32 +16,36 @@ export const SHOP_ITEMS: ShopItem[] = [
     name: '하와이안 훌라 스킨',
     desc: '보라색 꽃 화관과 시원한 풀치마를 두른 모몽가 스킨 세트 (달리기/점프/기어가기/활공)',
     price: 50,
-    icon: '/assets/momonga-hula-base.webp',
-    preview: '/assets/momonga-hula-run.webp'
+    icon: '/assets/momonga-hula-idle.webp',
+    preview: '/assets/momonga-hula-run.webp',
+    idleImg: '/assets/momonga-hula-idle.webp'
   },
   {
     id: 'momonga-kigurumi-usagi',
     name: '우사기 인형옷 스킨',
     desc: '귀여운 우사기 후드 바디슈트를 뒤집어쓴 특별 모몽가 코스튬 (달리기/점프/기어가기/활공)',
     price: 150,
-    icon: '/assets/momonga-usagi-kigurumi-base.webp',
-    preview: '/assets/momonga-usagi-kigurumi-run.webp'
+    icon: '/assets/momonga-usagi-idle.webp',
+    preview: '/assets/momonga-usagi-kigurumi-run.webp',
+    idleImg: '/assets/momonga-usagi-idle.webp'
   },
   {
     id: 'momonga-kigurumi-dekatsuyo',
     name: '데카츠요 인형옷 스킨',
     desc: '노란 털옷과 뿔 달린 데카츠요 가면을 쓴 모몽가 코스튬 (달리기/점프/기어가기/활공)',
     price: 200,
-    icon: '/assets/momonga-dekatsuyo-base.webp',
-    preview: '/assets/momonga-dekatsuyo-run.webp'
+    icon: '/assets/momonga-dekatsuyo-idle.webp',
+    preview: '/assets/momonga-dekatsuyo-run.webp',
+    idleImg: '/assets/momonga-dekatsuyo-idle.webp'
   },
   {
     id: 'momonga-kigurumi-anoko',
     name: '아노코 인형옷 스킨',
     desc: '이마의 외뿔, 풍성한 가슴털과 줄무늬 꼬리가 달린 아노코 코스튬 (달리기/점프/기어가기/활공)',
     price: 250,
-    icon: '/assets/momonga-anoko-base.webp',
-    preview: '/assets/momonga-anoko-run.webp'
+    icon: '/assets/momonga-anoko-idle.webp',
+    preview: '/assets/momonga-anoko-run.webp',
+    idleImg: '/assets/momonga-anoko-idle.webp'
   }
 ];
 
