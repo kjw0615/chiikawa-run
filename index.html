@@ -48,7 +48,11 @@
       <div class="home-art">
         <div class="backdrop"><span class="cloud c1"></span><span class="cloud c2"></span><span class="sun"></span></div>
         <div class="art art-chaser"><img src="/assets/dekatsuyo.webp" alt="데카츠요" onerror="this.style.visibility='hidden'"/></div>
-        <div class="art art-hero"><img src="/assets/momonga.webp" alt="모몽가" onerror="this.style.visibility='hidden'"/></div>
+        <div class="art art-hero" id="home-hero-wrap">
+          <canvas id="home-hero-canvas" width="256" height="224" aria-label="선택된 모몽가 캐릭터"></canvas>
+          <img id="home-hero-img" src="/assets/momonga.webp" alt="모몽가" onerror="this.style.visibility='hidden'" hidden/>
+          <div id="home-skin-badge" class="home-skin-badge" hidden>기본 스킨</div>
+        </div>
         <div class="art food f1"><img src="/assets/food-pudding.webp" alt="푸딩" onerror="this.style.visibility='hidden'"/></div>
         <div class="art food gold-food f3"><img src="/assets/food-cream-puff.webp" alt="황금 슈크림" onerror="this.style.visibility='hidden'"/><b class="spark s1">✦</b><b class="spark s2">✦</b><b class="spark s3">✧</b></div>
         <div class="ground"></div>
