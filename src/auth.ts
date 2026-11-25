@@ -235,7 +235,7 @@ export class SupabaseAuthService {
         // fallback to metadata
       }
 
-      // Fetch or restore coins/skins from Supabase user_metadata and local storage
+      // Fetch or restore coins/skins from user_inventory table, user_metadata, and local storage
       const meta = data.user.user_metadata || {};
       const userStoreKey = `user_state_${data.user.id}`;
       let localState = { coins: 0, ownedSkins: ['default'], equippedSkin: 'default' };
@@ -244,14 +244,33 @@ export class SupabaseAuthService {
         if (s) localState = JSON.parse(s);
       } catch {}
 
-      // Cloud data is priority, merged with local state
-      const serverCoins = typeof meta.coins === 'number' ? meta.coins : 0;
+      // Try reading directly from public.user_inventory table
+      let dbInv: { coins?: number; owned_skins?: string[]; equipped_skin?: string } | null = null;
+      try {
+        const invResp = await fetch(`${SUPABASE_URL}/rest/v1/user_inventory?user_id=eq.${data.user.id}&select=*`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${this.accessToken}`
+          }
+        });
+        if (invResp.ok) {
+          const rows = await invResp.json();
+          if (rows && rows.length > 0) dbInv = rows[0];
+        }
+      } catch {}
+
+      // Merge priorities: user_inventory DB table > user_metadata > local storage
+      const serverCoins = typeof dbInv?.coins === 'number'
+        ? dbInv.coins
+        : (typeof meta.coins === 'number' ? meta.coins : 0);
       const mergedCoins = Math.max(serverCoins, localState.coins);
 
-      const serverSkins: string[] = Array.isArray(meta.owned_skins) ? meta.owned_skins : [];
+      const serverSkins: string[] = Array.isArray(dbInv?.owned_skins)
+        ? dbInv.owned_skins
+        : (Array.isArray(meta.owned_skins) ? meta.owned_skins : []);
       const mergedSkins = Array.from(new Set(['default', ...serverSkins, ...localState.ownedSkins]));
 
-      const equippedSkin = meta.equipped_skin || localState.equippedSkin || 'default';
+      const equippedSkin = dbInv?.equipped_skin || meta.equipped_skin || localState.equippedSkin || 'default';
 
       this.user = {
         id: data.user.id,
@@ -287,7 +306,32 @@ export class SupabaseAuthService {
         this.accessToken = data.access_token;
         this.refreshToken = data.refresh_token;
 
-        // Sync cloud user metadata if available
+        // 1. Sync from user_inventory table if available
+        if (this.user) {
+          try {
+            const invResp = await fetch(`${SUPABASE_URL}/rest/v1/user_inventory?user_id=eq.${this.user.id}&select=*`, {
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${this.accessToken}`
+              }
+            });
+            if (invResp.ok) {
+              const rows = await invResp.json();
+              if (rows && rows.length > 0) {
+                const inv = rows[0];
+                if (typeof inv.coins === 'number') this.user.coins = Math.max(this.user.coins, inv.coins);
+                if (Array.isArray(inv.owned_skins)) {
+                  this.user.ownedSkins = Array.from(new Set(['default', ...this.user.ownedSkins, ...inv.owned_skins]));
+                }
+                if (inv.equipped_skin) this.user.equippedSkin = inv.equipped_skin;
+                this.persistUserState(false);
+                this.notify();
+              }
+            }
+          } catch {}
+        }
+
+        // 2. Fallback to user_metadata if available
         if (data.user?.user_metadata && this.user) {
           const meta = data.user.user_metadata;
           if (typeof meta.coins === 'number') {
@@ -395,21 +439,46 @@ export class SupabaseAuthService {
       this.syncTimer = setTimeout(async () => {
         try {
           if (!this.user || !this.accessToken) return;
-          await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-            method: 'PUT',
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${this.accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              data: {
+
+          // 1. Sync directly to public.user_inventory table (visible in Supabase Table Editor)
+          try {
+            await fetch(`${SUPABASE_URL}/rest/v1/user_inventory`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${this.accessToken}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates'
+              },
+              body: JSON.stringify({
+                user_id: this.user.id,
+                nickname: this.user.nickname,
                 coins: this.user.coins,
                 owned_skins: this.user.ownedSkins,
-                equipped_skin: this.user.equippedSkin
-              }
-            })
-          });
+                equipped_skin: this.user.equippedSkin,
+                updated_at: new Date().toISOString()
+              })
+            });
+          } catch {}
+
+          // 2. Dual backup to auth.users user_metadata
+          try {
+            await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+              method: 'PUT',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${this.accessToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                data: {
+                  coins: this.user.coins,
+                  owned_skins: this.user.ownedSkins,
+                  equipped_skin: this.user.equippedSkin
+                }
+              })
+            });
+          } catch {}
         } catch {
           // Network failure fallback; local state preserved
         }
