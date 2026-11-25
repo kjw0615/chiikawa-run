@@ -14,7 +14,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'momonga-hula',
     name: '인어섬의 비밀 스킨',
-    desc: '극장판 인어섬의 비밀 속 보라색 꽃 화관과 시원한 풀치마를 두른 모몽가 코스튬 (달리기/점프/기어가기/활공)',
+    desc: '극장판 인어섬의 비밀 속 보라색 꽃 화관과 시원한 풀치마를 두른 모몽가 코스튬',
     price: 50,
     icon: '/assets/momonga-hula-idle.webp',
     preview: '/assets/momonga-hula-run.webp',
@@ -23,7 +23,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'momonga-kigurumi-usagi',
     name: '우사기 인형옷 스킨',
-    desc: '귀여운 우사기 후드 바디슈트를 뒤집어쓴 특별 모몽가 코스튬 (달리기/점프/기어가기/활공)',
+    desc: '귀여운 우사기 후드 바디슈트를 뒤집어쓴 특별 모몽가 코스튬',
     price: 150,
     icon: '/assets/momonga-usagi-idle.webp',
     preview: '/assets/momonga-usagi-kigurumi-run.webp',
@@ -32,7 +32,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'momonga-kigurumi-dekatsuyo',
     name: '데카츠요 인형옷 스킨',
-    desc: '노란 털옷과 뿔 달린 데카츠요 가면을 쓴 모몽가 코스튬 (달리기/점프/기어가기/활공)',
+    desc: '노란 털옷과 뿔 달린 데카츠요 가면을 쓴 모몽가 코스튬',
     price: 200,
     icon: '/assets/momonga-dekatsuyo-idle.webp',
     preview: '/assets/momonga-dekatsuyo-run.webp',
@@ -41,7 +41,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'momonga-kigurumi-anoko',
     name: '아노코 인형옷 스킨',
-    desc: '이마의 외뿔, 풍성한 가슴털과 줄무늬 꼬리가 달린 아노코 코스튬 (달리기/점프/기어가기/활공)',
+    desc: '이마의 외뿔, 풍성한 가슴털과 줄무늬 꼬리가 달린 아노코 코스튬',
     price: 250,
     icon: '/assets/momonga-anoko-idle.webp',
     preview: '/assets/momonga-anoko-run.webp',
@@ -50,7 +50,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'momonga-magical',
     name: '매지컬 차지 스킨',
-    desc: '보라색 리본과 뒤집힌 분홍 하트, 온화한 미소의 노란 별과 프릴 드레스를 입은 매지컬 모몽가 코스튬 (달리기/점프/기어가기/활공)',
+    desc: '보라색 리본과 뒤집힌 분홍 하트, 온화한 미소의 노란 별과 프릴 드레스를 입은 매지컬 모몽가 코스튬',
     price: 300,
     icon: '/assets/momonga-magical-idle.webp',
     preview: '/assets/momonga-magical-run.webp',
@@ -59,7 +59,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'momonga-magical-dark',
     name: '매지컬 차지 다크모드 스킨',
-    desc: '분노의 이 악문 표정과 검정 리본, 찡그린 회색 별과 다크 프릴 드레스를 입은 다크모드 매지컬 코스튬 (달리기/점프/기어가기/활공)',
+    desc: '분노의 이 악문 표정과 검정 리본, 찡그린 회색 별과 다크 프릴 드레스를 입은 다크모드 매지컬 코스튬',
     price: 300,
     icon: '/assets/momonga-magical-dark-idle.webp',
     preview: '/assets/momonga-magical-dark-run.webp',
