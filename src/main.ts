@@ -62,11 +62,11 @@ function setSkinToggleState(type: TestSkinType, message?: string) {
   currentTestSkin = type;
   const isEnabled = type !== 'none';
   hulaToggle.setAttribute('aria-pressed', String(isEnabled));
-  const skinLabel = type === 'anoko' ? '아노코 인형옷' : type === 'dekatsuyo' ? '데카츠요 인형옷' : type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '훌라' : '기본';
+  const skinLabel = type === 'anoko' ? '아노코 인형옷' : type === 'dekatsuyo' ? '데카츠요 인형옷' : type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '인어섬의 비밀' : '기본';
   hulaToggle.setAttribute('aria-label', `테스트 스킨: ${skinLabel}. 더블클릭으로 전환`);
   hulaToggle.textContent = type === 'anoko' ? '🐊' : type === 'dekatsuyo' ? '😈' : type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
   hulaStatus.hidden = false;
-  hulaStatus.textContent = message ?? (type === 'anoko' ? '아노코 인형옷 테스트 스킨 장착!' : type === 'dekatsuyo' ? '데카츠요 인형옷 테스트 스킨 장착!' : type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '훌라 달리기 테스트: 켜짐' : '기본 달리기로 돌아왔어요');
+  hulaStatus.textContent = message ?? (type === 'anoko' ? '아노코 인형옷 테스트 스킨 장착!' : type === 'dekatsuyo' ? '데카츠요 인형옷 테스트 스킨 장착!' : type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '인어섬의 비밀 스킨 테스트 장착!' : '기본 달리기로 돌아왔어요');
 }
 hulaToggle.addEventListener('dblclick', e => {
   e.preventDefault(); e.stopPropagation();
@@ -1261,7 +1261,7 @@ interface SkinAssetConfig {
 
 const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
   'momonga-hula': {
-    name: '하와이안 훌라 스킨',
+    name: '인어섬의 비밀 스킨',
     runSrc: '/assets/momonga-hula-run.webp',
     baseSrc: '/assets/momonga-hula-base.webp',
     crouchSrc: '/assets/momonga-hula-crouch.webp',
