@@ -202,24 +202,45 @@
     </div>
   </section>
 
-  <!-- 스킨 모션 미리보기 모달 -->
+  <!-- 스킨 모션 미리보기 모달 (대기 이미지 + 모션 캔버스 + 모션 탭 3열 레이아웃) -->
   <section id="skin-preview-modal" class="custom-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="skin-preview-title" hidden>
     <div class="custom-modal-card skin-preview-card">
       <div class="modal-header">
         <div>
           <h2 id="skin-preview-title">스킨 모션 미리보기</h2>
-          <p id="skin-preview-desc" class="shop-sub">모션을 클릭하여 실제 인게임 애니메이션을 확인해 보세요!</p>
+          <p id="skin-preview-desc" class="shop-sub">대기 모습과 실제 인게임 모션을 확인해 보세요!</p>
         </div>
         <button id="skin-preview-close" class="modal-close-btn" type="button" aria-label="닫기">×</button>
       </div>
-      <div class="skin-preview-stage">
-        <canvas id="skin-preview-canvas" width="280" height="240"></canvas>
-      </div>
-      <div class="skin-preview-tabs">
-        <button type="button" class="preview-tab-btn active" data-motion="run">🏃 달리기</button>
-        <button type="button" class="preview-tab-btn" data-motion="jump">🦘 점프</button>
-        <button type="button" class="preview-tab-btn" data-motion="crouch">🐛 기어가기</button>
-        <button type="button" class="preview-tab-btn" data-motion="glide">🪁 활공</button>
+      <div class="skin-preview-layout">
+        <!-- 1열: 대기 이미지 및 정보/구매/장착 버튼 -->
+        <div class="preview-col-idle">
+          <div class="preview-idle-box">
+            <img id="skin-preview-idle-img" src="" alt="대기 모습"/>
+          </div>
+          <div class="preview-info-box">
+            <h3 id="skin-preview-name">스킨 이름</h3>
+            <p id="skin-preview-info-desc">스킨 설명</p>
+            <div id="skin-preview-price-box" class="shop-item-price"></div>
+            <div id="skin-preview-action-wrap" class="preview-action-wrap"></div>
+          </div>
+        </div>
+
+        <!-- 2열: 선택된 모션 실시간 애니메이션 재생 캔버스 -->
+        <div class="preview-col-motion">
+          <div class="skin-preview-stage">
+            <canvas id="skin-preview-canvas" width="280" height="260"></canvas>
+          </div>
+        </div>
+
+        <!-- 3열: 해당 모션을 보는 버튼들 -->
+        <div class="preview-col-tabs">
+          <div class="tabs-label">모션 선택</div>
+          <button type="button" class="preview-tab-btn active" data-motion="run">🏃 달리기</button>
+          <button type="button" class="preview-tab-btn" data-motion="jump">🦘 점프</button>
+          <button type="button" class="preview-tab-btn" data-motion="crouch">🐛 기어가기</button>
+          <button type="button" class="preview-tab-btn" data-motion="glide">🪁 활공</button>
+        </div>
       </div>
     </div>
   </section>
