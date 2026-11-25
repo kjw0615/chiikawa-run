@@ -12,15 +12,6 @@ export interface ShopItem {
 
 export const SHOP_ITEMS: ShopItem[] = [
   {
-    id: 'momonga-hula',
-    name: '인어섬의 비밀 스킨',
-    desc: '극장판 인어섬의 비밀 속 보라색 꽃 화관과 시원한 풀치마를 두른 모몽가 코스튬',
-    price: 50,
-    icon: '/assets/momonga-hula-idle.webp',
-    preview: '/assets/momonga-hula-run.webp',
-    idleImg: '/assets/momonga-hula-idle.webp'
-  },
-  {
     id: 'momonga-kigurumi-usagi',
     name: '우사기 인형옷 스킨',
     desc: '귀여운 우사기 후드 바디슈트를 뒤집어쓴 특별 모몽가 코스튬',
@@ -30,6 +21,24 @@ export const SHOP_ITEMS: ShopItem[] = [
     idleImg: '/assets/momonga-usagi-idle.webp'
   },
   {
+    id: 'momonga-hula',
+    name: '인어섬의 비밀 스킨',
+    desc: '극장판 인어섬의 비밀 속 보라색 꽃 화관과 시원한 풀치마를 두른 모몽가 코스튬',
+    price: 150,
+    icon: '/assets/momonga-hula-idle.webp',
+    preview: '/assets/momonga-hula-run.webp',
+    idleImg: '/assets/momonga-hula-idle.webp'
+  },
+  {
+    id: 'momonga-kigurumi-anoko',
+    name: '아노코 인형옷 스킨',
+    desc: '이마의 외뿔, 풍성한 가슴털과 줄무늬 꼬리가 달린 아노코 코스튬',
+    price: 200,
+    icon: '/assets/momonga-anoko-idle.webp',
+    preview: '/assets/momonga-anoko-run.webp',
+    idleImg: '/assets/momonga-anoko-idle.webp'
+  },
+  {
     id: 'momonga-kigurumi-dekatsuyo',
     name: '데카츠요 인형옷 스킨',
     desc: '노란 털옷과 뿔 달린 데카츠요 가면을 쓴 모몽가 코스튬',
@@ -37,15 +46,6 @@ export const SHOP_ITEMS: ShopItem[] = [
     icon: '/assets/momonga-dekatsuyo-idle.webp',
     preview: '/assets/momonga-dekatsuyo-run.webp',
     idleImg: '/assets/momonga-dekatsuyo-idle.webp'
-  },
-  {
-    id: 'momonga-kigurumi-anoko',
-    name: '아노코 인형옷 스킨',
-    desc: '이마의 외뿔, 풍성한 가슴털과 줄무늬 꼬리가 달린 아노코 코스튬',
-    price: 250,
-    icon: '/assets/momonga-anoko-idle.webp',
-    preview: '/assets/momonga-anoko-run.webp',
-    idleImg: '/assets/momonga-anoko-idle.webp'
   },
   {
     id: 'momonga-magical',
@@ -69,7 +69,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     id: 'momonga-super-magical',
     name: '초매지컬 파워업 스킨',
     desc: '작은 악마 뿔과 박쥐 날개 망토, 앙증맞은 메롱 표정과 글썽이는 눈망울의 초매지컬 모몽가 코스튬',
-    price: 350,
+    price: 400,
     icon: '/assets/momonga-super-magical-idle.webp',
     preview: '/assets/momonga-super-magical-run.webp',
     idleImg: '/assets/momonga-super-magical-idle.webp'

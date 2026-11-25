@@ -129,7 +129,12 @@ export class SupabaseAuthService {
         body: JSON.stringify({
           email,
           password,
-          data: { nickname }
+          data: {
+            nickname,
+            coins: 0,
+            owned_skins: ['default'],
+            equipped_skin: 'default'
+          }
         })
       });
 
@@ -153,6 +158,7 @@ export class SupabaseAuthService {
           equippedSkin: 'default'
         };
         this.saveSession();
+        this.persistUserState();
         this.notify();
         return { ok: true, user: this.user };
       }
@@ -229,7 +235,8 @@ export class SupabaseAuthService {
         // fallback to metadata
       }
 
-      // Fetch or restore local coins/skins for this account
+      // Fetch or restore coins/skins from Supabase user_metadata and local storage
+      const meta = data.user.user_metadata || {};
       const userStoreKey = `user_state_${data.user.id}`;
       let localState = { coins: 0, ownedSkins: ['default'], equippedSkin: 'default' };
       try {
@@ -237,16 +244,26 @@ export class SupabaseAuthService {
         if (s) localState = JSON.parse(s);
       } catch {}
 
+      // Cloud data is priority, merged with local state
+      const serverCoins = typeof meta.coins === 'number' ? meta.coins : 0;
+      const mergedCoins = Math.max(serverCoins, localState.coins);
+
+      const serverSkins: string[] = Array.isArray(meta.owned_skins) ? meta.owned_skins : [];
+      const mergedSkins = Array.from(new Set(['default', ...serverSkins, ...localState.ownedSkins]));
+
+      const equippedSkin = meta.equipped_skin || localState.equippedSkin || 'default';
+
       this.user = {
         id: data.user.id,
         email: data.user.email,
         nickname,
-        coins: localState.coins,
-        ownedSkins: localState.ownedSkins,
-        equippedSkin: localState.equippedSkin
+        coins: mergedCoins,
+        ownedSkins: mergedSkins,
+        equippedSkin
       };
 
       this.saveSession();
+      this.persistUserState();
       this.notify();
       return { ok: true, user: this.user };
     } catch (e: any) {
@@ -269,6 +286,23 @@ export class SupabaseAuthService {
         const data = await resp.json();
         this.accessToken = data.access_token;
         this.refreshToken = data.refresh_token;
+
+        // Sync cloud user metadata if available
+        if (data.user?.user_metadata && this.user) {
+          const meta = data.user.user_metadata;
+          if (typeof meta.coins === 'number') {
+            this.user.coins = Math.max(this.user.coins, meta.coins);
+          }
+          if (Array.isArray(meta.owned_skins)) {
+            this.user.ownedSkins = Array.from(new Set(['default', ...this.user.ownedSkins, ...meta.owned_skins]));
+          }
+          if (meta.equipped_skin) {
+            this.user.equippedSkin = meta.equipped_skin;
+          }
+          this.persistUserState(false);
+          this.notify();
+        }
+
         this.saveSession();
         return true;
       }
@@ -342,7 +376,12 @@ export class SupabaseAuthService {
     return true;
   }
 
-  private persistUserState() {
+  private syncTimer: any = null;
+
+  /**
+   * Save user state locally and sync to Supabase Cloud user_metadata
+   */
+  private persistUserState(syncCloud: boolean = true) {
     if (!this.user) return;
     const userStoreKey = `user_state_${this.user.id}`;
     localStorage.setItem(userStoreKey, JSON.stringify({
@@ -350,6 +389,32 @@ export class SupabaseAuthService {
       ownedSkins: this.user.ownedSkins,
       equippedSkin: this.user.equippedSkin
     }));
+
+    if (syncCloud && this.accessToken) {
+      if (this.syncTimer) clearTimeout(this.syncTimer);
+      this.syncTimer = setTimeout(async () => {
+        try {
+          if (!this.user || !this.accessToken) return;
+          await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+            method: 'PUT',
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${this.accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              data: {
+                coins: this.user.coins,
+                owned_skins: this.user.ownedSkins,
+                equipped_skin: this.user.equippedSkin
+              }
+            })
+          });
+        } catch {
+          // Network failure fallback; local state preserved
+        }
+      }, 300);
+    }
   }
 }
 
