@@ -58,7 +58,11 @@ const MAGICAL_DARK_RUN = 'momonga-magical-dark-run';
 const MAGICAL_DARK_BASE = 'momonga-magical-dark-base', MAGICAL_DARK_CROUCH = 'momonga-magical-dark-crouch', MAGICAL_DARK_GLIDE = 'momonga-magical-dark-glide';
 const MAGICAL_DARK_TEXTURES = [MAGICAL_DARK_RUN, MAGICAL_DARK_BASE, MAGICAL_DARK_CROUCH, MAGICAL_DARK_GLIDE];
 
-type TestSkinType = 'none' | 'usagi' | 'dekatsuyo' | 'anoko' | 'magical' | 'magical-dark' | 'hula';
+const SUPER_MAGICAL_RUN = 'momonga-super-magical-run';
+const SUPER_MAGICAL_BASE = 'momonga-super-magical-base', SUPER_MAGICAL_CROUCH = 'momonga-super-magical-crouch', SUPER_MAGICAL_GLIDE = 'momonga-super-magical-glide';
+const SUPER_MAGICAL_TEXTURES = [SUPER_MAGICAL_RUN, SUPER_MAGICAL_BASE, SUPER_MAGICAL_CROUCH, SUPER_MAGICAL_GLIDE];
+
+type TestSkinType = 'none' | 'usagi' | 'dekatsuyo' | 'anoko' | 'magical' | 'magical-dark' | 'super-magical' | 'hula';
 let currentTestSkin: TestSkinType = 'none';
 let hulaArtFailed = false;
 let usagiArtFailed = false;
@@ -66,22 +70,23 @@ let dekatsuyoArtFailed = false;
 let anokoArtFailed = false;
 let magicalArtFailed = false;
 let magicalDarkArtFailed = false;
+let superMagicalArtFailed = false;
 
 const hulaToggle = $<HTMLButtonElement>('hula-skin-toggle'), hulaStatus = $('hula-skin-status');
 function setSkinToggleState(type: TestSkinType, message?: string) {
   currentTestSkin = type;
   const isEnabled = type !== 'none';
   hulaToggle.setAttribute('aria-pressed', String(isEnabled));
-  const skinLabel = type === 'magical-dark' ? '매지컬 차지 다크모드' : type === 'magical' ? '매지컬 차지' : type === 'anoko' ? '아노코 인형옷' : type === 'dekatsuyo' ? '데카츠요 인형옷' : type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '인어섬의 비밀' : '기본';
+  const skinLabel = type === 'super-magical' ? '초매지컬 파워업' : type === 'magical-dark' ? '매지컬 차지 다크모드' : type === 'magical' ? '매지컬 차지' : type === 'anoko' ? '아노코 인형옷' : type === 'dekatsuyo' ? '데카츠요 인형옷' : type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '인어섬의 비밀' : '기본';
   hulaToggle.setAttribute('aria-label', `테스트 스킨: ${skinLabel}. 더블클릭으로 전환`);
-  hulaToggle.textContent = type === 'magical-dark' ? '🖤' : type === 'magical' ? '✨' : type === 'anoko' ? '🐊' : type === 'dekatsuyo' ? '😈' : type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
+  hulaToggle.textContent = type === 'super-magical' ? '💜' : type === 'magical-dark' ? '🖤' : type === 'magical' ? '✨' : type === 'anoko' ? '🐊' : type === 'dekatsuyo' ? '😈' : type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
   hulaStatus.hidden = false;
-  hulaStatus.textContent = message ?? (type === 'magical-dark' ? '매지컬 차지 다크모드 테스트 스킨 장착!' : type === 'magical' ? '매지컬 차지 테스트 스킨 장착!' : type === 'anoko' ? '아노코 인형옷 테스트 스킨 장착!' : type === 'dekatsuyo' ? '데카츠요 인형옷 테스트 스킨 장착!' : type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '인어섬의 비밀 스킨 테스트 장착!' : '기본 달리기로 돌아왔어요');
+  hulaStatus.textContent = message ?? (type === 'super-magical' ? '초매지컬 파워업 테스트 스킨 장착!' : type === 'magical-dark' ? '매지컬 차지 다크모드 테스트 스킨 장착!' : type === 'magical' ? '매지컬 차지 테스트 스킨 장착!' : type === 'anoko' ? '아노코 인형옷 테스트 스킨 장착!' : type === 'dekatsuyo' ? '데카츠요 인형옷 테스트 스킨 장착!' : type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '인어섬의 비밀 스킨 테스트 장착!' : '기본 달리기로 돌아왔어요');
 }
 hulaToggle.addEventListener('dblclick', e => {
   e.preventDefault(); e.stopPropagation();
   if (home.hidden || preparing || intro.active || ready.active || devActive) return;
-  // 순환 토글: none -> usagi -> dekatsuyo -> anoko -> magical -> magical-dark -> hula -> none
+  // 순환 토글: none -> usagi -> dekatsuyo -> anoko -> magical -> magical-dark -> super-magical -> hula -> none
   if (currentTestSkin === 'none') {
     if (usagiArtFailed) { setSkinToggleState('none', '우사기 스킨 이미지를 불러오지 못했어요.'); return; }
     setSkinToggleState('usagi');
@@ -98,6 +103,9 @@ hulaToggle.addEventListener('dblclick', e => {
     if (magicalDarkArtFailed) { setSkinToggleState('none', '매지컬 차지 다크모드 스킨 이미지를 불러오지 못했어요.'); return; }
     setSkinToggleState('magical-dark');
   } else if (currentTestSkin === 'magical-dark') {
+    if (superMagicalArtFailed) { setSkinToggleState('none', '초매지컬 스킨 이미지를 불러오지 못했어요.'); return; }
+    setSkinToggleState('super-magical');
+  } else if (currentTestSkin === 'super-magical') {
     if (hulaArtFailed) { setSkinToggleState('none'); return; }
     setSkinToggleState('hula');
   } else {
@@ -346,6 +354,10 @@ class RunnerScene extends Phaser.Scene {
     this.load.image(MAGICAL_DARK_BASE, '/assets/momonga-magical-dark-base.webp');
     this.load.image(MAGICAL_DARK_GLIDE, '/assets/momonga-magical-dark-glide.webp');
     this.load.spritesheet(MAGICAL_DARK_CROUCH, '/assets/momonga-magical-dark-crouch.webp', { frameWidth: 192, frameHeight: 74 });
+    this.load.spritesheet(SUPER_MAGICAL_RUN, '/assets/momonga-super-magical-run.webp', { frameWidth: 256, frameHeight: 224 });
+    this.load.image(SUPER_MAGICAL_BASE, '/assets/momonga-super-magical-base.webp');
+    this.load.image(SUPER_MAGICAL_GLIDE, '/assets/momonga-super-magical-glide.webp');
+    this.load.spritesheet(SUPER_MAGICAL_CROUCH, '/assets/momonga-super-magical-crouch.webp', { frameWidth: 192, frameHeight: 74 });
   }
   create() {
     if (this.loadFailed) { preparing = false; model.pause(); loading.textContent = '이미지를 불러오지 못했어요. 새로고침해 주세요.'; this.scene.pause(); return; }
@@ -527,7 +539,7 @@ class RunnerScene extends Phaser.Scene {
     const equippedSkin = authService.getUser()?.equippedSkin;
     const activeSkin = currentTestSkin !== 'none'
       ? currentTestSkin
-      : (equippedSkin === 'momonga-magical-dark' ? 'magical-dark' : equippedSkin === 'momonga-magical' ? 'magical' : equippedSkin === 'momonga-kigurumi-anoko' ? 'anoko' : equippedSkin === 'momonga-kigurumi-dekatsuyo' ? 'dekatsuyo' : equippedSkin === 'momonga-kigurumi-usagi' ? 'usagi' : equippedSkin === 'momonga-hula' ? 'hula' : 'none');
+      : (equippedSkin === 'momonga-super-magical' ? 'super-magical' : equippedSkin === 'momonga-magical-dark' ? 'magical-dark' : equippedSkin === 'momonga-magical' ? 'magical' : equippedSkin === 'momonga-kigurumi-anoko' ? 'anoko' : equippedSkin === 'momonga-kigurumi-dekatsuyo' ? 'dekatsuyo' : equippedSkin === 'momonga-kigurumi-usagi' ? 'usagi' : equippedSkin === 'momonga-hula' ? 'hula' : 'none');
 
     const hulaActive = activeSkin === 'hula' && !hulaArtFailed && HULA_TEXTURES.every(key => this.textures.exists(key));
     const usagiActive = activeSkin === 'usagi' && !usagiArtFailed && USAGI_TEXTURES.every(key => this.textures.exists(key));
@@ -535,6 +547,7 @@ class RunnerScene extends Phaser.Scene {
     const anokoActive = activeSkin === 'anoko' && !anokoArtFailed && ANOKO_TEXTURES.every(key => this.textures.exists(key));
     const magicalActive = activeSkin === 'magical' && !magicalArtFailed && MAGICAL_TEXTURES.every(key => this.textures.exists(key));
     const magicalDarkActive = activeSkin === 'magical-dark' && !magicalDarkArtFailed && MAGICAL_DARK_TEXTURES.every(key => this.textures.exists(key));
+    const superMagicalActive = activeSkin === 'super-magical' && !superMagicalArtFailed && SUPER_MAGICAL_TEXTURES.every(key => this.textures.exists(key));
 
     let charTexture = ATLAS;
     let charFrame: string | number = heroFrame;
@@ -543,7 +556,10 @@ class RunnerScene extends Phaser.Scene {
     let heroHeight = gliding ? 81 : duck ? 43 : 98;
     let heroYOffset = 4;
 
-    if (magicalDarkActive) {
+    if (superMagicalActive) {
+      charTexture = gliding ? SUPER_MAGICAL_GLIDE : duck ? SUPER_MAGICAL_CROUCH : model.grounded ? SUPER_MAGICAL_RUN : SUPER_MAGICAL_BASE;
+      charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
+    } else if (magicalDarkActive) {
       charTexture = gliding ? MAGICAL_DARK_GLIDE : duck ? MAGICAL_DARK_CROUCH : model.grounded ? MAGICAL_DARK_RUN : MAGICAL_DARK_BASE;
       charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
     } else if (magicalActive) {
@@ -1345,7 +1361,7 @@ const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
     glideSrc: '/assets/momonga-magical-glide.webp',
     idleSrc: '/assets/momonga-magical-idle.webp',
     crouchFrameW: 192, crouchFrameH: 74,
-    glideAspectW: 223, glideAspectH: 175
+    glideAspectW: 138, glideAspectH: 101
   },
   'momonga-magical-dark': {
     name: '매지컬 차지 다크모드 스킨',
@@ -1355,7 +1371,17 @@ const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
     glideSrc: '/assets/momonga-magical-dark-glide.webp',
     idleSrc: '/assets/momonga-magical-dark-idle.webp',
     crouchFrameW: 192, crouchFrameH: 74,
-    glideAspectW: 223, glideAspectH: 175
+    glideAspectW: 138, glideAspectH: 101
+  },
+  'momonga-super-magical': {
+    name: '초매지컬 파워업 스킨',
+    runSrc: '/assets/momonga-super-magical-run.webp',
+    baseSrc: '/assets/momonga-super-magical-base.webp',
+    crouchSrc: '/assets/momonga-super-magical-crouch.webp',
+    glideSrc: '/assets/momonga-super-magical-glide.webp',
+    idleSrc: '/assets/momonga-super-magical-idle.webp',
+    crouchFrameW: 192, crouchFrameH: 74,
+    glideAspectW: 138, glideAspectH: 101
   }
 };
 
