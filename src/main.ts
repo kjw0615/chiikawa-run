@@ -82,6 +82,7 @@ function setSkinToggleState(type: TestSkinType, message?: string) {
   hulaToggle.textContent = type === 'super-magical' ? '💜' : type === 'magical-dark' ? '🖤' : type === 'magical' ? '✨' : type === 'anoko' ? '🐊' : type === 'dekatsuyo' ? '😈' : type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
   hulaStatus.hidden = false;
   hulaStatus.textContent = message ?? (type === 'super-magical' ? '초매지컬 파워업 테스트 스킨 장착!' : type === 'magical-dark' ? '매지컬 차지 다크모드 테스트 스킨 장착!' : type === 'magical' ? '매지컬 차지 테스트 스킨 장착!' : type === 'anoko' ? '아노코 인형옷 테스트 스킨 장착!' : type === 'dekatsuyo' ? '데카츠요 인형옷 테스트 스킨 장착!' : type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '인어섬의 비밀 스킨 테스트 장착!' : '기본 달리기로 돌아왔어요');
+  updateHomeHeroDisplay();
 }
 hulaToggle.addEventListener('dblclick', e => {
   e.preventDefault(); e.stopPropagation();
@@ -1282,6 +1283,7 @@ function renderShop() {
       const res = ShopManager.toggleEquip(id);
       showShopToast(res.message);
       renderShop();
+      updateHomeHeroDisplay();
     });
   });
 }
@@ -1477,6 +1479,7 @@ function openSkinPreview(skinId: string) {
       showShopToast(res.message);
       renderShop();
       openSkinPreview(item.id);
+      updateHomeHeroDisplay();
     });
   }
 
@@ -1614,4 +1617,91 @@ authService.subscribe((user: AuthUser | null) => {
     guestInfo.hidden = false;
     loggedInfo.hidden = true;
   }
+  updateHomeHeroDisplay();
 });
+
+// ============================================================================
+// 홈 화면 선택 스킨 캐릭터 렌더링 및 스킨 이름 표시
+// ============================================================================
+const homeHeroCanvas = $<HTMLCanvasElement>('home-hero-canvas');
+const homeHeroCtx = homeHeroCanvas?.getContext('2d');
+const homeHeroImg = $<HTMLImageElement>('home-hero-img');
+const homeSkinBadge = $('home-skin-badge');
+const homeRunImageCache: Record<string, HTMLImageElement> = {};
+
+function getActiveSkinId(): { id: string; name: string; runSrc: string } {
+  const user = authService.getUser();
+  const equipped = user?.equippedSkin || 'default';
+
+  // 1. Double-click test skin takes priority if active
+  if (currentTestSkin !== 'none') {
+    const testMap: Record<TestSkinType, { id: string; name: string; runSrc: string }> = {
+      'none': { id: 'default', name: '기본 모몽가', runSrc: '' },
+      'usagi': { id: 'momonga-kigurumi-usagi', name: '우사기 인형옷', runSrc: '/assets/momonga-usagi-kigurumi-run.webp' },
+      'dekatsuyo': { id: 'momonga-kigurumi-dekatsuyo', name: '데카츠요 인형옷', runSrc: '/assets/momonga-dekatsuyo-run.webp' },
+      'anoko': { id: 'momonga-kigurumi-anoko', name: '아노코 인형옷', runSrc: '/assets/momonga-anoko-run.webp' },
+      'magical': { id: 'momonga-magical', name: '매지컬 차지', runSrc: '/assets/momonga-magical-run.webp' },
+      'magical-dark': { id: 'momonga-magical-dark', name: '매지컬 다크', runSrc: '/assets/momonga-magical-dark-run.webp' },
+      'super-magical': { id: 'momonga-super-magical', name: '초매지컬 파워업', runSrc: '/assets/momonga-super-magical-run.webp' },
+      'hula': { id: 'momonga-hula', name: '인어섬의 비밀', runSrc: '/assets/momonga-hula-run.webp' }
+    };
+    return testMap[currentTestSkin] || { id: 'default', name: '기본 모몽가', runSrc: '' };
+  }
+
+  // 2. Equipped skin from shop
+  if (equipped && equipped !== 'default') {
+    const shopItem = SHOP_ITEMS.find(item => item.id === equipped);
+    const cfg = SKIN_CONFIGS[equipped];
+    if (shopItem && cfg) {
+      return { id: equipped, name: shopItem.name, runSrc: cfg.runSrc };
+    }
+  }
+
+  return { id: 'default', name: '기본 모몽가', runSrc: '' };
+}
+
+function updateHomeHeroDisplay() {
+  const active = getActiveSkinId();
+
+  if (active.id === 'default' || !active.runSrc) {
+    // Show original default momonga illustration
+    if (homeHeroCanvas) homeHeroCanvas.hidden = true;
+    if (homeHeroImg) homeHeroImg.hidden = false;
+    if (homeSkinBadge) homeSkinBadge.hidden = true;
+    return;
+  }
+
+  // Show skin first running frame (256x224 frame 0)
+  if (homeHeroImg) homeHeroImg.hidden = true;
+  if (homeHeroCanvas) homeHeroCanvas.hidden = false;
+  if (homeSkinBadge) {
+    homeSkinBadge.hidden = false;
+    homeSkinBadge.textContent = active.name;
+  }
+
+  let img = homeRunImageCache[active.runSrc];
+  if (!img) {
+    img = new Image();
+    img.src = active.runSrc;
+    homeRunImageCache[active.runSrc] = img;
+    img.onload = () => drawHomeHeroFrame(img);
+  } else if (img.complete) {
+    drawHomeHeroFrame(img);
+  } else {
+    img.onload = () => drawHomeHeroFrame(img);
+  }
+}
+
+function drawHomeHeroFrame(img: HTMLImageElement) {
+  if (!homeHeroCtx || !homeHeroCanvas) return;
+  homeHeroCtx.clearRect(0, 0, homeHeroCanvas.width, homeHeroCanvas.height);
+  // Frame 0 of running spritesheet: 256x224
+  homeHeroCtx.drawImage(
+    img,
+    0, 0, 256, 224,
+    0, 0, homeHeroCanvas.width, homeHeroCanvas.height
+  );
+}
+
+// Initial draw on script load
+updateHomeHeroDisplay();
