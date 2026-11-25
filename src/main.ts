@@ -1246,7 +1246,7 @@ function renderShop() {
           ? `<span class="shop-item-owned-badge">✓ 구매완료</span>`
           : `<span class="shop-item-price"><img src="/assets/coin.webp" alt="동전"/> ${item.price}개</span>`}
       </div>
-      <div>${actionBtnHtml}</div>
+      <div class="shop-item-action-area">${actionBtnHtml}</div>
     `;
 
     shopItemsContainer.appendChild(card);
