@@ -46,6 +46,24 @@ export const SHOP_ITEMS: ShopItem[] = [
     icon: '/assets/momonga-anoko-idle.webp',
     preview: '/assets/momonga-anoko-run.webp',
     idleImg: '/assets/momonga-anoko-idle.webp'
+  },
+  {
+    id: 'momonga-magical',
+    name: '매지컬 차지 스킨',
+    desc: '보라색 리본과 뒤집힌 분홍 하트, 온화한 미소의 노란 별과 프릴 드레스를 입은 매지컬 모몽가 코스튬 (달리기/점프/기어가기/활공)',
+    price: 300,
+    icon: '/assets/momonga-magical-idle.webp',
+    preview: '/assets/momonga-magical-run.webp',
+    idleImg: '/assets/momonga-magical-idle.webp'
+  },
+  {
+    id: 'momonga-magical-dark',
+    name: '매지컬 차지 다크모드 스킨',
+    desc: '분노의 이 악문 표정과 검정 리본, 찡그린 회색 별과 다크 프릴 드레스를 입은 다크모드 매지컬 코스튬 (달리기/점프/기어가기/활공)',
+    price: 300,
+    icon: '/assets/momonga-magical-dark-idle.webp',
+    preview: '/assets/momonga-magical-dark-run.webp',
+    idleImg: '/assets/momonga-magical-dark-idle.webp'
   }
 ];
 
