@@ -22,12 +22,19 @@ const SUPABASE_URL = 'https://vpbsmhbulqjbsjruxyfc.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_B9jrnSWDIGKKoa3htoy7yA_2Elcdnbh';
 
 const STORAGE_KEY = 'chiikawa_run_auth_v1';
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30분 비활성 시 자동 로그아웃
+const ACTIVITY_THROTTLE_MS = 5 * 1000; // 타임스탬프 저장 5초 쓰로틀
 
 export class SupabaseAuthService {
   private user: AuthUser | null = null;
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private listeners: Array<(user: AuthUser | null) => void> = [];
+
+  private lastActivityTime: number = Date.now();
+  private inactivityTimer: any = null;
+  private activityListenerAttached: boolean = false;
+  private onActivityBound: (() => void) | null = null;
 
   constructor() {
     this.loadSession();
@@ -58,9 +65,27 @@ export class SupabaseAuthService {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        const lastActive = Number(parsed.lastActivity) || 0;
+        const now = Date.now();
+
+        // 30분 비활성 만료 검사 (브라우저를 닫았다가 30분 뒤에 켠 경우 포함)
+        if (lastActive > 0 && (now - lastActive > INACTIVITY_TIMEOUT_MS)) {
+          localStorage.removeItem(STORAGE_KEY);
+          this.user = null;
+          this.accessToken = null;
+          this.refreshToken = null;
+          return;
+        }
+
         this.user = parsed.user || null;
         this.accessToken = parsed.accessToken || null;
         this.refreshToken = parsed.refreshToken || null;
+        this.lastActivityTime = now;
+
+        if (this.user) {
+          this.startInactivityTracker();
+        }
+
         // Verify or refresh if needed in background
         if (this.refreshToken) {
           this.refreshSession();
@@ -77,13 +102,71 @@ export class SupabaseAuthService {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           user: this.user,
           accessToken: this.accessToken,
-          refreshToken: this.refreshToken
+          refreshToken: this.refreshToken,
+          lastActivity: this.lastActivityTime
         }));
       } else {
         localStorage.removeItem(STORAGE_KEY);
       }
     } catch {
       // ignore
+    }
+  }
+
+  /**
+   * Start tracking user activity (mouse, key, touch) for 30m auto-logout
+   */
+  public startInactivityTracker() {
+    this.lastActivityTime = Date.now();
+    this.resetInactivityTimer();
+
+    if (typeof window === 'undefined' || this.activityListenerAttached) return;
+
+    this.onActivityBound = () => this.handleUserActivity();
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'pointerdown', 'wheel'];
+    events.forEach(ev => window.addEventListener(ev, this.onActivityBound!, { passive: true }));
+    this.activityListenerAttached = true;
+  }
+
+  public stopInactivityTracker() {
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+      this.inactivityTimer = null;
+    }
+    if (typeof window !== 'undefined' && this.activityListenerAttached && this.onActivityBound) {
+      const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'pointerdown', 'wheel'];
+      events.forEach(ev => window.removeEventListener(ev, this.onActivityBound!));
+      this.activityListenerAttached = false;
+      this.onActivityBound = null;
+    }
+  }
+
+  private handleUserActivity() {
+    if (!this.user) return;
+    const now = Date.now();
+    if (now - this.lastActivityTime > ACTIVITY_THROTTLE_MS) {
+      this.lastActivityTime = now;
+      this.saveSession();
+    }
+    this.resetInactivityTimer();
+  }
+
+  private resetInactivityTimer() {
+    if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+    if (!this.user) return;
+
+    this.inactivityTimer = setTimeout(() => {
+      this.handleInactivityTimeout();
+    }, INACTIVITY_TIMEOUT_MS);
+  }
+
+  private handleInactivityTimeout() {
+    if (!this.user) return;
+    this.logout();
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        alert('30분 동안 활동이 없어 안전을 위해 자동 로그아웃되었습니다.');
+      }, 50);
     }
   }
 
@@ -159,6 +242,7 @@ export class SupabaseAuthService {
         };
         this.saveSession();
         this.persistUserState();
+        this.startInactivityTracker();
         this.notify();
         return { ok: true, user: this.user };
       }
@@ -283,6 +367,7 @@ export class SupabaseAuthService {
 
       this.saveSession();
       this.persistUserState();
+      this.startInactivityTracker();
       this.notify();
       return { ok: true, user: this.user };
     } catch (e: any) {
@@ -358,6 +443,7 @@ export class SupabaseAuthService {
     this.user = null;
     this.accessToken = null;
     this.refreshToken = null;
+    this.stopInactivityTracker();
     this.saveSession();
     this.notify();
   }
