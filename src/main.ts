@@ -290,7 +290,14 @@ function updateHud() {
   play.classList.toggle('is-running', model.phase === 'running');
   pause.setAttribute('aria-label', model.phase === 'paused' || mini?.paused ? '계속하기' : '일시정지');
   if (lastPhase !== model.phase) {
-    if (model.phase === 'over') { best = Math.max(best, Math.floor(model.distance)); try { localStorage.setItem('little-escape-best', String(best)); } catch { /* optional */ } }
+    if (model.phase === 'over') {
+      const currentRunDist = Math.floor(model.distance);
+      best = Math.max(best, currentRunDist);
+      try { localStorage.setItem('little-escape-best', String(best)); } catch { /* optional */ }
+      if (authService.isAuthenticated()) {
+        authService.updateHighScore(currentRunDist);
+      }
+    }
     overlay.hidden = model.phase === 'ready' || model.phase === 'running' || model.phase === 'minigame' || (isTutorialMode && !!tutorialStepActive);
     if (model.phase === 'paused' || model.phase === 'over') {
       if (!(isTutorialMode && tutorialStepActive && model.phase === 'paused')) {
@@ -1599,6 +1606,15 @@ authService.subscribe((user: AuthUser | null) => {
     loggedInfo.hidden = false;
     nickDisplay.textContent = user.nickname;
     coinsDisplay.textContent = String(user.coins);
+
+    if (user.highScore && user.highScore > best) {
+      best = user.highScore;
+      try {
+        localStorage.setItem('little-escape-best', String(best));
+      } catch {
+        /* optional */
+      }
+    }
   } else {
     guestInfo.hidden = false;
     loggedInfo.hidden = true;

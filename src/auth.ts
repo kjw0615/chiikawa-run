@@ -10,6 +10,7 @@ export interface AuthUser {
   coins: number;
   ownedSkins: string[]; // e.g. ['default', 'momonga-hula']
   equippedSkin: string; // e.g. 'default' | 'momonga-hula'
+  highScore: number;
 }
 
 export interface AuthResult {
@@ -216,7 +217,8 @@ export class SupabaseAuthService {
             nickname,
             coins: 0,
             owned_skins: ['default'],
-            equipped_skin: 'default'
+            equipped_skin: 'default',
+            high_score: 0
           }
         })
       });
@@ -238,7 +240,8 @@ export class SupabaseAuthService {
           nickname: nickname,
           coins: 0,
           ownedSkins: ['default'],
-          equippedSkin: 'default'
+          equippedSkin: 'default',
+          highScore: 0
         };
         this.saveSession();
         this.persistUserState();
@@ -329,7 +332,7 @@ export class SupabaseAuthService {
       } catch {}
 
       // Try reading directly from public.user_inventory table
-      let dbInv: { coins?: number; owned_skins?: string[]; equipped_skin?: string } | null = null;
+      let dbInv: { coins?: number; owned_skins?: string[]; equipped_skin?: string; high_score?: number } | null = null;
       try {
         const invResp = await fetch(`${SUPABASE_URL}/rest/v1/user_inventory?user_id=eq.${data.user.id}&select=*`, {
           headers: {
@@ -356,13 +359,23 @@ export class SupabaseAuthService {
 
       const equippedSkin = dbInv?.equipped_skin || meta.equipped_skin || localState.equippedSkin || 'default';
 
+      let localHighScore = 0;
+      try {
+        localHighScore = Number(localStorage.getItem('little-escape-best') || 0);
+      } catch {}
+      const serverHighScore = typeof dbInv?.high_score === 'number'
+        ? dbInv.high_score
+        : (typeof meta.high_score === 'number' ? meta.high_score : 0);
+      const mergedHighScore = Math.max(serverHighScore, localHighScore, (localState as any).highScore || 0);
+
       this.user = {
         id: data.user.id,
         email: data.user.email,
         nickname,
         coins: mergedCoins,
         ownedSkins: mergedSkins,
-        equippedSkin
+        equippedSkin,
+        highScore: mergedHighScore
       };
 
       this.saveSession();
@@ -405,6 +418,7 @@ export class SupabaseAuthService {
               if (rows && rows.length > 0) {
                 const inv = rows[0];
                 if (typeof inv.coins === 'number') this.user.coins = Math.max(this.user.coins, inv.coins);
+                if (typeof inv.high_score === 'number') this.user.highScore = Math.max(this.user.highScore || 0, inv.high_score);
                 if (Array.isArray(inv.owned_skins)) {
                   this.user.ownedSkins = Array.from(new Set(['default', ...this.user.ownedSkins, ...inv.owned_skins]));
                 }
@@ -421,6 +435,9 @@ export class SupabaseAuthService {
           const meta = data.user.user_metadata;
           if (typeof meta.coins === 'number') {
             this.user.coins = Math.max(this.user.coins, meta.coins);
+          }
+          if (typeof meta.high_score === 'number') {
+            this.user.highScore = Math.max(this.user.highScore || 0, meta.high_score);
           }
           if (Array.isArray(meta.owned_skins)) {
             this.user.ownedSkins = Array.from(new Set(['default', ...this.user.ownedSkins, ...meta.owned_skins]));
@@ -506,6 +523,22 @@ export class SupabaseAuthService {
     return true;
   }
 
+  /**
+   * Update high score if greater than current best
+   */
+  public updateHighScore(score: number): boolean {
+    if (!this.user) return false;
+    const rounded = Math.floor(score);
+    if (rounded > (this.user.highScore || 0)) {
+      this.user.highScore = rounded;
+      this.persistUserState();
+      this.saveSession();
+      this.notify();
+      return true;
+    }
+    return false;
+  }
+
   private syncTimer: any = null;
 
   /**
@@ -517,7 +550,8 @@ export class SupabaseAuthService {
     localStorage.setItem(userStoreKey, JSON.stringify({
       coins: this.user.coins,
       ownedSkins: this.user.ownedSkins,
-      equippedSkin: this.user.equippedSkin
+      equippedSkin: this.user.equippedSkin,
+      highScore: this.user.highScore
     }));
 
     if (syncCloud && this.accessToken) {
@@ -542,6 +576,7 @@ export class SupabaseAuthService {
                 coins: this.user.coins,
                 owned_skins: this.user.ownedSkins,
                 equipped_skin: this.user.equippedSkin,
+                high_score: this.user.highScore || 0,
                 updated_at: new Date().toISOString()
               })
             });
@@ -560,7 +595,8 @@ export class SupabaseAuthService {
                 data: {
                   coins: this.user.coins,
                   owned_skins: this.user.ownedSkins,
-                  equipped_skin: this.user.equippedSkin
+                  equipped_skin: this.user.equippedSkin,
+                  high_score: this.user.highScore || 0
                 }
               })
             });
