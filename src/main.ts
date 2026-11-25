@@ -1099,14 +1099,23 @@ btnOpenAuth?.addEventListener('click', () => {
   authPwInput.value = '';
   authPw2Input.value = '';
   authModal.hidden = false;
+  setTimeout(() => {
+    authNickInput.focus();
+  }, 50);
 });
 
 authClose?.addEventListener('click', () => {
   authModal.hidden = true;
 });
 
-tabLogin?.addEventListener('click', () => setAuthMode(false));
-tabSignup?.addEventListener('click', () => setAuthMode(true));
+tabLogin?.addEventListener('click', () => {
+  setAuthMode(false);
+  setTimeout(() => authNickInput.focus(), 50);
+});
+tabSignup?.addEventListener('click', () => {
+  setAuthMode(true);
+  setTimeout(() => authNickInput.focus(), 50);
+});
 
 btnLogout?.addEventListener('click', () => {
   if (confirm('로그아웃 하시겠습니까?')) {
