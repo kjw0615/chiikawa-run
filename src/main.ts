@@ -317,7 +317,7 @@ class RunnerScene extends Phaser.Scene {
     this.load.spritesheet(DEKATSUYO_RUN, '/assets/momonga-dekatsuyo-run.webp', { frameWidth: 256, frameHeight: 224 });
     this.load.image(DEKATSUYO_BASE, '/assets/momonga-dekatsuyo-base.webp');
     this.load.image(DEKATSUYO_GLIDE, '/assets/momonga-dekatsuyo-glide.webp');
-    this.load.spritesheet(DEKATSUYO_CROUCH, '/assets/momonga-dekatsuyo-crouch.webp', { frameWidth: 192, frameHeight: 72 });
+    this.load.spritesheet(DEKATSUYO_CROUCH, '/assets/momonga-dekatsuyo-crouch.webp', { frameWidth: 224, frameHeight: 132 });
     this.load.spritesheet(ANOKO_RUN, '/assets/momonga-anoko-run.webp', { frameWidth: 256, frameHeight: 224 });
     this.load.image(ANOKO_BASE, '/assets/momonga-anoko-base.webp');
     this.load.image(ANOKO_GLIDE, '/assets/momonga-anoko-glide.webp');
@@ -532,6 +532,11 @@ class RunnerScene extends Phaser.Scene {
     } else if (dekatsuyoActive) {
       charTexture = gliding ? DEKATSUYO_GLIDE : duck ? DEKATSUYO_CROUCH : model.grounded ? DEKATSUYO_RUN : DEKATSUYO_BASE;
       charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
+      if (duck) {
+        heroWidth = 120;
+        heroHeight = 70; // 224x132 aspect ratio proportional
+        heroYOffset = 4 - (70 - 43) / 2; // Keep bottom contact aligned to ground
+      }
     } else if (usagiActive) {
       charTexture = gliding ? USAGI_GLIDE : duck ? USAGI_CROUCH : model.grounded ? USAGI_RUN : USAGI_BASE;
       charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
@@ -1287,8 +1292,8 @@ const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
     crouchSrc: '/assets/momonga-dekatsuyo-crouch.webp',
     glideSrc: '/assets/momonga-dekatsuyo-glide.webp',
     idleSrc: '/assets/momonga-dekatsuyo-idle.webp',
-    crouchFrameW: 192, crouchFrameH: 72,
-    glideAspectW: 138, glideAspectH: 101
+    crouchFrameW: 224, crouchFrameH: 132,
+    glideAspectW: 138, glideAspectH: 104
   },
   'momonga-kigurumi-anoko': {
     name: '아노코 인형옷 스킨',
