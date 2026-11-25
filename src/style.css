@@ -491,7 +491,7 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
 
 .shop-item-card {
   display: grid;
-  grid-template-columns: 80px 1fr auto;
+  grid-template-columns: 80px minmax(0, 1fr) 110px;
   gap: 14px;
   align-items: center;
   background: #fff;
@@ -499,6 +499,17 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
   border-radius: 16px;
   padding: 12px;
   box-shadow: 0 4px 0 #624b4b1a;
+}
+
+.shop-item-action-area {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.shop-item-info {
+  min-width: 0;
 }
 
 .shop-item-thumb {
