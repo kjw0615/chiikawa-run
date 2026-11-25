@@ -64,6 +64,15 @@ export const SHOP_ITEMS: ShopItem[] = [
     icon: '/assets/momonga-magical-dark-idle.webp',
     preview: '/assets/momonga-magical-dark-run.webp',
     idleImg: '/assets/momonga-magical-dark-idle.webp'
+  },
+  {
+    id: 'momonga-super-magical',
+    name: '초매지컬 파워업 스킨',
+    desc: '작은 악마 뿔과 박쥐 날개 망토, 앙증맞은 메롱 표정과 글썽이는 눈망울의 초매지컬 모몽가 코스튬',
+    price: 350,
+    icon: '/assets/momonga-super-magical-idle.webp',
+    preview: '/assets/momonga-super-magical-run.webp',
+    idleImg: '/assets/momonga-super-magical-idle.webp'
   }
 ];
 
