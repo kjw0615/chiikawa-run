@@ -13,8 +13,8 @@ export interface ShopItem {
 export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'momonga-hula',
-    name: '하와이안 훌라 스킨',
-    desc: '보라색 꽃 화관과 시원한 풀치마를 두른 모몽가 스킨 세트 (달리기/점프/기어가기/활공)',
+    name: '인어섬의 비밀 스킨',
+    desc: '극장판 인어섬의 비밀 속 보라색 꽃 화관과 시원한 풀치마를 두른 모몽가 코스튬 (달리기/점프/기어가기/활공)',
     price: 50,
     icon: '/assets/momonga-hula-idle.webp',
     preview: '/assets/momonga-hula-run.webp',
