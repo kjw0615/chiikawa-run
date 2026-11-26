@@ -323,10 +323,13 @@ class RunnerScene extends Phaser.Scene {
   preload() {
     this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
     this.load.on('loaderror', (file: { key: string }) => {
-      if (HULA_TEXTURES.includes(file.key)) { hulaArtFailed = true; }
-      if (USAGI_TEXTURES.includes(file.key)) { usagiArtFailed = true; }
-      if (DEKATSUYO_TEXTURES.includes(file.key)) { dekatsuyoArtFailed = true; }
-      if (ANOKO_TEXTURES.includes(file.key)) { anokoArtFailed = true; }
+      if (HULA_TEXTURES.includes(file.key)) { hulaArtFailed = true; return; }
+      if (USAGI_TEXTURES.includes(file.key)) { usagiArtFailed = true; return; }
+      if (DEKATSUYO_TEXTURES.includes(file.key)) { dekatsuyoArtFailed = true; return; }
+      if (ANOKO_TEXTURES.includes(file.key)) { anokoArtFailed = true; return; }
+      if (MAGICAL_TEXTURES.includes(file.key)) { magicalArtFailed = true; return; }
+      if (MAGICAL_DARK_TEXTURES.includes(file.key)) { magicalDarkArtFailed = true; return; }
+      if (SUPER_MAGICAL_TEXTURES.includes(file.key)) { superMagicalArtFailed = true; return; }
       if (!Background.owns(file.key) && file.key !== CAMEO_ATLAS) this.loadFailed = true;
     }); // background, cameo and test-skin art are optional
     Background.preload(this);
@@ -1289,6 +1292,7 @@ function renderShop() {
   shopItemsContainer.querySelectorAll('[data-equip]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-equip')!;
+      currentTestSkin = 'none';
       const res = ShopManager.toggleEquip(id);
       showShopToast(res.message);
       renderShop();
@@ -1484,6 +1488,7 @@ function openSkinPreview(skinId: string) {
     });
 
     actionWrap.querySelector('[data-preview-equip]')?.addEventListener('click', () => {
+      currentTestSkin = 'none';
       const res = ShopManager.toggleEquip(item.id);
       showShopToast(res.message);
       renderShop();
@@ -1694,10 +1699,21 @@ function updateHomeHeroDisplay() {
     img.src = active.runSrc;
     homeRunImageCache[active.runSrc] = img;
     img.onload = () => drawHomeHeroFrame(img);
-  } else if (img.complete) {
+    img.onerror = () => {
+      // Fallback to default illustration if skin image fails to load
+      if (homeHeroCanvas) homeHeroCanvas.hidden = true;
+      if (homeHeroImg) homeHeroImg.hidden = false;
+      if (homeSkinBadge) homeSkinBadge.hidden = true;
+    };
+  } else if (img.complete && img.naturalWidth > 0) {
     drawHomeHeroFrame(img);
   } else {
     img.onload = () => drawHomeHeroFrame(img);
+    img.onerror = () => {
+      if (homeHeroCanvas) homeHeroCanvas.hidden = true;
+      if (homeHeroImg) homeHeroImg.hidden = false;
+      if (homeSkinBadge) homeSkinBadge.hidden = true;
+    };
   }
 }
 
