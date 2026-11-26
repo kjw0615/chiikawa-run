@@ -38,6 +38,14 @@ const HULA_RUN = 'momonga-hula-run';
 const HULA_BASE = 'momonga-hula-base', HULA_CROUCH = 'momonga-hula-crouch', HULA_GLIDE = 'momonga-hula-glide';
 const HULA_TEXTURES = [HULA_RUN, HULA_BASE, HULA_CROUCH, HULA_GLIDE];
 
+const CHIIKAWA_RUN = 'momonga-chiikawa-run';
+const CHIIKAWA_BASE = 'momonga-chiikawa-base', CHIIKAWA_CROUCH = 'momonga-chiikawa-crouch', CHIIKAWA_GLIDE = 'momonga-chiikawa-glide';
+const CHIIKAWA_TEXTURES = [CHIIKAWA_RUN, CHIIKAWA_BASE, CHIIKAWA_CROUCH, CHIIKAWA_GLIDE];
+
+const HACHIWARE_RUN = 'momonga-hachiware-run';
+const HACHIWARE_BASE = 'momonga-hachiware-base', HACHIWARE_CROUCH = 'momonga-hachiware-crouch', HACHIWARE_GLIDE = 'momonga-hachiware-glide';
+const HACHIWARE_TEXTURES = [HACHIWARE_RUN, HACHIWARE_BASE, HACHIWARE_CROUCH, HACHIWARE_GLIDE];
+
 const USAGI_RUN = 'momonga-usagi-kigurumi-run';
 const USAGI_BASE = 'momonga-usagi-kigurumi-base', USAGI_CROUCH = 'momonga-usagi-kigurumi-crouch', USAGI_GLIDE = 'momonga-usagi-kigurumi-glide';
 const USAGI_TEXTURES = [USAGI_RUN, USAGI_BASE, USAGI_CROUCH, USAGI_GLIDE];
@@ -62,9 +70,11 @@ const SUPER_MAGICAL_RUN = 'momonga-super-magical-run';
 const SUPER_MAGICAL_BASE = 'momonga-super-magical-base', SUPER_MAGICAL_CROUCH = 'momonga-super-magical-crouch', SUPER_MAGICAL_GLIDE = 'momonga-super-magical-glide';
 const SUPER_MAGICAL_TEXTURES = [SUPER_MAGICAL_RUN, SUPER_MAGICAL_BASE, SUPER_MAGICAL_CROUCH, SUPER_MAGICAL_GLIDE];
 
-type TestSkinType = 'none' | 'usagi' | 'dekatsuyo' | 'anoko' | 'magical' | 'magical-dark' | 'super-magical' | 'hula';
+type TestSkinType = 'none' | 'chiikawa' | 'hachiware' | 'usagi' | 'dekatsuyo' | 'anoko' | 'magical' | 'magical-dark' | 'super-magical' | 'hula';
 let currentTestSkin: TestSkinType = 'none';
 let hulaArtFailed = false;
+let chiikawaArtFailed = false;
+let hachiwareArtFailed = false;
 let usagiArtFailed = false;
 let dekatsuyoArtFailed = false;
 let anokoArtFailed = false;
@@ -324,6 +334,8 @@ class RunnerScene extends Phaser.Scene {
     this.load.on('progress', (p: number) => { loading.textContent = `모몽가가 숲으로 가는 중… ${Math.round(p * 100)}%`; });
     this.load.on('loaderror', (file: { key: string }) => {
       if (HULA_TEXTURES.includes(file.key)) { hulaArtFailed = true; return; }
+      if (CHIIKAWA_TEXTURES.includes(file.key)) { chiikawaArtFailed = true; return; }
+      if (HACHIWARE_TEXTURES.includes(file.key)) { hachiwareArtFailed = true; return; }
       if (USAGI_TEXTURES.includes(file.key)) { usagiArtFailed = true; return; }
       if (DEKATSUYO_TEXTURES.includes(file.key)) { dekatsuyoArtFailed = true; return; }
       if (ANOKO_TEXTURES.includes(file.key)) { anokoArtFailed = true; return; }
@@ -345,6 +357,14 @@ class RunnerScene extends Phaser.Scene {
     this.load.image(HULA_BASE, '/assets/momonga-hula-base.webp');
     this.load.image(HULA_GLIDE, '/assets/momonga-hula-glide.webp');
     this.load.spritesheet(HULA_CROUCH, '/assets/momonga-hula-crouch.webp', { frameWidth: 192, frameHeight: 72 });
+    this.load.spritesheet(CHIIKAWA_RUN, '/assets/momonga-chiikawa-run.webp', { frameWidth: 256, frameHeight: 224 });
+    this.load.image(CHIIKAWA_BASE, '/assets/momonga-chiikawa-base.webp');
+    this.load.image(CHIIKAWA_GLIDE, '/assets/momonga-chiikawa-glide.webp');
+    this.load.spritesheet(CHIIKAWA_CROUCH, '/assets/momonga-chiikawa-crouch.webp', { frameWidth: 192, frameHeight: 72 });
+    this.load.spritesheet(HACHIWARE_RUN, '/assets/momonga-hachiware-run.webp', { frameWidth: 256, frameHeight: 224 });
+    this.load.image(HACHIWARE_BASE, '/assets/momonga-hachiware-base.webp');
+    this.load.image(HACHIWARE_GLIDE, '/assets/momonga-hachiware-glide.webp');
+    this.load.spritesheet(HACHIWARE_CROUCH, '/assets/momonga-hachiware-crouch.webp', { frameWidth: 192, frameHeight: 72 });
     this.load.spritesheet(USAGI_RUN, '/assets/momonga-usagi-kigurumi-run.webp', { frameWidth: 256, frameHeight: 224 });
     this.load.image(USAGI_BASE, '/assets/momonga-usagi-kigurumi-base.webp');
     this.load.image(USAGI_GLIDE, '/assets/momonga-usagi-kigurumi-glide.webp');
@@ -550,9 +570,11 @@ class RunnerScene extends Phaser.Scene {
     const equippedSkin = authService.getUser()?.equippedSkin;
     const activeSkin = currentTestSkin !== 'none'
       ? currentTestSkin
-      : (equippedSkin === 'momonga-super-magical' ? 'super-magical' : equippedSkin === 'momonga-magical-dark' ? 'magical-dark' : equippedSkin === 'momonga-magical' ? 'magical' : equippedSkin === 'momonga-kigurumi-anoko' ? 'anoko' : equippedSkin === 'momonga-kigurumi-dekatsuyo' ? 'dekatsuyo' : equippedSkin === 'momonga-kigurumi-usagi' ? 'usagi' : equippedSkin === 'momonga-hula' ? 'hula' : 'none');
+      : (equippedSkin === 'momonga-super-magical' ? 'super-magical' : equippedSkin === 'momonga-magical-dark' ? 'magical-dark' : equippedSkin === 'momonga-magical' ? 'magical' : equippedSkin === 'momonga-kigurumi-anoko' ? 'anoko' : equippedSkin === 'momonga-kigurumi-dekatsuyo' ? 'dekatsuyo' : equippedSkin === 'momonga-kigurumi-usagi' ? 'usagi' : equippedSkin === 'momonga-kigurumi-hachiware' ? 'hachiware' : equippedSkin === 'momonga-kigurumi-chiikawa' ? 'chiikawa' : equippedSkin === 'momonga-hula' ? 'hula' : 'none');
 
     const hulaActive = activeSkin === 'hula' && !hulaArtFailed && HULA_TEXTURES.every(key => this.textures.exists(key));
+    const chiikawaActive = activeSkin === 'chiikawa' && !chiikawaArtFailed && CHIIKAWA_TEXTURES.every(key => this.textures.exists(key));
+    const hachiwareActive = activeSkin === 'hachiware' && !hachiwareArtFailed && HACHIWARE_TEXTURES.every(key => this.textures.exists(key));
     const usagiActive = activeSkin === 'usagi' && !usagiArtFailed && USAGI_TEXTURES.every(key => this.textures.exists(key));
     const dekatsuyoActive = activeSkin === 'dekatsuyo' && !dekatsuyoArtFailed && DEKATSUYO_TEXTURES.every(key => this.textures.exists(key));
     const anokoActive = activeSkin === 'anoko' && !anokoArtFailed && ANOKO_TEXTURES.every(key => this.textures.exists(key));
@@ -603,6 +625,12 @@ class RunnerScene extends Phaser.Scene {
         heroHeight = 52.5; // 192x84 aspect ratio proportional to 120 width
         heroYOffset = 4 - (52.5 - 43) / 2; // Keep bottom contact aligned to ground
       }
+    } else if (hachiwareActive) {
+      charTexture = gliding ? HACHIWARE_GLIDE : duck ? HACHIWARE_CROUCH : model.grounded ? HACHIWARE_RUN : HACHIWARE_BASE;
+      charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
+    } else if (chiikawaActive) {
+      charTexture = gliding ? CHIIKAWA_GLIDE : duck ? CHIIKAWA_CROUCH : model.grounded ? CHIIKAWA_RUN : CHIIKAWA_BASE;
+      charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
     } else if (hulaActive) {
       charTexture = gliding ? HULA_GLIDE : duck ? HULA_CROUCH : model.grounded ? HULA_RUN : HULA_BASE;
       charFrame = gliding || !duck && !model.grounded ? '__BASE' : duck ? moving ? crawlFrame : 0 : runFrame;
@@ -1330,6 +1358,26 @@ interface SkinAssetConfig {
 }
 
 const SKIN_CONFIGS: Record<string, SkinAssetConfig> = {
+  'momonga-kigurumi-chiikawa': {
+    name: '치이카와 인형옷 스킨',
+    runSrc: '/assets/momonga-chiikawa-run.webp',
+    baseSrc: '/assets/momonga-chiikawa-base.webp',
+    crouchSrc: '/assets/momonga-chiikawa-crouch.webp',
+    glideSrc: '/assets/momonga-chiikawa-glide.webp',
+    idleSrc: '/assets/momonga-chiikawa-idle.webp',
+    crouchFrameW: 192, crouchFrameH: 72,
+    glideAspectW: 138, glideAspectH: 101
+  },
+  'momonga-kigurumi-hachiware': {
+    name: '하치와레 인형옷 스킨',
+    runSrc: '/assets/momonga-hachiware-run.webp',
+    baseSrc: '/assets/momonga-hachiware-base.webp',
+    crouchSrc: '/assets/momonga-hachiware-crouch.webp',
+    glideSrc: '/assets/momonga-hachiware-glide.webp',
+    idleSrc: '/assets/momonga-hachiware-idle.webp',
+    crouchFrameW: 192, crouchFrameH: 72,
+    glideAspectW: 138, glideAspectH: 101
+  },
   'momonga-hula': {
     name: '인어섬의 비밀 스킨',
     runSrc: '/assets/momonga-hula-run.webp',
@@ -1651,6 +1699,8 @@ function getActiveSkinId(): { id: string; name: string; runSrc: string } {
   if (currentTestSkin !== 'none') {
     const testMap: Record<TestSkinType, { id: string; name: string; runSrc: string }> = {
       'none': { id: 'default', name: '기본 모몽가', runSrc: '' },
+      'chiikawa': { id: 'momonga-kigurumi-chiikawa', name: '치이카와 인형옷', runSrc: '/assets/momonga-chiikawa-run.webp' },
+      'hachiware': { id: 'momonga-kigurumi-hachiware', name: '하치와레 인형옷', runSrc: '/assets/momonga-hachiware-run.webp' },
       'usagi': { id: 'momonga-kigurumi-usagi', name: '우사기 인형옷', runSrc: '/assets/momonga-usagi-kigurumi-run.webp' },
       'dekatsuyo': { id: 'momonga-kigurumi-dekatsuyo', name: '데카츠요 인형옷', runSrc: '/assets/momonga-dekatsuyo-run.webp' },
       'anoko': { id: 'momonga-kigurumi-anoko', name: '아노코 인형옷', runSrc: '/assets/momonga-anoko-run.webp' },
