@@ -15,7 +15,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     id: 'momonga-kigurumi-chiikawa',
     name: '치이카와 인형옷 스킨',
     desc: '하얗고 둥근 곰 귀 후드와 치이카와 얼굴 자수가 새겨진 귀여운 모몽가 코스튬',
-    price: 150,
+    price: 100,
     icon: '/assets/momonga-chiikawa-idle.webp',
     preview: '/assets/momonga-chiikawa-run.webp',
     idleImg: '/assets/momonga-chiikawa-idle.webp'
@@ -24,7 +24,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     id: 'momonga-kigurumi-hachiware',
     name: '하치와레 인형옷 스킨',
     desc: '푸른 귀와 시그니처 가르마 패턴 후드를 입은 밝고 활기찬 모몽가 코스튬',
-    price: 150,
+    price: 100,
     icon: '/assets/momonga-hachiware-idle.webp',
     preview: '/assets/momonga-hachiware-run.webp',
     idleImg: '/assets/momonga-hachiware-idle.webp'
@@ -33,7 +33,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     id: 'momonga-kigurumi-usagi',
     name: '우사기 인형옷 스킨',
     desc: '귀여운 우사기 후드 바디슈트를 뒤집어쓴 특별 모몽가 코스튬',
-    price: 150,
+    price: 100,
     icon: '/assets/momonga-usagi-idle.webp',
     preview: '/assets/momonga-usagi-kigurumi-run.webp',
     idleImg: '/assets/momonga-usagi-idle.webp'
