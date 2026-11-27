@@ -60,6 +60,15 @@ export class RunnerModel {
   private hazardState: number; private foodState: number; private artSeed: number;
   private generateCourse: boolean; private lastFoodX = -Infinity;
   private foodGapAnchor: number | null = null;
+  private foodsSinceLastGold = 5;
+  private rollFoodKind(randomRoll: number): 'gold' | 'food' {
+    if (this.foodsSinceLastGold >= 5 && randomRoll < RULES.goldChance) {
+      this.foodsSinceLastGold = 0;
+      return 'gold';
+    }
+    this.foodsSinceLastGold++;
+    return 'food';
+  }
   private coinCourse: boolean; private coinState: number; private nextCoinX: number = COIN_RULES.firstCoinX; private coinId = 1000000; private coinGroupIndex = 0; private foodFreeDistance: number;
   private separateSpawns: boolean;
   constructor(seed = 13579, generateCourse = true, options: { platforms?: boolean; encounters?: boolean; coins?: boolean; foodFreeDistance?: number; separateSpawns?: boolean } = {}) {
@@ -165,8 +174,13 @@ export class RunnerModel {
       this.y = r.fromY + (RULES.floor - r.fromY) * t - Math.sin(t * Math.PI) * 205;
       if (t >= 1) { this.rescue = null; this.y = RULES.floor; this.vy = 0; this.jumps = 0; this.droppingPlatformId = null; this.glideLeft = RULES.glideSeconds; }
     } else {
-      this.vy += RULES.gravity * dt;
-      if (this.glideActive(this.vy)) { this.vy = Math.min(this.vy, RULES.glideVelocity); this.glideLeft = Math.max(0, this.glideLeft - dt); }
+      if (this.crouch && this.y < RULES.floor && !this.grounded) {
+        // 점프 도중 아래 방향키: 급강하(Fast Fall) 가속 (활공 취소 및 빠른 착지)
+        this.vy = Math.max(this.vy + RULES.gravity * 2.5 * dt, 400);
+      } else {
+        this.vy += RULES.gravity * dt;
+        if (this.glideActive(this.vy)) { this.vy = Math.min(this.vy, RULES.glideVelocity); this.glideLeft = Math.max(0, this.glideLeft - dt); }
+      }
       this.y += this.vy * dt;
       const pit = this.pitAt(this.distance);
       const landing = this.platforms.filter(p => p.id !== this.droppingPlatformId && this.distance >= p.start && this.distance <= p.end && previousY <= p.y + .01 && this.y >= p.y && this.vy >= 0).sort((a,b) => a.y-b.y)[0];
@@ -349,7 +363,7 @@ export class RunnerModel {
       if (x === undefined) return; // never weaken safety or remove already visible objects
       const surface = this.platforms.find(p => x! >= p.start && x! <= p.end)?.y ?? RULES.floor;
       const lift = RULES.foodLiftMin + this.random('food')*(RULES.foodLiftMax-RULES.foodLiftMin);
-      this.add(x,surface-lift,32,32,this.random('food') < RULES.goldChance ? 'gold' : 'food');
+      this.add(x,surface-lift,32,32,this.rollFoodKind(this.random('food')));
       this.foodGapAnchor = x;
     }
   }
@@ -363,7 +377,7 @@ export class RunnerModel {
       const p: Platform = { id: n, start, end: start + length, y: RULES.floor - RULES.platformHeight };
       this.platforms.push(p); this.nextPlatformX += 90;
       const foodX = start + 3 + this.random('platform') * .5, lift = 48 + this.random('platform') * 52;
-      this.add(foodX, p.y - lift, 32, 32, this.random('platform') < RULES.goldChance ? 'gold' : 'food');
+      this.add(foodX, p.y - lift, 32, 32, this.rollFoodKind(this.random('platform')));
       // Short branches are bonus paths; long ones have one well-spaced upper hazard.
       if (length >= 20) {
         const x = start + RULES.platformFirstHazard + this.random('platform') * (length === 20 ? .5 : 4);
@@ -377,10 +391,11 @@ export class RunnerModel {
     }
     // Dense phrases need an intentional breathing space for the next NPC.
     // Plan before hazards/food enter the visible horizon; never delete objects already on screen.
-    if (this.separateSpawns && this.encounterCourse && this.plannedEncounter === null && this.lastEncounterX + 200 <= this.distance + 180) {
+    // 미니게임 200m 안쪽(60m~190m) 랜덤 거리 등장
+    if (this.separateSpawns && this.encounterCourse && this.plannedEncounter === null && this.lastEncounterX + 60 <= this.distance + 180) {
       const nextState = (Math.imul(1664525, this.encounterState) + 1013904223) >>> 0;
-      const desired = this.lastEncounterX + 200 + nextState / 4294967296 * 100;
-      const candidates = Array.from({ length: 201 }, (_, n) => this.lastEncounterX + 200 + n * .5)
+      const desired = this.lastEncounterX + 60 + (nextState / 4294967296) * 130;
+      const candidates = Array.from({ length: 261 }, (_, n) => this.lastEncounterX + 60 + n * .5)
         .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
       const plan = candidates.find(x => this.clearFoodDeadline(x) && this.platforms.every(p => x <= p.start - 8 || x >= p.end + 8 || x >= p.start + 4 && x <= p.end - 4)
         && this.items.every(i => i.kind === 'coin' || Math.abs(i.x-x) >= (collectible(i.kind) ? SPAWN_CLEARANCE.encounter : SPAWN_CLEARANCE.encounterHazard) + (i.w/2+RULES.halfHitWidth)/RULES.scale));
@@ -392,7 +407,7 @@ export class RunnerModel {
     // invalidate an already placed food's approach/landing clearance.
     while (this.nextHazardX < this.distance + 140) {
       let x = this.nextHazardX;
-      const spacing = difficultyAt(x).obstacleSpacing + this.random('hazard') * COURSE_RANDOM.hazardExtra;
+      const spacing = difficultyAt(x).obstacleSpacing * (0.75 + this.random('hazard') * 0.6) + this.random('hazard') * COURSE_RANDOM.hazardExtra;
       this.nextHazardX = x + spacing;
       // Clear both the lower lane and the approach/descent of every branch.
       if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
@@ -437,7 +452,7 @@ export class RunnerModel {
     }
     while (this.nextFoodX < this.distance + 96) {
       const desired = this.nextFoodX;
-      this.nextFoodX += difficultyAt(desired).foodSpacing + (this.random('food') * 2 - 1) * COURSE_RANDOM.foodJitter;
+      this.nextFoodX += difficultyAt(desired).foodSpacing * (0.7 + this.random('food') * 0.65) + (this.random('food') * 2 - 1) * COURSE_RANDOM.foodJitter;
       const safe = (x: number) => x - this.lastFoodX >= RULES.minFoodSpacing && this.safeFoodX(x)
         && (!this.separateSpawns || this.items.every(i => i.kind !== 'food' && i.kind !== 'gold' || Math.abs(i.x-x) >= FOOD_GAPS.regularMargin));
       // Bounded search near each scheduled food, never relaxing hazard clearance.
@@ -451,20 +466,21 @@ export class RunnerModel {
       this.lastFoodX = foodX;
       const lift = RULES.foodLiftMin + this.random('food') * (RULES.foodLiftMax - RULES.foodLiftMin);
       const platform = this.platforms.find(p => foodX! >= p.start && foodX! <= p.end);
-      this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.random('food') < RULES.goldChance ? 'gold' : 'food');
+      this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.rollFoodKind(this.random('food')));
     }
     this.limitFoodGaps(this.distance+96);
     if (!this.separateSpawns) this.generateCoins();
     // A separate seeded schedule never changes the obstacle/food random stream.
-    while (this.encounterCourse && this.lastEncounterX + 300 <= this.distance + 120) {
-      if (this.separateSpawns && this.lastEncounterX + 300 < this.distance + 16) {
+    // 미니게임 200m 안쪽(60m~190m) 랜덤 거리 등장
+    while (this.encounterCourse && this.lastEncounterX + 60 <= this.distance + 120) {
+      if (this.separateSpawns && this.lastEncounterX + 190 < this.distance + 16) {
         // Recover a missed planning band without spawning an NPC behind the runner.
-        this.lastEncounterX = this.distance - 184;
+        this.lastEncounterX = this.distance - 74;
         this.plannedEncounter = null;
       }
       const nextState = (Math.imul(1664525, this.encounterState) + 1013904223) >>> 0;
-      const desired = this.lastEncounterX + 200 + nextState / 4294967296 * 100;
-      const candidates = Array.from({ length: 201 }, (_, n) => this.lastEncounterX + 200 + n * .5)
+      const desired = this.lastEncounterX + 60 + (nextState / 4294967296) * 130;
+      const candidates = Array.from({ length: 261 }, (_, n) => this.lastEncounterX + 60 + n * .5)
         .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
       const safeEncounter = (x: number) => {
         if (this.separateSpawns && !this.clearFoodDeadline(x)) return false;

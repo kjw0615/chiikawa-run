@@ -13,7 +13,7 @@ export const CAMEOS: readonly CameoKind[] = [
   { id: 'pajama', frame: 'pajama-dance', frames: 4, fps: 6 },
 ];
 export const CAMEO_RULES = {
-  minGap: 150, maxGap: 250, // metres between two cameos (one cameo per gap)
+  minGap: 120, maxGap: 300, // metres between two cameos (randomized interval, not too frequent)
   designWidth: 320, designHeight: 240, groundY: 230, // frames are authored on a 320x240 canvas standing on y=230
   leadMeters: 20,           // a cameo is placed this far beyond the right edge of the screen so it scrolls in
 } as const;
