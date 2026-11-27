@@ -91,48 +91,55 @@ let magicalArtFailed = false;
 let magicalDarkArtFailed = false;
 let superMagicalArtFailed = false;
 
-const hulaToggle = $<HTMLButtonElement>('hula-skin-toggle'), hulaStatus = $('hula-skin-status');
+const hulaToggle = $<HTMLButtonElement>('hula-skin-toggle');
+const hulaStatus = $('hula-skin-status');
 function setSkinToggleState(type: TestSkinType, message?: string) {
   currentTestSkin = type;
   const isEnabled = type !== 'none';
-  hulaToggle.setAttribute('aria-pressed', String(isEnabled));
-  const skinLabel = type === 'super-magical' ? '초매지컬 파워업' : type === 'magical-dark' ? '매지컬 차지 다크모드' : type === 'magical' ? '매지컬 차지' : type === 'anoko' ? '아노코 인형옷' : type === 'dekatsuyo' ? '데카츠요 인형옷' : type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '인어섬의 비밀' : '기본';
-  hulaToggle.setAttribute('aria-label', `테스트 스킨: ${skinLabel}. 더블클릭으로 전환`);
-  hulaToggle.textContent = type === 'super-magical' ? '💜' : type === 'magical-dark' ? '🖤' : type === 'magical' ? '✨' : type === 'anoko' ? '🐊' : type === 'dekatsuyo' ? '😈' : type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
-  hulaStatus.hidden = false;
-  hulaStatus.textContent = message ?? (type === 'super-magical' ? '초매지컬 파워업 테스트 스킨 장착!' : type === 'magical-dark' ? '매지컬 차지 다크모드 테스트 스킨 장착!' : type === 'magical' ? '매지컬 차지 테스트 스킨 장착!' : type === 'anoko' ? '아노코 인형옷 테스트 스킨 장착!' : type === 'dekatsuyo' ? '데카츠요 인형옷 테스트 스킨 장착!' : type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '인어섬의 비밀 스킨 테스트 장착!' : '기본 달리기로 돌아왔어요');
+  if (hulaToggle) {
+    hulaToggle.setAttribute('aria-pressed', String(isEnabled));
+    const skinLabel = type === 'super-magical' ? '초매지컬 파워업' : type === 'magical-dark' ? '매지컬 차지 다크모드' : type === 'magical' ? '매지컬 차지' : type === 'anoko' ? '아노코 인형옷' : type === 'dekatsuyo' ? '데카츠요 인형옷' : type === 'usagi' ? '우사기 인형옷' : type === 'hula' ? '인어섬의 비밀' : '기본';
+    hulaToggle.setAttribute('aria-label', `테스트 스킨: ${skinLabel}. 더블클릭으로 전환`);
+    hulaToggle.textContent = type === 'super-magical' ? '💜' : type === 'magical-dark' ? '🖤' : type === 'magical' ? '✨' : type === 'anoko' ? '🐊' : type === 'dekatsuyo' ? '😈' : type === 'usagi' ? '🐰' : type === 'hula' ? '🌺' : '↓';
+  }
+  if (hulaStatus) {
+    hulaStatus.hidden = false;
+    hulaStatus.textContent = message ?? (type === 'super-magical' ? '초매지컬 파워업 테스트 스킨 장착!' : type === 'magical-dark' ? '매지컬 차지 다크모드 테스트 스킨 장착!' : type === 'magical' ? '매지컬 차지 테스트 스킨 장착!' : type === 'anoko' ? '아노코 인형옷 테스트 스킨 장착!' : type === 'dekatsuyo' ? '데카츠요 인형옷 테스트 스킨 장착!' : type === 'usagi' ? '우사기 인형옷 테스트 스킨 장착!' : type === 'hula' ? '인어섬의 비밀 스킨 테스트 장착!' : '기본 달리기로 돌아왔어요');
+  }
   updateHomeHeroDisplay();
 }
-hulaToggle.addEventListener('dblclick', e => {
-  e.preventDefault(); e.stopPropagation();
-  if (home.hidden || preparing || intro.active || ready.active || devActive) return;
-  // 순환 토글: none -> usagi -> dekatsuyo -> anoko -> magical -> magical-dark -> super-magical -> hula -> none
-  if (currentTestSkin === 'none') {
-    if (usagiArtFailed) { setSkinToggleState('none', '우사기 스킨 이미지를 불러오지 못했어요.'); return; }
-    setSkinToggleState('usagi');
-  } else if (currentTestSkin === 'usagi') {
-    if (dekatsuyoArtFailed) { setSkinToggleState('none', '데카츠요 스킨 이미지를 불러오지 못했어요.'); return; }
-    setSkinToggleState('dekatsuyo');
-  } else if (currentTestSkin === 'dekatsuyo') {
-    if (anokoArtFailed) { setSkinToggleState('none', '아노코 스킨 이미지를 불러오지 못했어요.'); return; }
-    setSkinToggleState('anoko');
-  } else if (currentTestSkin === 'anoko') {
-    if (magicalArtFailed) { setSkinToggleState('none', '매지컬 차지 스킨 이미지를 불러오지 못했어요.'); return; }
-    setSkinToggleState('magical');
-  } else if (currentTestSkin === 'magical') {
-    if (magicalDarkArtFailed) { setSkinToggleState('none', '매지컬 차지 다크모드 스킨 이미지를 불러오지 못했어요.'); return; }
-    setSkinToggleState('magical-dark');
-  } else if (currentTestSkin === 'magical-dark') {
-    if (superMagicalArtFailed) { setSkinToggleState('none', '초매지컬 스킨 이미지를 불러오지 못했어요.'); return; }
-    setSkinToggleState('super-magical');
-  } else if (currentTestSkin === 'super-magical') {
-    if (hulaArtFailed) { setSkinToggleState('none'); return; }
-    setSkinToggleState('hula');
-  } else {
-    setSkinToggleState('none');
-  }
-  dropFocus();
-});
+if (hulaToggle) {
+  hulaToggle.addEventListener('dblclick', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (home.hidden || preparing || intro.active || ready.active || devActive) return;
+    // 순환 토글: none -> usagi -> dekatsuyo -> anoko -> magical -> magical-dark -> super-magical -> hula -> none
+    if (currentTestSkin === 'none') {
+      if (usagiArtFailed) { setSkinToggleState('none', '우사기 스킨 이미지를 불러오지 못했어요.'); return; }
+      setSkinToggleState('usagi');
+    } else if (currentTestSkin === 'usagi') {
+      if (dekatsuyoArtFailed) { setSkinToggleState('none', '데카츠요 스킨 이미지를 불러오지 못했어요.'); return; }
+      setSkinToggleState('dekatsuyo');
+    } else if (currentTestSkin === 'dekatsuyo') {
+      if (anokoArtFailed) { setSkinToggleState('none', '아노코 스킨 이미지를 불러오지 못했어요.'); return; }
+      setSkinToggleState('anoko');
+    } else if (currentTestSkin === 'anoko') {
+      if (magicalArtFailed) { setSkinToggleState('none', '매지컬 차지 스킨 이미지를 불러오지 못했어요.'); return; }
+      setSkinToggleState('magical');
+    } else if (currentTestSkin === 'magical') {
+      if (magicalDarkArtFailed) { setSkinToggleState('none', '매지컬 차지 다크모드 스킨 이미지를 불러오지 못했어요.'); return; }
+      setSkinToggleState('magical-dark');
+    } else if (currentTestSkin === 'magical-dark') {
+      if (superMagicalArtFailed) { setSkinToggleState('none', '초매지컬 스킨 이미지를 불러오지 못했어요.'); return; }
+      setSkinToggleState('super-magical');
+    } else if (currentTestSkin === 'super-magical') {
+      if (hulaArtFailed) { setSkinToggleState('none'); return; }
+      setSkinToggleState('hula');
+    } else {
+      setSkinToggleState('none');
+    }
+    dropFocus();
+  });
+}
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
 let mini: SlottedMiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
@@ -1347,6 +1354,22 @@ function renderShop() {
   shopItemsContainer.querySelectorAll('[data-buy]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-buy')!;
+      const user = authService.getUser();
+      const item = SHOP_ITEMS.find(i => i.id === id);
+      if (!user) {
+        showShopToast('상점을 이용하려면 먼저 로그인해 주세요.');
+        return;
+      }
+      if (!item) return;
+
+      if (user.coins < item.price) {
+        showShopToast('소유한 코인이 부족해서 구매할 수 없습니다.');
+        return;
+      }
+
+      const confirmed = window.confirm(`[${item.name}] 스킨을 동전 ${item.price}개로 정말 구매하시겠습니까?`);
+      if (!confirmed) return;
+
       const res = ShopManager.buyItem(id);
       showShopToast(res.message);
       renderShop();
@@ -1585,6 +1608,17 @@ function openSkinPreview(skinId: string) {
     });
 
     actionWrap.querySelector('[data-preview-buy]')?.addEventListener('click', () => {
+      if (!user) {
+        showShopToast('상점을 이용하려면 먼저 로그인해 주세요.');
+        return;
+      }
+      if (user.coins < item.price) {
+        showShopToast('소유한 코인이 부족해서 구매할 수 없습니다.');
+        return;
+      }
+      const confirmed = window.confirm(`[${item.name}] 스킨을 동전 ${item.price}개로 정말 구매하시겠습니까?`);
+      if (!confirmed) return;
+
       const res = ShopManager.buyItem(item.id);
       showShopToast(res.message);
       renderShop();

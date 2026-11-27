@@ -133,7 +133,7 @@ export class ShopManager {
     }
 
     if (user.coins < item.price) {
-      return { ok: false, message: `동전이 부족합니다! (필요: ${item.price}개 / 보유: ${user.coins}개)` };
+      return { ok: false, message: '소유한 코인이 부족해서 구매할 수 없습니다.' };
     }
 
     if (authService.spendCoins(item.price)) {
