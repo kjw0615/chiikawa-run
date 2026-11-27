@@ -706,6 +706,56 @@ crouchButton.addEventListener('pointerdown', e => { e.preventDefault(); crouchHe
 const CROUCH_KEYS = ['ArrowDown', 'ControlLeft', 'ControlRight'], crouchKeysDown = new Set<string>();
 function release() { crouchKeysDown.clear(); crouchHeld = false; model.crouch = false; crouchButton.classList.remove('held'); }
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) crouchButton.addEventListener(event, release);
+// ============================================================================
+// 전체화면 및 가로모드 전환 기능
+// ============================================================================
+const fsToggle = $('fullscreen-toggle');
+const homeFsBtn = $('home-fullscreen-btn');
+const fsEnterIcon = fsToggle?.querySelector<SVGElement>('.ico-fullscreen');
+const fsExitIcon = fsToggle?.querySelector<SVGElement>('.ico-exit-fullscreen');
+
+async function toggleFullscreenLandscape() {
+  try {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+      // 가로 모드 락 시도 (지원 브라우저인 경우)
+      if (screen.orientation && 'lock' in screen.orientation) {
+        try {
+          await (screen.orientation as unknown as { lock: (orientation: string) => Promise<void> }).lock('landscape');
+        } catch {
+          /* 일부 미지원 기기 또는 권한 정책 에러 조용히 무시 */
+        }
+      }
+    } else {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+      if (screen.orientation && 'unlock' in screen.orientation) {
+        try {
+          (screen.orientation as unknown as { unlock: () => void }).unlock();
+        } catch {
+          /* optional */
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('전체화면 전환 실패:', err);
+  }
+}
+
+function updateFullscreenIcons() {
+  const isFs = !!document.fullscreenElement;
+  if (fsEnterIcon) fsEnterIcon.style.display = isFs ? 'none' : 'block';
+  if (fsExitIcon) fsExitIcon.style.display = isFs ? 'block' : 'none';
+  if (homeFsBtn) homeFsBtn.textContent = isFs ? '⛶ 전체화면 종료' : '⛶ 가로모드';
+}
+
+fsToggle?.addEventListener('click', toggleFullscreenLandscape);
+homeFsBtn?.addEventListener('click', toggleFullscreenLandscape);
+document.addEventListener('fullscreenchange', updateFullscreenIcons);
+
 function returnHome() {
   preparing = false; ready.cancel();
   release(); releaseJump(); model.pause(); mini = null; encounterId = null; updateMini(); updateHud();

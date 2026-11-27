@@ -35,6 +35,7 @@
             <button id="btn-logout" class="auth-btn sub" type="button">로그아웃</button>
           </div>
           <button id="btn-open-shop" class="shop-entry-btn" type="button">🛍️ 상점</button>
+          <button id="home-fullscreen-btn" class="home-fullscreen-btn" type="button" aria-label="가로 전체화면" title="가로 전체화면">⛶ 가로모드</button>
         </div>
         <p class="eyebrow">모몽가의 작은 도주</p>
         <h1 id="home-title">치이카와 <span>런</span></h1>
@@ -73,6 +74,10 @@
       <div class="stamina-card"><div class="hud-label"><span>달리기 체력</span></div><div class="track"><div id="stamina-fill"></div></div></div>
       <div class="hud-right">
         <div class="hud-buttons">
+          <button id="fullscreen-toggle" class="icon-button" type="button" aria-label="가로 전체화면 전환" title="가로 전체화면 전환">
+            <svg class="ico ico-fullscreen" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="ico ico-exit-fullscreen" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
           <button id="pause" class="icon-button" type="button" aria-label="일시정지" disabled>
             <svg class="ico ico-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="4.2" height="15" rx="1.6"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.6"/></svg>
             <svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.8v14.4a1 1 0 0 0 1.5.9l11-7.2a1 1 0 0 0 0-1.8l-11-7.2A1 1 0 0 0 8 4.8z"/></svg>
