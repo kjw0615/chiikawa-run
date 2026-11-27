@@ -48,6 +48,15 @@ export const SHOP_ITEMS: ShopItem[] = [
     idleImg: '/assets/momonga-hula-idle.webp'
   },
   {
+    id: 'momonga-kigurumi-small-monster',
+    name: '소형 몬스터 인형옷 스킨',
+    desc: '토벌 훈련에 등장하는 초록 줄무늬 껍질과 더듬이가 달린 소형 몬스터 코스튬',
+    price: 150,
+    icon: '/assets/momonga-small-monster-idle.webp',
+    preview: '/assets/momonga-small-monster-run.webp',
+    idleImg: '/assets/momonga-small-monster-idle.webp'
+  },
+  {
     id: 'momonga-kigurumi-anoko',
     name: '아노코 인형옷 스킨',
     desc: '이마의 외뿔, 풍성한 가슴털과 줄무늬 꼬리가 달린 아노코 코스튬',
