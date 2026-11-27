@@ -518,7 +518,7 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
   box-shadow: 0 8px 0 var(--ink);
   width: 100%;
   max-width: 440px;
-  max-height: calc(100svh - 24px);
+  max-height: min(600px, calc(100svh - 24px));
   padding: 20px 18px 16px;
   position: relative;
   box-sizing: border-box;
@@ -708,7 +708,7 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
    ========================================================================== */
 .shop-card {
   max-width: 540px;
-  max-height: calc(100svh - 24px);
+  max-height: min(520px, calc(100svh - 24px));
   display: flex;
   flex-direction: column;
 }
