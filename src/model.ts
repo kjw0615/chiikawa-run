@@ -411,7 +411,7 @@ export class RunnerModel {
       this.nextHazardX = x + spacing;
       // Clear both the lower lane and the approach/descent of every branch.
       if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;
-      const kind = paceHazardAt(this.artSeed, this.groundPatternIndex);
+      const kind = paceHazardAt(this.artSeed, this.groundPatternIndex, x);
       // Water is variable: a short one stands alone, a long one always gets a refuge platform above it.
       const water = kind === 'pit' || kind === 'puddle';
       const roll = water ? this.random('hazard') : 1;
@@ -424,7 +424,7 @@ export class RunnerModel {
       if (this.lastGroundHazard) x = Math.max(x, this.lastGroundHazard.x
         + (this.lastGroundHazard.w + width) / 2 / RULES.scale
         // A refuge platform needs its approach/exit zone (plus 3 m) kept clear of the neighbouring hazard.
-        + (long || this.lastGroundHazard.refuge ? TERRAIN.refugeApproach + RULES.platformExit + 3 : paceClearance(this.lastGroundHazard.kind, kind)));
+        + (long || this.lastGroundHazard.refuge ? TERRAIN.refugeApproach + RULES.platformExit + 3 : paceClearance(this.lastGroundHazard.kind, kind, x)));
       this.nextHazardX = x + spacing;
       if (this.plannedEncounter !== null && Math.abs(x-this.plannedEncounter) < SPAWN_CLEARANCE.encounterHazard + (width/2+RULES.halfHitWidth)/RULES.scale + .5) continue;
       if (this.platforms.some(p => x > p.start - RULES.platformApproach - 3 && x < p.end + RULES.platformExit + 3)) continue;

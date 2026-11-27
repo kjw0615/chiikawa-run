@@ -281,14 +281,23 @@ function endOverlay() {
     $('modal-title').textContent = '도주 훈련 수료!';
     $('modal-copy').textContent = '기본 조작부터 도주 규칙까지 모두 배웠어요. 이제 실전에 도전해 보세요!';
     $('result').hidden = false;
-    $('result').textContent = '데카츠요를 피해 끝까지 도망쳐 보세요!';
+    $('result-stats').hidden = true;
+    $('result-custom-text').hidden = false;
+    $('result-custom-text').textContent = '데카츠요를 피해 끝까지 도망쳐 보세요!';
     start.textContent = '실전 달리기 시작';
     return;
   }
   $('modal-kicker').textContent = over ? '한 번 더 달려볼까요?' : '모몽가도 잠깐 쉬어요';
   $('modal-title').textContent = over ? '앗, 붙잡혔다!' : '잠깐 쉬어 가요.';
   $('modal-copy').textContent = over ? '다음에는 조금 더 멀리 갈 수 있을 거예요.' : '준비되면 다시 달려요.';
-  $('result').hidden = !over; $('result').textContent = `${Math.floor(model.distance)} m · 최고 ${best} m · 획득 동전 ${model.coins}`;
+  $('result').hidden = !over;
+  if (over) {
+    $('result-stats').hidden = false;
+    $('result-custom-text').hidden = true;
+    $('result-dist').textContent = String(Math.floor(model.distance));
+    $('result-best').textContent = String(best);
+    $('result-coin').textContent = String(model.coins);
+  }
   if (over && model.coins > 0) {
     authService.addCoins(model.coins);
   }

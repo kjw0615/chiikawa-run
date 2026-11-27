@@ -59,13 +59,7 @@
       </div>
     </div>
 
-    <ul class="how" aria-label="게임 방법">
-      <li><span class="how-icon pink">🍮</span><p><strong>먹으면 힘이 나요</strong><small>맛있는 음식을 먹으면 달리기 체력이 차올라요</small></p></li>
-      <li><span class="how-icon yellow">✦</span><p><strong>황금 음식</strong><small>먹으면 잠깐 빨라지고 무적이 돼요</small></p></li>
-      <li><span class="how-icon mint">↑↑</span><p><strong>길게 눌러 높은 가지로</strong><small>짧게 누르면 낮게, 다시 누르면 2단점프해요</small></p></li>
-      <li><button id="hula-skin-toggle" class="how-icon sky" type="button" aria-pressed="false" aria-label="훌라 달리기 테스트 스킨: 꺼짐. 더블클릭으로 전환" title="더블클릭: 훌라 달리기 테스트 스킨">↓</button><p><strong>낮은 천장은 앉기</strong><small>부딪히면 뒤로 밀리지만 잠깐 보호돼요</small><small id="hula-skin-status" role="status" hidden></small></p></li>
-      <li><span class="how-icon sky">↓↑</span><p><strong>윗길에서 앉기 + 점프</strong><small>가지를 통과해 아래층으로 내려가요</small></p></li>
-    </ul>
+    <!-- 게임 방법은 튜토리얼에서 안내되므로 메인 설명 목록은 제거됨 -->
   </section>
 
   <!-- 게임 화면 -->
@@ -110,7 +104,27 @@
         <button id="tutorial-next-btn" class="tutorial-next-btn" type="button">계속하기 ▶</button>
       </div>
     </div>
-    <div id="overlay" class="overlay"><div class="modal"><span id="modal-kicker" class="eyebrow">준비됐나요, 모몽가?</span><h2 id="modal-title">한 입 먹고,<br>한 발 더 멀리.</h2><p id="modal-copy">장애물을 피하며 맛있는 음식을 챙겨요.<br>뒤에서 쫓아오는 데카츠요에게 잡히지 마세요!</p><div id="result" class="result" hidden></div><button id="overlay-show-intro" class="intro-option" type="button" role="switch" aria-checked="true"><span>&#49884;&#51089; &#50689;&#49345; &#48372;&#44592;</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button><button id="start" class="primary" type="button">달리기 시작</button><button id="pause-home" class="primary stop-running" type="button" hidden>그만 달리기</button><p class="modal-help">Space 점프 · ↓ 앉기 · P 일시정지</p></div></div>
+    <div id="overlay" class="overlay"><div class="modal"><span id="modal-kicker" class="eyebrow">준비됐나요, 모몽가?</span><h2 id="modal-title">한 입 먹고,<br>한 발 더 멀리.</h2><p id="modal-copy">장애물을 피하며 맛있는 음식을 챙겨요.<br>뒤에서 쫓아오는 데카츠요에게 잡히지 마세요!</p>
+      <div id="result" class="result" hidden>
+        <div id="result-stats" class="result-stats">
+          <div class="result-stat-box">
+            <span class="result-label">달린 거리</span>
+            <div class="result-val-wrap"><strong id="result-dist">0</strong><span class="result-unit">m</span></div>
+          </div>
+          <div class="result-stat-divider"></div>
+          <div class="result-stat-box">
+            <span class="result-label">최고 기록</span>
+            <div class="result-val-wrap"><strong id="result-best">0</strong><span class="result-unit">m</span></div>
+          </div>
+          <div class="result-stat-divider"></div>
+          <div class="result-stat-box">
+            <span class="result-label">획득 동전</span>
+            <div class="result-val-wrap"><img src="/assets/coin.webp" alt="동전" class="result-coin-icon"/><strong id="result-coin">0</strong></div>
+          </div>
+        </div>
+        <div id="result-custom-text" class="result-custom-text" hidden></div>
+      </div>
+      <button id="overlay-show-intro" class="intro-option" type="button" role="switch" aria-checked="true"><span>시작 영상 보기</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button><button id="start" class="primary" type="button">달리기 시작</button><button id="pause-home" class="primary stop-running" type="button" hidden>그만 달리기</button><p class="modal-help">Space 점프 · ↓ 앉기 · P 일시정지</p></div></div>
     <div id="mini-countdown" class="mini-countdown" role="status" hidden><p>다시 달릴 준비!</p><strong id="countdown-number">3</strong><button id="countdown-resume" class="primary" type="button" hidden>계속하기</button><button id="countdown-home" class="primary stop-running" type="button" hidden>그만 달리기</button></div>
   </section>
 
