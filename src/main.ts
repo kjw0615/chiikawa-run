@@ -768,7 +768,6 @@ customDialogCancel?.addEventListener('click', () => {
 // 전체화면 및 가로모드 전환 기능
 // ============================================================================
 const fsToggle = $('fullscreen-toggle');
-const homeFsBtn = $('home-fullscreen-btn');
 const fsEnterIcon = fsToggle?.querySelector<SVGElement>('.ico-fullscreen');
 const fsExitIcon = fsToggle?.querySelector<SVGElement>('.ico-exit-fullscreen');
 
@@ -807,12 +806,9 @@ function updateFullscreenIcons() {
   const isFs = !!document.fullscreenElement;
   if (fsEnterIcon) fsEnterIcon.style.display = isFs ? 'none' : 'block';
   if (fsExitIcon) fsExitIcon.style.display = isFs ? 'block' : 'none';
-  if (homeFsBtn) homeFsBtn.textContent = isFs ? '⛶ 전체화면 해제' : '⛶ 전체화면 모드';
-  if (homeFsBtn) homeFsBtn.setAttribute('title', isFs ? '전체화면 해제' : '전체화면 모드');
 }
 
 fsToggle?.addEventListener('click', toggleFullscreenLandscape);
-homeFsBtn?.addEventListener('click', toggleFullscreenLandscape);
 document.addEventListener('fullscreenchange', updateFullscreenIcons);
 
 function returnHome() {
