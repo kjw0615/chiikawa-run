@@ -5,7 +5,67 @@
 .mini-copy{margin:6px auto 10px;max-width:540px;line-height:1.5;font-size:16px}.mini-reward{min-height:25px;font-size:18px;margin:8px 0;color:#577b52}.mini-card .big-button{display:flex;justify-content:center;text-align:center;margin:2px auto 10px;min-width:200px;touch-action:manipulation}.mini-card .big-button:disabled{opacity:.65;cursor:default;transform:none}
 .lemon-tray{display:flex;justify-content:center;gap:8px;padding:10px 0}.lemon-cell{position:relative;width:48px;border-radius:16px;border:2px solid transparent;transition:background .1s}.lemon-cell.current{border-color:#cfa653;background:#fff4cf}.lemon-cell.done{opacity:.75}.lemon-cell .lemon-mark{position:absolute;left:50%;top:57%;transform:translate(-50%,-50%);width:27px;height:27px;display:grid;place-items:center;background:#f7fff1;border:2px solid #6d8a61;border-radius:50%;color:#55794c;font-size:19px;font-weight:bold}.lemon-cell.missed .lemon-mark{background:#ffe9e3;border-color:#bd7c72;color:#a5675f}
 .sticker-timing{max-width:500px;margin:0 auto}.timing-track{height:30px;background:#eadfc6;border:3px solid #806c55;border-radius:14px;position:relative;margin:10px 15px 0}.timing-target{position:absolute;left:36%;width:28%;height:100%;background:#a7d099;border-left:2px dashed #608a57;border-right:2px dashed #608a57}.sticker-cursor{position:absolute;top:-16px;transform:translateX(-50%);font-size:32px;color:#8d5553;line-height:40px;filter:drop-shadow(0 2px 0 #fffdf5)}.sticker-timing p{font-size:14px;margin:6px 0}.mini-time-track{height:5px;background:#efe4d4;border-radius:5px;overflow:hidden}.mini-time-track span{display:block;height:100%;background:#bc9a71}
-.slot-window{height:134px;width:160px;overflow:hidden;border:3px solid #b59161;border-radius:20px;background:#fff6da;margin:8px auto;position:relative;box-shadow:inset 0 7px 9px #c9ac7733,inset 0 -7px 9px #c9ac7733}.slot-cell{height:132px;display:flex;align-items:center;justify-content:center}.slot-cell .event-sprite{margin-top:-5px}#slot-panel>p{margin:8px 0;font-size:17px}.mini-paused{padding:14px;background:#fae7d8;border-radius:12px;margin:4px 0}.mini-countdown{position:absolute;inset:0;z-index:25;background:#eff6e93b;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#624e49;text-align:center;pointer-events:none;text-shadow:0 2px 0 #fffdf5}.mini-countdown p{font-size:24px;margin:0}.mini-countdown strong{font-size:92px;line-height:1.2}.mini-countdown button{pointer-events:auto}
+.slot-window{height:134px;width:160px;overflow:hidden;border:3px solid #b59161;border-radius:20px;background:#fff6da;margin:8px auto;position:relative;box-shadow:inset 0 7px 9px #c9ac7733,inset 0 -7px 9px #c9ac7733}.slot-cell{height:132px;display:flex;align-items:center;justify-content:center}.slot-cell .event-sprite{margin-top:-5px}#slot-panel>p{margin:8px 0;font-size:17px}.mini-paused{padding:14px;background:#fae7d8;border-radius:12px;margin:4px 0}.mini-countdown{
+  position:absolute;
+  inset:0;
+  z-index:25;
+  background:#fde9eeaa;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  display:grid;
+  place-items:center;
+  padding:10px;
+  color:var(--ink);
+  text-align:center;
+}
+.countdown-card{
+  width:390px;
+  max-width:84%;
+  padding:26px 34px 22px;
+  background:#fffdf6;
+  border:4px solid var(--ink);
+  border-radius:28px;
+  box-shadow:0 8px 0 var(--ink);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+.countdown-card p{
+  font-size:22px;
+  font-weight:700;
+  color:var(--ink);
+  margin:0 0 12px;
+  text-shadow:1px 1px 0 rgba(255,255,255,0.8);
+}
+.countdown-number-wrap{
+  min-height:96px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.countdown-card strong{
+  font-size:82px;
+  line-height:1;
+  color:var(--pink-deep);
+  text-shadow:0 3px 0 rgba(0,0,0,0.15);
+}
+.countdown-card strong.is-paused{
+  font-size:56px;
+  color:var(--ink);
+}
+.countdown-buttons{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:14px;
+}
+.countdown-buttons .primary{
+  margin-top:0;
+  width:100%;
+  justify-content:center;
+}
 @media(max-width:500px){.mini-card{padding:12px;border-radius:20px}.mini-heading h2{font-size:22px}.mini-copy{font-size:14px}.lemon-tray{gap:0}.lemon-cell{width:19%;overflow:hidden}.mini-reward{font-size:16px}.mini-top{font-size:12px}.mini-heading{gap:4px}}
 
 /* 세로 모드일 때 미니게임 조작 버튼을 하단 여백 쪽으로 시원하게 분리 배치 */
@@ -71,7 +131,18 @@
     margin:14px auto 4px;
   }
 }
-@media(max-height:520px) and (orientation:landscape){.mini-card{padding:8px 22px;border-radius:18px}.mini-top{font-size:12px}.mini-top button{padding:3px 10px}.mini-heading{min-height:36px}.mini-heading .event-sprite{display:none}.mini-heading h2{font-size:21px;margin:0}.mini-heading p{display:none}.mini-copy{font-size:13px;margin:2px 0}.lemon-tray{padding:0;gap:4px}.lemon-cell{height:70px}.lemon-cell .event-sprite{margin-top:-18px}.lemon-cell .lemon-mark{top:60%;width:22px;height:22px;font-size:15px}.timing-track{height:23px;margin-top:8px}.mini-card .big-button{padding:8px 18px;font-size:16px;margin:0 auto 3px}.mini-reward{margin:4px 0;min-height:0;font-size:14px}.slot-window{height:134px;margin:0 auto}.mini-countdown strong{font-size:64px}.mini-countdown p{font-size:17px}.sticker-timing p{margin:3px}.mini-paused{padding:6px;margin:0}}
+@media(max-height:520px) and (orientation:landscape){
+  .mini-card{padding:8px 22px;border-radius:18px}.mini-top{font-size:12px}
+  .mini-top button{padding:3px 10px}.mini-heading{min-height:36px}.mini-heading .event-sprite{display:none}.mini-heading h2{font-size:21px;margin:0}.mini-heading p{display:none}.mini-copy{font-size:13px;margin:2px 0}.lemon-tray{padding:0;gap:4px}.lemon-cell{height:70px}.lemon-cell .event-sprite{margin-top:-18px}.lemon-cell .lemon-mark{top:60%;width:22px;height:22px;font-size:15px}.timing-track{height:23px;margin-top:8px}.mini-card .big-button{padding:8px 18px;font-size:16px;margin:0 auto 3px}.mini-reward{margin:4px 0;min-height:0;font-size:14px}.slot-window{height:134px;margin:0 auto}
+  .countdown-card{width:320px;padding:12px 20px 10px;border-width:3px;border-radius:20px}
+  .countdown-card p{font-size:16px;margin-bottom:6px}
+  .countdown-number-wrap{min-height:56px}
+  .countdown-card strong{font-size:52px}
+  .countdown-card strong.is-paused{font-size:38px}
+  .countdown-buttons{margin-top:8px;gap:6px}
+  .countdown-buttons .primary{padding:6px 14px;font-size:14px;border-width:3px}
+  .sticker-timing p{margin:3px}.mini-paused{padding:6px;margin:0}
+}
 @media(prefers-reduced-motion:reduce){.lemon-cell{transition:none}}
 @media(max-height:520px) and (orientation:landscape){.lemon-cell{height:74px}.lemon-cell .event-sprite{margin-top:0}.timing-track{margin-top:16px}}
 @media(max-height:520px) and (orientation:landscape){.mini-reward:not(:empty){margin-bottom:8px}}

@@ -1074,8 +1074,17 @@ function updateMiniCore() {
   play.inert = !countdown; document.body.style.overflow = countdown ? '' : 'hidden';
   $<HTMLButtonElement>('jump').disabled = true; $<HTMLButtonElement>('crouch').disabled = true;
   if (countdown) {
-    $('countdown-number').textContent = g.paused ? 'Ⅱ' : String(Math.max(1, Math.ceil(g.countdownRemaining)));
-    $('countdown-resume').hidden = !g.paused; return;
+    const isPaused = !!g.paused;
+    const label = $('countdown-label');
+    if (label) label.textContent = isPaused ? '잠깐 쉬어 가요' : '다시 달릴 준비!';
+    const numEl = $('countdown-number');
+    if (numEl) {
+      numEl.textContent = isPaused ? '⏸' : String(Math.max(1, Math.ceil(g.countdownRemaining)));
+      numEl.classList.toggle('is-paused', isPaused);
+    }
+    $('countdown-resume').hidden = !isPaused;
+    $('countdown-home').hidden = !isPaused;
+    return;
   }
   if (g.phase === 'selecting') {
     // Slot reel: only the roster's characters spin by, and it lands on the winner.

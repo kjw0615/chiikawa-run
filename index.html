@@ -130,7 +130,16 @@
         <div id="result-custom-text" class="result-custom-text" hidden></div>
       </div>
       <button id="overlay-show-intro" class="intro-option" type="button" role="switch" aria-checked="true"><span>시작 영상 보기</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button><button id="start" class="primary" type="button">달리기 시작</button><button id="pause-home" class="primary stop-running" type="button" hidden>그만 달리기</button><p class="modal-help">Space 점프 · ↓ 앉기 · P 일시정지</p></div></div>
-    <div id="mini-countdown" class="mini-countdown" role="status" hidden><p>다시 달릴 준비!</p><strong id="countdown-number">3</strong><button id="countdown-resume" class="primary" type="button" hidden>계속하기</button><button id="countdown-home" class="primary stop-running" type="button" hidden>그만 달리기</button></div>
+    <div id="mini-countdown" class="mini-countdown" role="status" hidden>
+      <div class="countdown-card">
+        <p id="countdown-label">다시 달릴 준비!</p>
+        <div class="countdown-number-wrap"><strong id="countdown-number">3</strong></div>
+        <div class="countdown-buttons">
+          <button id="countdown-resume" class="primary" type="button" hidden>계속하기</button>
+          <button id="countdown-home" class="primary stop-running" type="button" hidden>그만 달리기</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section id="dev-mini" class="dev-mini" role="dialog" aria-modal="true" aria-labelledby="dev-mini-title" hidden>
