@@ -60,14 +60,40 @@ export class RunnerModel {
   private hazardState: number; private foodState: number; private artSeed: number;
   private generateCourse: boolean; private lastFoodX = -Infinity;
   private foodGapAnchor: number | null = null;
-  private foodsSinceLastGold = 5;
-  private rollFoodKind(randomRoll: number): 'gold' | 'food' {
-    if (this.foodsSinceLastGold >= 5 && randomRoll < RULES.goldChance) {
-      this.foodsSinceLastGold = 0;
-      return 'gold';
+  private foodHistory: Array<{ x: number; kind: 'food' | 'gold' }> = [];
+  private rollFoodKind(randomRoll: number, candidateX?: number): 'gold' | 'food' {
+    let allowed = true;
+    if (candidateX !== undefined) {
+      // Spatial clearance: ensure at least 5 consecutive non-gold foods in x order,
+      // and at least 60m physical distance from any previously generated gold food
+      const temp = [...this.foodHistory, { x: candidateX, kind: 'food' as const }].sort((a, b) => a.x - b.x);
+      const idx = temp.findIndex(f => f.x === candidateX);
+      if (idx !== -1) {
+        const start = Math.max(0, idx - 5);
+        const end = Math.min(temp.length - 1, idx + 5);
+        for (let i = start; i <= end; i++) {
+          if (i !== idx && temp[i].kind === 'gold') {
+            allowed = false;
+            break;
+          }
+        }
+      }
+      if (allowed) {
+        for (const item of this.foodHistory) {
+          if (item.kind === 'gold' && Math.abs(item.x - candidateX) < 60) {
+            allowed = false;
+            break;
+          }
+        }
+      }
     }
-    this.foodsSinceLastGold++;
-    return 'food';
+
+    const kind: 'gold' | 'food' = (allowed && randomRoll < RULES.goldChance) ? 'gold' : 'food';
+    if (candidateX !== undefined) {
+      this.foodHistory.push({ x: candidateX, kind });
+      this.foodHistory.sort((a, b) => a.x - b.x);
+    }
+    return kind;
   }
   private coinCourse: boolean; private coinState: number; private nextCoinX: number = COIN_RULES.firstCoinX; private coinId = 1000000; private coinGroupIndex = 0; private foodFreeDistance: number;
   private separateSpawns: boolean;
@@ -363,7 +389,7 @@ export class RunnerModel {
       if (x === undefined) return; // never weaken safety or remove already visible objects
       const surface = this.platforms.find(p => x! >= p.start && x! <= p.end)?.y ?? RULES.floor;
       const lift = RULES.foodLiftMin + this.random('food')*(RULES.foodLiftMax-RULES.foodLiftMin);
-      this.add(x,surface-lift,32,32,this.rollFoodKind(this.random('food')));
+      this.add(x,surface-lift,32,32,this.rollFoodKind(this.random('food'), x));
       this.foodGapAnchor = x;
     }
   }
@@ -377,7 +403,7 @@ export class RunnerModel {
       const p: Platform = { id: n, start, end: start + length, y: RULES.floor - RULES.platformHeight };
       this.platforms.push(p); this.nextPlatformX += 90;
       const foodX = start + 3 + this.random('platform') * .5, lift = 48 + this.random('platform') * 52;
-      this.add(foodX, p.y - lift, 32, 32, this.rollFoodKind(this.random('platform')));
+      this.add(foodX, p.y - lift, 32, 32, this.rollFoodKind(this.random('platform'), foodX));
       // Short branches are bonus paths; long ones have one well-spaced upper hazard.
       if (length >= 20) {
         const x = start + RULES.platformFirstHazard + this.random('platform') * (length === 20 ? .5 : 4);
@@ -470,7 +496,7 @@ export class RunnerModel {
       this.lastFoodX = foodX;
       const lift = RULES.foodLiftMin + this.random('food') * (RULES.foodLiftMax - RULES.foodLiftMin);
       const platform = this.platforms.find(p => foodX! >= p.start && foodX! <= p.end);
-      this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.rollFoodKind(this.random('food')));
+      this.add(foodX, (platform?.y ?? RULES.floor) - lift, 32, 32, this.rollFoodKind(this.random('food'), foodX));
     }
     this.limitFoodGaps(this.distance+96);
     if (!this.separateSpawns) this.generateCoins();
