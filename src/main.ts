@@ -805,7 +805,8 @@ function updateFullscreenIcons() {
   const isFs = !!document.fullscreenElement;
   if (fsEnterIcon) fsEnterIcon.style.display = isFs ? 'none' : 'block';
   if (fsExitIcon) fsExitIcon.style.display = isFs ? 'block' : 'none';
-  if (homeFsBtn) homeFsBtn.textContent = isFs ? '⛶ 전체화면 종료' : '⛶ 가로모드';
+  if (homeFsBtn) homeFsBtn.textContent = isFs ? '⛶ 전체화면 해제' : '⛶ 전체화면 모드';
+  if (homeFsBtn) homeFsBtn.setAttribute('title', isFs ? '전체화면 해제' : '전체화면 모드');
 }
 
 fsToggle?.addEventListener('click', toggleFullscreenLandscape);
