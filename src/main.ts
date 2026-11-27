@@ -1860,34 +1860,6 @@ skinPreviewTabBtns.forEach(btn => {
   });
 });
 
-// User state subscription to update user bar
-authService.subscribe((user: AuthUser | null) => {
-  const guestInfo = $('user-info-guest');
-  const loggedInfo = $('user-info-logged');
-  const nickDisplay = $('user-nick-display');
-  const coinsDisplay = $('user-coins-display');
-
-  if (user) {
-    guestInfo.hidden = true;
-    loggedInfo.hidden = false;
-    nickDisplay.textContent = user.nickname;
-    coinsDisplay.textContent = String(user.coins);
-
-    if (user.highScore && user.highScore > best) {
-      best = user.highScore;
-      try {
-        localStorage.setItem('little-escape-best', String(best));
-      } catch {
-        /* optional */
-      }
-    }
-  } else {
-    guestInfo.hidden = false;
-    loggedInfo.hidden = true;
-  }
-  updateHomeHeroDisplay();
-});
-
 // ============================================================================
 // 홈 화면 선택 스킨 캐릭터 렌더링 및 스킨 이름 표시
 // ============================================================================
@@ -1922,10 +1894,15 @@ function getActiveSkinId(): { id: string; name: string; runSrc: string } {
 
   // 2. Equipped skin from shop
   if (equipped && equipped !== 'default') {
-    const shopItem = SHOP_ITEMS.find(item => item.id === equipped);
-    const cfg = SKIN_CONFIGS[equipped];
+    // If equipped happens to be an asset path or legacy ID, normalize it
+    const normalizedSkinId = equipped.startsWith('/assets/')
+      ? (SHOP_ITEMS.find(item => item.preview === equipped || item.icon === equipped)?.id || equipped)
+      : equipped;
+
+    const shopItem = SHOP_ITEMS.find(item => item.id === normalizedSkinId);
+    const cfg = SKIN_CONFIGS[normalizedSkinId];
     if (shopItem && cfg) {
-      return { id: equipped, name: shopItem.name, runSrc: cfg.runSrc };
+      return { id: normalizedSkinId, name: shopItem.name, runSrc: cfg.runSrc };
     }
   }
 
@@ -1933,45 +1910,54 @@ function getActiveSkinId(): { id: string; name: string; runSrc: string } {
 }
 
 function updateHomeHeroDisplay() {
-  const active = getActiveSkinId();
+  try {
+    const active = getActiveSkinId();
 
-  if (active.id === 'default' || !active.runSrc) {
-    // Show original default momonga illustration
+    if (active.id === 'default' || !active.runSrc) {
+      // Show original default momonga illustration
+      if (homeHeroCanvas) homeHeroCanvas.hidden = true;
+      if (homeHeroImg) homeHeroImg.hidden = false;
+      if (homeSkinBadge) homeSkinBadge.hidden = true;
+      return;
+    }
+
+    // Show skin first running frame (256x224 frame 0)
+    if (homeHeroImg) homeHeroImg.hidden = true;
+    if (homeHeroCanvas) homeHeroCanvas.hidden = false;
+    if (homeSkinBadge) {
+      homeSkinBadge.hidden = false;
+      homeSkinBadge.textContent = active.name;
+    }
+
+    if (!homeRunImageCache) return;
+
+    let img = homeRunImageCache[active.runSrc];
+    if (!img) {
+      img = new Image();
+      img.src = active.runSrc;
+      homeRunImageCache[active.runSrc] = img;
+      img.onload = () => drawHomeHeroFrame(img);
+      img.onerror = () => {
+        // Fallback to default illustration if skin image fails to load
+        if (homeHeroCanvas) homeHeroCanvas.hidden = true;
+        if (homeHeroImg) homeHeroImg.hidden = false;
+        if (homeSkinBadge) homeSkinBadge.hidden = true;
+      };
+    } else if (img.complete && img.naturalWidth > 0) {
+      drawHomeHeroFrame(img);
+    } else {
+      img.onload = () => drawHomeHeroFrame(img);
+      img.onerror = () => {
+        if (homeHeroCanvas) homeHeroCanvas.hidden = true;
+        if (homeHeroImg) homeHeroImg.hidden = false;
+        if (homeSkinBadge) homeSkinBadge.hidden = true;
+      };
+    }
+  } catch (err) {
+    console.warn('updateHomeHeroDisplay error:', err);
     if (homeHeroCanvas) homeHeroCanvas.hidden = true;
     if (homeHeroImg) homeHeroImg.hidden = false;
     if (homeSkinBadge) homeSkinBadge.hidden = true;
-    return;
-  }
-
-  // Show skin first running frame (256x224 frame 0)
-  if (homeHeroImg) homeHeroImg.hidden = true;
-  if (homeHeroCanvas) homeHeroCanvas.hidden = false;
-  if (homeSkinBadge) {
-    homeSkinBadge.hidden = false;
-    homeSkinBadge.textContent = active.name;
-  }
-
-  let img = homeRunImageCache[active.runSrc];
-  if (!img) {
-    img = new Image();
-    img.src = active.runSrc;
-    homeRunImageCache[active.runSrc] = img;
-    img.onload = () => drawHomeHeroFrame(img);
-    img.onerror = () => {
-      // Fallback to default illustration if skin image fails to load
-      if (homeHeroCanvas) homeHeroCanvas.hidden = true;
-      if (homeHeroImg) homeHeroImg.hidden = false;
-      if (homeSkinBadge) homeSkinBadge.hidden = true;
-    };
-  } else if (img.complete && img.naturalWidth > 0) {
-    drawHomeHeroFrame(img);
-  } else {
-    img.onload = () => drawHomeHeroFrame(img);
-    img.onerror = () => {
-      if (homeHeroCanvas) homeHeroCanvas.hidden = true;
-      if (homeHeroImg) homeHeroImg.hidden = false;
-      if (homeSkinBadge) homeSkinBadge.hidden = true;
-    };
   }
 }
 
@@ -1985,6 +1971,34 @@ function drawHomeHeroFrame(img: HTMLImageElement) {
     0, 0, homeHeroCanvas.width, homeHeroCanvas.height
   );
 }
+
+// User state subscription to update user bar
+authService.subscribe((user: AuthUser | null) => {
+  const guestInfo = $('user-info-guest');
+  const loggedInfo = $('user-info-logged');
+  const nickDisplay = $('user-nick-display');
+  const coinsDisplay = $('user-coins-display');
+
+  if (user) {
+    guestInfo.hidden = true;
+    loggedInfo.hidden = false;
+    nickDisplay.textContent = user.nickname;
+    coinsDisplay.textContent = String(user.coins);
+
+    if (user.highScore && user.highScore > best) {
+      best = user.highScore;
+      try {
+        localStorage.setItem('little-escape-best', String(best));
+      } catch {
+        /* optional */
+      }
+    }
+  } else {
+    guestInfo.hidden = false;
+    loggedInfo.hidden = true;
+  }
+  updateHomeHeroDisplay();
+});
 
 // Initial draw on script load
 updateHomeHeroDisplay();

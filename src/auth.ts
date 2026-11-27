@@ -43,14 +43,24 @@ export class SupabaseAuthService {
 
   public subscribe(fn: (user: AuthUser | null) => void): () => void {
     this.listeners.push(fn);
-    fn(this.user);
+    try {
+      fn(this.user);
+    } catch (e) {
+      console.warn('authService.subscribe listener error:', e);
+    }
     return () => {
       this.listeners = this.listeners.filter(l => l !== fn);
     };
   }
 
   private notify() {
-    this.listeners.forEach(fn => fn(this.user));
+    this.listeners.forEach(fn => {
+      try {
+        fn(this.user);
+      } catch (e) {
+        console.warn('authService.notify listener error:', e);
+      }
+    });
   }
 
   public getUser(): AuthUser | null {
