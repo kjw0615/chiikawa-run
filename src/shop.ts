@@ -100,6 +100,15 @@ export const SHOP_ITEMS: ShopItem[] = [
     icon: '/assets/momonga-super-magical-idle.webp',
     preview: '/assets/momonga-super-magical-run.webp',
     idleImg: '/assets/momonga-super-magical-idle.webp'
+  },
+  {
+    id: 'momonga-kigurumi-siren',
+    name: '세이렌 인형옷 스킨',
+    desc: '붉은 조개 귀와 비늘 지느러미, 다리 없는 인어 형태의 세이렌 코스튬',
+    price: 500,
+    icon: '/assets/momonga-siren-idle.webp',
+    preview: '/assets/momonga-siren-run.webp',
+    idleImg: '/assets/momonga-siren-idle.webp'
   }
 ];
 
