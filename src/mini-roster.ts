@@ -26,10 +26,29 @@ export const ROSTER: readonly RosterEntry[] = [
 /** The developer test menu lists the same seven characters. */
 export const DEV_ROSTER: readonly RosterEntry[] = [...ROSTER];
 
-/** The character that wins the slot for this encounter seed (stable for a given seed). */
-export function rosterIndexFor(seed: number, size: number): number {
-  let h = Math.imul(seed >>> 0, 2654435761) >>> 0; h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; h ^= h >>> 13;
-  return size > 0 ? ((h >>> 0) % size) : 0;
+/** The character that wins the slot for this encounter seed (stable for a given seed).
+ * If lastIndex is provided, the previous character has 0% chance and the remaining characters share equal probability.
+ */
+export function rosterIndexFor(seed: number, size: number, lastIndex: number | null = null): number {
+  if (size <= 0) return 0;
+  if (size === 1) return 0;
+
+  // High quality avalanche hash (Murmur3 fmix32) to prevent clustering or repetitive LCG patterns
+  let h = seed >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+
+  if (lastIndex !== null && lastIndex >= 0 && lastIndex < size) {
+    // Pick uniformly from the remaining (size - 1) candidates
+    let pick = h % (size - 1);
+    if (pick >= lastIndex) {
+      pick++;
+    }
+    return pick;
+  }
+
+  return h % size;
 }
 
 /**
@@ -43,8 +62,8 @@ export class SlottedMiniGame implements MiniGame {
   elapsed = 0; // seconds the reel has been spinning
   private spinning = true;
   private halted = false;
-  constructor(readonly seed: number, readonly roster: readonly RosterEntry[] = ROSTER) {
-    this.index = rosterIndexFor(seed, roster.length); this.entry = roster[this.index]; this.inner = this.entry.create(seed);
+  constructor(readonly seed: number, readonly roster: readonly RosterEntry[] = ROSTER, lastIndex: number | null = null) {
+    this.index = rosterIndexFor(seed, roster.length, lastIndex); this.entry = roster[this.index]; this.inner = this.entry.create(seed);
   }
   get phase(): string { return this.spinning ? 'selecting' : this.inner.phase; }
   get paused() { return this.halted; }

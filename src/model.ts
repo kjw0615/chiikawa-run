@@ -391,11 +391,15 @@ export class RunnerModel {
     }
     // Dense phrases need an intentional breathing space for the next NPC.
     // Plan before hazards/food enter the visible horizon; never delete objects already on screen.
-    // 미니게임 200m 안쪽(60m~190m) 랜덤 거리 등장
-    if (this.separateSpawns && this.encounterCourse && this.plannedEncounter === null && this.lastEncounterX + 60 <= this.distance + 180) {
+    // 미니게임 200m 구간당 1회: 첫 번째는 200m 이내(80m~170m) 랜덤 거리, 이후는 200m~240m 간격 랜덤 거리 등장
+    const isFirstEncounter = this.lastEncounterX === 0;
+    const minEncounterGap = this.separateSpawns ? (isFirstEncounter ? 80 : 200) : 60;
+    const encounterSpread = this.separateSpawns ? (isFirstEncounter ? 90 : 40) : 130;
+    const candidateCount = this.separateSpawns ? (isFirstEncounter ? 181 : 81) : 261;
+    if (this.separateSpawns && this.encounterCourse && this.plannedEncounter === null && this.lastEncounterX + minEncounterGap <= this.distance + 180) {
       const nextState = (Math.imul(1664525, this.encounterState) + 1013904223) >>> 0;
-      const desired = this.lastEncounterX + 60 + (nextState / 4294967296) * 130;
-      const candidates = Array.from({ length: 261 }, (_, n) => this.lastEncounterX + 60 + n * .5)
+      const desired = this.lastEncounterX + minEncounterGap + (nextState / 4294967296) * encounterSpread;
+      const candidates = Array.from({ length: candidateCount }, (_, n) => this.lastEncounterX + minEncounterGap + n * .5)
         .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
       const plan = candidates.find(x => this.clearFoodDeadline(x) && this.platforms.every(p => x <= p.start - 8 || x >= p.end + 8 || x >= p.start + 4 && x <= p.end - 4)
         && this.items.every(i => i.kind === 'coin' || Math.abs(i.x-x) >= (collectible(i.kind) ? SPAWN_CLEARANCE.encounter : SPAWN_CLEARANCE.encounterHazard) + (i.w/2+RULES.halfHitWidth)/RULES.scale));
@@ -471,16 +475,17 @@ export class RunnerModel {
     this.limitFoodGaps(this.distance+96);
     if (!this.separateSpawns) this.generateCoins();
     // A separate seeded schedule never changes the obstacle/food random stream.
-    // 미니게임 200m 안쪽(60m~190m) 랜덤 거리 등장
-    while (this.encounterCourse && this.lastEncounterX + 60 <= this.distance + 120) {
-      if (this.separateSpawns && this.lastEncounterX + 190 < this.distance + 16) {
+    // 미니게임 200m 구간당 1회: 첫 번째는 200m 이내(80m~170m) 랜덤 거리, 이후는 200m~240m 간격 랜덤 거리 등장
+    while (this.encounterCourse && this.lastEncounterX + minEncounterGap <= this.distance + 120) {
+      const maxBand = isFirstEncounter ? 180 : 240;
+      if (this.separateSpawns && this.lastEncounterX + maxBand < this.distance + 16) {
         // Recover a missed planning band without spawning an NPC behind the runner.
-        this.lastEncounterX = this.distance - 74;
+        this.lastEncounterX = this.distance - (maxBand - 116);
         this.plannedEncounter = null;
       }
       const nextState = (Math.imul(1664525, this.encounterState) + 1013904223) >>> 0;
-      const desired = this.lastEncounterX + 60 + (nextState / 4294967296) * 130;
-      const candidates = Array.from({ length: 261 }, (_, n) => this.lastEncounterX + 60 + n * .5)
+      const desired = this.lastEncounterX + minEncounterGap + (nextState / 4294967296) * encounterSpread;
+      const candidates = Array.from({ length: candidateCount }, (_, n) => this.lastEncounterX + minEncounterGap + n * .5)
         .sort((a,b) => Math.abs(a-desired)-Math.abs(b-desired));
       const safeEncounter = (x: number) => {
         if (this.separateSpawns && !this.clearFoodDeadline(x)) return false;

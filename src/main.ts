@@ -141,7 +141,7 @@ if (hulaToggle) {
   });
 }
 let model = new RunnerModel(), game: Phaser.Game | null = null, best = 0, accumulator = 0, crouchHeld = false, lastPhase = '';
-let mini: SlottedMiniGame | null = null, encounterId: number | null = null, miniViewKey = '';
+let mini: SlottedMiniGame | null = null, encounterId: number | null = null, miniViewKey = '', lastMiniGameIndex: number | null = null;
 try { best = Number(localStorage.getItem('little-escape-best') || 0); } catch { /* optional */ }
 const overlay = $('overlay'), start = $('start'), pause = $<HTMLButtonElement>('pause');
 const home = $('home-screen'), play = $('play-screen');
@@ -265,7 +265,7 @@ btnHomeTutorial?.addEventListener('click', () => {
 function beginRun() {
   isTutorialMode = false;
   if (tutorialGuide) tutorialGuide.hidden = true;
-  mini = null; encounterId = null; miniViewKey = ''; updateMini();
+  mini = null; encounterId = null; miniViewKey = ''; lastMiniGameIndex = null; updateMini();
   model = new RunnerModel(Date.now(), true, { coins: true, foodFreeDistance: 30, separateSpawns: true }); accumulator = 0; crouchHeld = false; lastPhase = ''; preparing = true;
   home.hidden = true; play.hidden = false; displayGap = model.gap; release(); releaseJump();
   if (!game) { play.appendChild(loading); game = new Phaser.Game({ type: Phaser.AUTO, width: 1120, height: 630, parent: 'game', backgroundColor: '#edf4e7', scene: RunnerScene, render: { antialias: true }, audio: { noAudio: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH } }); }
@@ -457,7 +457,9 @@ class RunnerScene extends Phaser.Scene {
       }
     }
     if (model.activeEncounter && !mini) {
-      encounterId = model.activeEncounter.id; mini = new SlottedMiniGame(model.activeEncounter.seed);
+      encounterId = model.activeEncounter.id;
+      mini = new SlottedMiniGame(model.activeEncounter.seed, ROSTER, lastMiniGameIndex);
+      lastMiniGameIndex = mini.index;
       miniViewKey = ''; accumulator = 0; release(); releaseJump();
     }
     if (mini) {

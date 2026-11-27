@@ -211,9 +211,18 @@
 .kani-row u[data-filled=true]{border-style:solid;border-color:#5a3f22;background:#d9789d;animation:kani-fill .35s ease-out}
 .kani-row u[data-kind=cook]{background:#e9a43a}.kani-row u[data-kind=plant]{background:#6fae52}
 .kani-shelves{display:flex;gap:8px;max-width:660px;margin:6px auto 4px}
-.kani-shelf{appearance:none;border:3px solid #8a6a43;border-radius:14px;cursor:pointer;flex:1 1 0;min-height:60px;background:#f3e3c0;color:#5a3f22;font:bold 17px sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:manipulation}
-.kani-shelf b{font-size:22px;line-height:1}.kani-shelf[data-active=true]{background:#f9e7b4;box-shadow:inset 0 -5px 0 #c0452c}.kani-shelf:disabled{cursor:default;opacity:1}
-.kani-shelf[data-flash=sorted]{background:#d7edc0}.kani-shelf[data-flash=wrong]{background:#fbd9cc}
+.kani-shelf{appearance:none;border:3px solid #8a6a43;border-radius:14px;cursor:pointer;flex:1 1 0;min-height:60px;background:#f3e3c0;color:#5a3f22;font:bold 17px sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:manipulation;transition:background .15s, border-color .15s, transform .05s}
+.kani-shelf[data-shelf="0"]{background:#fce4ec;border-color:#d9789d;color:#5a3f22}
+.kani-shelf[data-shelf="1"]{background:#fff3e0;border-color:#d98d2b;color:#5a3f22}
+.kani-shelf[data-shelf="2"]{background:#e8f5e9;border-color:#5f9f45;color:#5a3f22}
+.kani-shelf b{font-size:22px;line-height:1}
+.kani-shelf[data-active=true]{box-shadow:inset 0 -5px 0 #c0452c}
+.kani-shelf[data-shelf="0"][data-active=true]{background:#f8bbd0}
+.kani-shelf[data-shelf="1"][data-active=true]{background:#ffe0b2}
+.kani-shelf[data-shelf="2"][data-active=true]{background:#c8e6c9}
+.kani-shelf:disabled{cursor:default;opacity:1}
+.kani-shelf[data-flash=sorted]{background:#d7edc0 !important;border-color:#5f9f45 !important}
+.kani-shelf[data-flash=wrong]{background:#fbd9cc !important;border-color:#d9534f !important}
 .kani-put{width:auto;min-width:220px;margin:6px auto}
 @keyframes kani-fill{0%{transform:translateY(-30px) scale(1.2);opacity:0}70%{transform:translateY(2px)}100%{transform:none;opacity:1}}
 .kani-ghost{position:absolute;left:24%;top:38%;z-index:5;width:44px;height:62px;margin:-31px 0 0 -22px;pointer-events:none;animation:kani-slot .5s ease-in forwards}
