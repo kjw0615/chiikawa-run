@@ -268,6 +268,21 @@
     </div>
   </section>
 
+  <!-- 커스텀 모달 알림 및 확인창 (Alert / Confirm) -->
+  <section id="custom-dialog-backdrop" class="custom-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="custom-dialog-title" hidden>
+    <div class="custom-modal-card custom-dialog-card">
+      <div class="custom-dialog-header">
+        <span id="custom-dialog-icon" class="custom-dialog-icon">💬</span>
+        <h3 id="custom-dialog-title">알림</h3>
+      </div>
+      <p id="custom-dialog-msg" class="custom-dialog-msg">메시지 내용</p>
+      <div id="custom-dialog-actions" class="custom-dialog-actions">
+        <button id="custom-dialog-cancel" class="custom-dialog-btn cancel" type="button">취소</button>
+        <button id="custom-dialog-confirm" class="custom-dialog-btn confirm" type="button">확인</button>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <p>치이카와의 캐릭터와 세계관은 원작자에게 권리가 있습니다. 이 게임은 공식이 아닌 팬메이드 작품입니다.</p>
     <button id="restart" type="button">처음부터 다시</button>

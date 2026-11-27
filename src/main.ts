@@ -707,6 +707,62 @@ const CROUCH_KEYS = ['ArrowDown', 'ControlLeft', 'ControlRight'], crouchKeysDown
 function release() { crouchKeysDown.clear(); crouchHeld = false; model.crouch = false; crouchButton.classList.remove('held'); }
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) crouchButton.addEventListener(event, release);
 // ============================================================================
+// 자체 커스텀 대화상자 (Alert / Confirm) 모듈
+// ============================================================================
+const customDialogBackdrop = $('custom-dialog-backdrop');
+const customDialogTitle = $('custom-dialog-title');
+const customDialogIcon = $('custom-dialog-icon');
+const customDialogMsg = $('custom-dialog-msg');
+const customDialogCancel = $<HTMLButtonElement>('custom-dialog-cancel');
+const customDialogConfirm = $<HTMLButtonElement>('custom-dialog-confirm');
+
+let dialogResolve: ((value: boolean) => void) | null = null;
+
+function showCustomConfirm(msg: string, title = '확인', icon = '❓'): Promise<boolean> {
+  return new Promise(resolve => {
+    dialogResolve = resolve;
+    if (customDialogTitle) customDialogTitle.textContent = title;
+    if (customDialogIcon) customDialogIcon.textContent = icon;
+    if (customDialogMsg) customDialogMsg.textContent = msg;
+    if (customDialogCancel) customDialogCancel.hidden = false;
+    if (customDialogConfirm) customDialogConfirm.textContent = '확인';
+    if (customDialogBackdrop) customDialogBackdrop.hidden = false;
+  });
+}
+
+function showCustomAlert(msg: string, title = '알림', icon = '💬'): Promise<void> {
+  return new Promise(resolve => {
+    dialogResolve = () => resolve();
+    if (customDialogTitle) customDialogTitle.textContent = title;
+    if (customDialogIcon) customDialogIcon.textContent = icon;
+    if (customDialogMsg) customDialogMsg.textContent = msg;
+    if (customDialogCancel) customDialogCancel.hidden = true;
+    if (customDialogConfirm) customDialogConfirm.textContent = '확인';
+    if (customDialogBackdrop) customDialogBackdrop.hidden = false;
+  });
+}
+
+// 전역 window 객체에도 노출 (auth.ts 등에서 사용 가능)
+(window as unknown as { showCustomAlert: typeof showCustomAlert; showCustomConfirm: typeof showCustomConfirm }).showCustomAlert = showCustomAlert;
+(window as unknown as { showCustomAlert: typeof showCustomAlert; showCustomConfirm: typeof showCustomConfirm }).showCustomConfirm = showCustomConfirm;
+
+customDialogConfirm?.addEventListener('click', () => {
+  if (customDialogBackdrop) customDialogBackdrop.hidden = true;
+  if (dialogResolve) {
+    dialogResolve(true);
+    dialogResolve = null;
+  }
+});
+
+customDialogCancel?.addEventListener('click', () => {
+  if (customDialogBackdrop) customDialogBackdrop.hidden = true;
+  if (dialogResolve) {
+    dialogResolve(false);
+    dialogResolve = null;
+  }
+});
+
+// ============================================================================
 // 전체화면 및 가로모드 전환 기능
 // ============================================================================
 const fsToggle = $('fullscreen-toggle');
@@ -1241,8 +1297,9 @@ tabSignup?.addEventListener('click', () => {
   setTimeout(() => authNickInput.focus(), 50);
 });
 
-btnLogout?.addEventListener('click', () => {
-  if (confirm('로그아웃 하시겠습니까?')) {
+btnLogout?.addEventListener('click', async () => {
+  const confirmed = await showCustomConfirm('정말 로그아웃 하시겠습니까?', '로그아웃', '👋');
+  if (confirmed) {
     authService.logout();
   }
 });
@@ -1285,8 +1342,8 @@ authSubmit?.addEventListener('click', async () => {
 
       const res = await authService.signUp(nick, email, pw);
       if (res.ok) {
-        alert('회원가입이 완료되었습니다! 자동 로그인되었습니다.');
         authModal.hidden = true;
+        await showCustomAlert('회원가입이 완료되었습니다!\n자동으로 로그인되었습니다.', '가입 완료', '🎉');
       } else {
         showAuthError(res.error || '회원가입에 실패했습니다.');
       }
@@ -1402,7 +1459,7 @@ function renderShop() {
   });
 
   shopItemsContainer.querySelectorAll('[data-buy]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const id = btn.getAttribute('data-buy')!;
       const user = authService.getUser();
       const item = SHOP_ITEMS.find(i => i.id === id);
@@ -1413,15 +1470,19 @@ function renderShop() {
       if (!item) return;
 
       if (user.coins < item.price) {
+        await showCustomAlert(`소유한 코인이 부족해서 구매할 수 없습니다.\n(보유: ${user.coins}개 / 필요: ${item.price}개)`, '코인 부족', '🪙');
         showShopToast('소유한 코인이 부족해서 구매할 수 없습니다.');
         return;
       }
 
-      const confirmed = window.confirm(`[${item.name}] 스킨을 동전 ${item.price}개로 정말 구매하시겠습니까?`);
+      const confirmed = await showCustomConfirm(`[${item.name}] 스킨을 동전 ${item.price}개로 정말 구매하시겠습니까?`, '스킨 구매 확인', '🛍️');
       if (!confirmed) return;
 
       const res = ShopManager.buyItem(id);
       showShopToast(res.message);
+      if (res.ok) {
+        await showCustomAlert(`"${item.name}" 스킨을 구매하여 착용했습니다!`, '구매 완료', '✨');
+      }
       renderShop();
     });
   });
@@ -1657,20 +1718,24 @@ function openSkinPreview(skinId: string) {
       btnOpenAuth?.click();
     });
 
-    actionWrap.querySelector('[data-preview-buy]')?.addEventListener('click', () => {
+    actionWrap.querySelector('[data-preview-buy]')?.addEventListener('click', async () => {
       if (!user) {
         showShopToast('상점을 이용하려면 먼저 로그인해 주세요.');
         return;
       }
       if (user.coins < item.price) {
+        await showCustomAlert(`소유한 코인이 부족해서 구매할 수 없습니다.\n(보유: ${user.coins}개 / 필요: ${item.price}개)`, '코인 부족', '🪙');
         showShopToast('소유한 코인이 부족해서 구매할 수 없습니다.');
         return;
       }
-      const confirmed = window.confirm(`[${item.name}] 스킨을 동전 ${item.price}개로 정말 구매하시겠습니까?`);
+      const confirmed = await showCustomConfirm(`[${item.name}] 스킨을 동전 ${item.price}개로 정말 구매하시겠습니까?`, '스킨 구매 확인', '🛍️');
       if (!confirmed) return;
 
       const res = ShopManager.buyItem(item.id);
       showShopToast(res.message);
+      if (res.ok) {
+        await showCustomAlert(`"${item.name}" 스킨을 구매하여 착용했습니다!`, '구매 완료', '✨');
+      }
       renderShop();
       openSkinPreview(item.id);
     });

@@ -429,9 +429,70 @@ footer button{margin-left:auto;background:none;border:0;color:var(--ink-soft);fo
   border: none;
   font-size: 28px;
   line-height: 1;
-  cursor: pointer;
   color: var(--ink-soft);
+  cursor: pointer;
   padding: 0 4px;
+}
+
+/* 자체 커스텀 알림/확인 대화상자 (Custom Alert / Confirm) */
+.custom-dialog-card {
+  max-width: 360px;
+  padding: 22px 20px 18px;
+  text-align: center;
+  border-width: 3.5px;
+  border-radius: 26px;
+  z-index: 1100;
+}
+.custom-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.custom-dialog-icon {
+  font-size: 24px;
+}
+.custom-dialog-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--ink);
+}
+.custom-dialog-msg {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 0 0 18px;
+  word-break: keep-all;
+}
+.custom-dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.custom-dialog-btn {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.custom-dialog-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.custom-dialog-btn.cancel {
+  background: #f0e6e8;
+  color: var(--ink-soft);
+}
+.custom-dialog-btn.confirm {
+  background: var(--pink-deep);
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.2);
 }
 
 .modal-close-btn:hover {

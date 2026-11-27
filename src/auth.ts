@@ -166,7 +166,12 @@ export class SupabaseAuthService {
     this.logout();
     if (typeof window !== 'undefined') {
       setTimeout(() => {
-        alert('30분 동안 활동이 없어 안전을 위해 자동 로그아웃되었습니다.');
+        if ((window as unknown as { showCustomAlert?: (msg: string, title?: string) => void }).showCustomAlert) {
+          (window as unknown as { showCustomAlert: (msg: string, title?: string) => void }).showCustomAlert(
+            '30분 동안 활동이 없어 안전을 위해 자동 로그아웃되었습니다.',
+            '자동 로그아웃'
+          );
+        }
       }, 50);
     }
   }
